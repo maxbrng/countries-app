@@ -41,6 +41,15 @@ struct MainScreen: View {
         }
         .navigationTitle("Your Countries")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    path.append(AppRoute.settings)
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+            }
+        }
     }
     
     // MARK: - Statistic

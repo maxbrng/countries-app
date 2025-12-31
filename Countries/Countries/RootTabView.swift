@@ -9,38 +9,43 @@ import SwiftUI
 import MapKit
 import Foundation
 
-import Foundation
-
 // Conforms to Hashable so it can be used with NavigationPath and navigationDestination.
 public enum AppRoute: Hashable {
-//    case countryDetail(country: Country)
+    //    case countryDetail(country: Country)
     case fullCountryList
     case mapScreen
+    case settings
 }
 
 struct RootTabView: View {
-
+    
     @State private var path = NavigationPath()
+    
+    @State private var search = ""
     
     var body: some View {
         
         TabView {
-            NavigationStack(path: $path) {
-                MainScreen(path: $path)
-                    .navigationDestination(for: AppRoute.self) { (route: AppRoute) in
-                        destination(for: route)
-                    }
-            }
-            .tabItem {
-                Label("Countries", systemImage: "globe.europe.africa.fill")
+            Tab("Countries", systemImage: "globe.europe.africa.fill") {
+                NavigationStack(path: $path) {
+                    MainScreen(path: $path)
+                        .navigationDestination(for: AppRoute.self) { (route: AppRoute) in
+                            destination(for: route)
+                        }
+                }
             }
             
-            // hierfür ne separated route?
-            NavigationStack {
-                DiscoverScreen(path: $path)
+            Tab("Discover", systemImage: "binoculars.fill") {
+                NavigationStack {
+                    DiscoverScreen(path: $path)
+                }
             }
-            .tabItem {
-                Label("Discover", systemImage: "binoculars.fill")
+            
+            Tab("All Countries", systemImage: "magnifyingglass", role: .search) {
+                NavigationStack {
+                    FullCountriesList(path: $path)
+                        .searchable(text: $search, placement: .automatic, prompt: "Search countries")
+                }
             }
         }
     }
@@ -52,6 +57,8 @@ struct RootTabView: View {
             FullCountriesList(path: $path)
         case .mapScreen:
             MapScreen()
+        case .settings:
+            SettingsScreen()
         }
     }
 }
