@@ -7,13 +7,16 @@
 
 import SwiftUI
 import SwiftData
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Countries", category: "App")
 
 @main
 struct CountriesApp: App {
     
     var sharedModelContainer: ModelContainer = {
         
-        let schema = Schema([])
+        let schema = Schema([Country.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
@@ -27,6 +30,15 @@ struct CountriesApp: App {
         
         WindowGroup {
             RootTabView()
+                .task {
+                    let context = sharedModelContainer.mainContext
+                    do {
+                        try await CountrySeeder.seedIfNeeded(modelContext: context)
+                        logger.info("App seeding completed successfully. [\(#fileID):\(#line) \(#function)]")
+                    } catch {
+                        logger.error("App seeding failed. error=\(String(describing: error), privacy: .public) [\(#fileID):\(#line) \(#function)]")
+                    }
+                }
         }
         .modelContainer(sharedModelContainer)
     }

@@ -43,7 +43,7 @@ struct RootTabView: View {
             
             Tab("All Countries", systemImage: "magnifyingglass", role: .search) {
                 NavigationStack {
-                    FullCountriesList(path: $path)
+                    CountriesList(path: $path)
                         .searchable(text: $search, placement: .automatic, prompt: "Search countries")
                 }
             }
@@ -54,7 +54,7 @@ struct RootTabView: View {
     func destination(for route: AppRoute) -> some View {
         switch route {
         case .fullCountryList:
-            FullCountriesList(path: $path)
+            CountriesList(path: $path)
         case .mapScreen:
             MapScreen()
         case .settings:
