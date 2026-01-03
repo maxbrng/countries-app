@@ -7,13 +7,18 @@
 
 import SwiftUI
 import MapKit
+import SwiftData
+import os
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Countries", category: "MainScreen")
 
 struct MainScreen: View {
     
     @Binding var path: NavigationPath
+    @StateObject private var viewModel = MainScreenViewModel()
     
-    @State private var countriesVisited: Double = 16
-    @State private var continentsVisited: Double = 1
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Country.name) private var allCountries: [Country]
     
     @State private var mapRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
@@ -33,9 +38,9 @@ struct MainScreen: View {
                         .padding(.top)
                 }
                 
-                statView()
+                statView
                 
-                countryCard()
+                countryCard
             }
             .padding(.horizontal, 20)
         }
@@ -50,38 +55,43 @@ struct MainScreen: View {
                 }
             }
         }
+        .task {
+            viewModel.update(from: allCountries)
+        }
+        .onChange(of: allCountries) { _, newValue in
+            viewModel.update(from: newValue)
+        }
     }
     
     // MARK: - Statistic
     
-    @ViewBuilder
-    func statView() -> some View {
+    var statView: some View {
         
         HStack(alignment: .center, spacing: 0) {
-            statistic(currentValue: countriesVisited,
-                      maxValue: 195,
+            statistic(currentValue: viewModel.countriesVisited,
+                      maxValue: viewModel.totalCountries,
                       text: "countries",
                       graphVisualization: false)
-                .frame(maxWidth: .infinity)
-                .multilineTextAlignment(.center)
-
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            
             Divider()
-
-            statistic(currentValue: countriesVisited,
-                      maxValue: 195,
+            
+            statistic(currentValue: viewModel.countriesVisited,
+                      maxValue: viewModel.totalCountries,
                       text: "of the world",
                       graphVisualization: true)
-                .frame(maxWidth: .infinity)
-                .multilineTextAlignment(.center)
-
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            
             Divider()
-
-            statistic(currentValue: continentsVisited,
-                      maxValue: 7,
+            
+            statistic(currentValue: viewModel.continentsVisited,
+                      maxValue: viewModel.totalContinents,
                       text: "continents",
                       graphVisualization: false)
-                .frame(maxWidth: .infinity)
-                .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, alignment: .center)
         
@@ -100,8 +110,14 @@ struct MainScreen: View {
                 let countryPercentage = progress * 100.0
                 let text = String(format: "%.0f%%", countryPercentage)
                 
-                circularProgressView(progress: progress, text: text)
-                    .padding(.bottom, 4)
+                Gauge(value: progress) {
+                    Text(verbatim: text)
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                }
+                .gaugeStyle(CircularStrokeGaugeStyle(lineWidth: 8))
+                .frame(width: 60, height: 60)
+                .padding(.bottom, 4)
                 
             } else {
                 
@@ -116,44 +132,10 @@ struct MainScreen: View {
         }
     }
     
-    @ViewBuilder
-    func circularProgressView(progress: Double,
-                              text: String) -> some View {
-        ZStack {
-            Circle()
-                .stroke(Color.secondary.opacity(0.3), lineWidth: 8)
-            
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(style: StrokeStyle(lineWidth: 8, lineCap: .round, lineJoin: .round))
-                .rotationEffect(.degrees(-90))
-            
-            Text(verbatim: text)
-                .font(.callout)
-                .fontWeight(.semibold)
-        }
-        .frame(width: 60, height: 60)
-    }
-    
     // MARK: - CountryCard
     
-    @ViewBuilder
-    func countryCard() -> some View {
+    var countryCard: some View {
         
-        //TODO: Replace Mockvalues and flags
-        let visited: [(flag: String, name: String)] = [
-            ("🇫🇷", "France"),
-            ("🇦🇹", "Austria"),
-            ("🇨🇿", "Czech Republic"),
-            ("🇨🇿", "Czech Republic"),
-            ("🇨🇿", "Czech Republic"),
-            ("🇨🇿", "Czech Republic"),
-            ("🇨🇿", "Czech Republic")
-        ]
-        let wishlist: [(flag: String, name: String)] = [
-            ("🇩🇪", "Germany")
-        ]
-
         NavigationLink(value: AppRoute.fullCountryList) {
             
             VStack(alignment: .leading, spacing: 16) {
@@ -163,9 +145,9 @@ struct MainScreen: View {
                     .foregroundStyle(.primary)
                 
                 HStack(alignment: .top, spacing: 24) {
-                    countryPreviewList(for: "Visited", countries: visited)
+                    countryPreviewList(for: "Visited", countries: viewModel.visitedCountries)
                     
-                    countryPreviewList(for: "On Wishlist", countries: wishlist)
+                    countryPreviewList(for: "On Wishlist", countries: viewModel.wishlistCountries)
                 }
                 
                 Divider()
@@ -182,10 +164,10 @@ struct MainScreen: View {
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 36))
         .contentShape(Rectangle())
     }
-
+    
     @ViewBuilder
     private func countryPreviewList(for text: String,
-                                    countries: [(flag: String, name: String)]) -> some View {
+                                    countries: [Country]) -> some View {
         
         let remainingVisited = max(0, countries.count - 3)
         
@@ -203,10 +185,16 @@ struct MainScreen: View {
             
             VStack(alignment: .leading, spacing: 6) {
                 
-                ForEach(countries.prefix(3), id: \.name) { item in
+                ForEach(countries.prefix(3), id: \.iso2) { item in
                     
                     HStack(spacing: 8) {
-                        Text(item.flag)
+                        
+                        Image(item.iso2.lowercased())
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 10)
+                            .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                        
                         Text(item.name)
                             .foregroundStyle(.primary)
                     }
@@ -241,4 +229,3 @@ struct MainScreen: View {
 #Preview {
     MainScreen(path: .constant(NavigationPath()))
 }
-
