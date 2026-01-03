@@ -7,7 +7,9 @@
 
 import SwiftData
 
-enum CountryStatus: Int, Codable {
+import SwiftData
+
+enum CountryStatus: Int, Codable, CaseIterable {
     case none = 0
     case visited = 1
     case wishlist = 2
@@ -15,24 +17,43 @@ enum CountryStatus: Int, Codable {
 
 @Model
 final class Country {
-    @Attribute(.unique) var iso2: String      // "DE"
-    var name: String                          // "Germany"
-    var continent: String?
-    var region: String?
 
-    var statusRaw: Int                        // gespeichert als Int
-    var status: CountryStatus {
-        get { CountryStatus(rawValue: statusRaw) ?? .none }
-        set { statusRaw = newValue.rawValue }
-    }
+    @Attribute(.unique) var iso2: String   // "DE"
+
+    var name: String
+    var nativeName: String?
+    var continent: String?
+    var capital: String?
+
+    var phoneCodes: [Int]
+    var currencies: [String]
+    var languages: [String]
+
+    var status: CountryStatus
     var notes: String?
 
-    init(iso2: String, name: String, continent: String? = nil, status: CountryStatus = .none, region: String? = nil, notes: String? = nil) {
+    init(
+        iso2: String,
+        name: String,
+        nativeName: String? = nil,
+        continent: String? = nil,
+        capital: String? = nil,
+        phoneCodes: [Int] = [],
+        currencies: [String] = [],
+        languages: [String] = [],
+        status: CountryStatus = .none,
+        notes: String? = nil
+    ) {
         self.iso2 = iso2.uppercased()
         self.name = name
+        self.nativeName = nativeName
         self.continent = continent
-        self.region = region
-        self.statusRaw = status.rawValue
+        self.capital = capital
+        self.phoneCodes = phoneCodes
+        self.currencies = currencies
+        self.languages = languages
+        self.status = status
         self.notes = notes
     }
 }
+

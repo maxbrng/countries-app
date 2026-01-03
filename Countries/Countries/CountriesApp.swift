@@ -14,29 +14,28 @@ private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Countrie
 @main
 struct CountriesApp: App {
     
-    var sharedModelContainer: ModelContainer = {
+    private let sharedModelContainer: ModelContainer = {
         
         let schema = Schema([Country.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
+        
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
-
+    
     var body: some Scene {
         
         WindowGroup {
             RootTabView()
                 .task {
-                    let context = sharedModelContainer.mainContext
                     do {
-                        try await CountrySeeder.seedIfNeeded(modelContext: context)
-                        logger.info("App seeding completed successfully. [\(#fileID):\(#line) \(#function)]")
+                        try CountrySeeder.seedIfNeeded(in: sharedModelContainer.mainContext)
+                        logger.info("App seeding completed (or skipped).")
                     } catch {
-                        logger.error("App seeding failed. error=\(String(describing: error), privacy: .public) [\(#fileID):\(#line) \(#function)]")
+                        logger.error("App seeding failed: \((error as NSError).localizedDescription, privacy: .public)")
                     }
                 }
         }
