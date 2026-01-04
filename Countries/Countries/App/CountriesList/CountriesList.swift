@@ -14,12 +14,14 @@ struct CountriesList: View {
 
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = CountriesListViewModel()
+    @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
 
-    @Query(sort: \Country.name) private var allCountries: [Country]
+    @Query(sort: \Country.iso2) private var allCountries: [Country]
     
     var body: some View {
         
-        let filtered = viewModel.filteredCountries(from: allCountries)
+        let base = showOnlyUNMembers ? allCountries.filter { $0.isUNMember } : allCountries
+        let filtered = viewModel.filteredCountries(from: base)
         let groups = viewModel.groups(from: filtered)
         
         List {
@@ -63,7 +65,9 @@ struct CountriesList: View {
             Section {
                 
                 ForEach(group.countries, id: \.iso2) { country in
-                    CountryRow(country: country)
+                    NavigationLink(destination: CountryDetailsView(country: country)) {
+                        CountryRow(country: country)
+                    }
                 }
             } header: {
                 Text(group.title)
@@ -79,7 +83,9 @@ struct CountriesList: View {
         Section {
             
             ForEach(countries, id: \.iso2) { country in
-                CountryRow(country: country)
+                NavigationLink(destination: CountryDetailsView(country: country)) {
+                    CountryRow(country: country)
+                }
             }
         } header: {
             Color.clear.frame(height: 20)
@@ -113,3 +119,4 @@ struct CountriesList: View {
         .frame(height: 40)
     }
 }
+

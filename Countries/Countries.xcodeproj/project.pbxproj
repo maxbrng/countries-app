@@ -41,7 +41,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Resources/Assets/countries.geojson,
-				Resources/Assets/countries.min.json,
 			);
 			target = 501163E62EE0DD4300563A50 /* CountriesTests */;
 		};
@@ -49,7 +48,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Resources/Assets/countries.geojson,
-				Resources/Assets/countries.min.json,
 			);
 			target = 501163F02EE0DD4300563A50 /* CountriesUITests */;
 		};

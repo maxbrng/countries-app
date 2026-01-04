@@ -5,8 +5,7 @@
 //  Created by Max Breuning on 01.01.26.
 //
 
-import SwiftData
-
+import Foundation
 import SwiftData
 
 enum CountryStatus: Int, Codable, CaseIterable {
@@ -19,8 +18,9 @@ enum CountryStatus: Int, Codable, CaseIterable {
 final class Country {
 
     @Attribute(.unique) var iso2: String   // "DE"
+    var iso3: String?
 
-    var name: String
+    var nameEnglish: String
     var nativeName: String?
     var continent: String?
     var capital: String?
@@ -31,10 +31,16 @@ final class Country {
 
     var status: CountryStatus
     var notes: String?
+    
+    var isUNMember: Bool
+    var dataHadSourceTranslations: Bool // others had translations added with AI
+    
+    @Attribute(.externalStorage) var translationsData: Data?
 
     init(
         iso2: String,
-        name: String,
+        iso3: String? = nil,
+        nameEnglish: String,
         nativeName: String? = nil,
         continent: String? = nil,
         capital: String? = nil,
@@ -42,10 +48,14 @@ final class Country {
         currencies: [String] = [],
         languages: [String] = [],
         status: CountryStatus = .none,
-        notes: String? = nil
+        isUNMember: Bool,
+        dataHasSourceTranslation: Bool,
+        notes: String? = nil,
+        translations: [String: String]
     ) {
         self.iso2 = iso2.uppercased()
-        self.name = name
+        self.iso3 = iso3
+        self.nameEnglish = nameEnglish
         self.nativeName = nativeName
         self.continent = continent
         self.capital = capital
@@ -53,7 +63,36 @@ final class Country {
         self.currencies = currencies
         self.languages = languages
         self.status = status
+        self.isUNMember = isUNMember
+        self.dataHadSourceTranslations = dataHasSourceTranslation
         self.notes = notes
+        self.translationsData = try? JSONEncoder().encode(translations)
+    }
+    
+    var localizedNames: [String: String] {
+        
+        get {
+            guard let translationsData,
+                  let dict = try? JSONDecoder().decode([String: String].self, from: translationsData)
+            else { return [:] }
+            return dict
+        }
+        set {
+            translationsData = try? JSONEncoder().encode(newValue)
+        }
+    }
+    
+    func displayName(preferredLanguageCodes: [String]) -> String {
+        
+        let dict = localizedNames
+        
+        for code in preferredLanguageCodes {
+            if let hit = dict[code] { return hit }
+            if let base = code.split(separator: "-").first.map(String.init),
+               let hit = dict[base] { return hit }
+        }
+        
+        return nameEnglish
     }
 }
 
