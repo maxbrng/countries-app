@@ -29,11 +29,15 @@ struct MainScreen: View {
     var body: some View {
         
         ScrollView {
+            
             LazyVStack(spacing: 40) {
+                
                 NavigationLink(value: AppRoute.mapScreen) {
-                    Map()
+                    
+                    StaticCountriesMapView(selectionEnabled: false)
                         .disabled(true)
-                        .frame(height: 200)
+                        .padding(.horizontal)
+                        .aspectRatio(1.8, contentMode: .fill)
                         .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))
                         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 40))
                         .padding(.top)
