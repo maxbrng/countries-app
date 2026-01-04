@@ -18,12 +18,13 @@ struct CountryRow: View {
         HStack(spacing: 16) {
             Image(country.iso2.lowercased())
                 .resizable()
+                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .scaledToFit()
-                .frame(height: 30)
-                .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .frame(maxWidth: 40, maxHeight: 30)
+                
             
             VStack(alignment: .leading) {
-                Text(country.name)
+                Text(country.nameEnglish)
                 Text(country.iso2)
                     .font(.caption)
                     .foregroundStyle(.secondary)

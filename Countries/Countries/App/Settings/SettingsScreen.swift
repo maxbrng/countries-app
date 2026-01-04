@@ -8,10 +8,13 @@
 import SwiftUI
 
 struct SettingsScreen: View {
+    
+    @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
+
     var body: some View {
         List {
             Section("General") {
-                Toggle("Example setting", isOn: .constant(true))
+                Toggle("Only show UN countries", isOn: $showOnlyUNMembers)
             }
         }
         .navigationTitle("Settings")

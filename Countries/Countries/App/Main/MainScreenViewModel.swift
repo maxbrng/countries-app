@@ -24,11 +24,11 @@ final class MainScreenViewModel: ObservableObject {
 
         visitedCountries = allCountries
             .filter { $0.status == .visited }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .sorted { $0.nameEnglish.localizedCaseInsensitiveCompare($1.nameEnglish) == .orderedAscending }
 
         wishlistCountries = allCountries
             .filter { $0.status == .wishlist }
-            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            .sorted { $0.nameEnglish.localizedCaseInsensitiveCompare($1.nameEnglish) == .orderedAscending }
 
         countriesVisited = Double(visitedCountries.count)
 

@@ -54,14 +54,14 @@ final class CountriesListViewModel: ObservableObject {
         let searchResult = search.trimmingCharacters(in: .whitespacesAndNewlines)
         if !searchResult.isEmpty {
             result = result.filter {
-                $0.name.localizedCaseInsensitiveContains(searchResult) ||
+                $0.nameEnglish.localizedCaseInsensitiveContains(searchResult) ||
                 $0.iso2.localizedCaseInsensitiveContains(searchResult)
             }
         }
 
         // Sort
         result.sort {
-            let comparisonResult = $0.name.localizedCaseInsensitiveCompare($1.name)
+            let comparisonResult = $0.nameEnglish.localizedCaseInsensitiveCompare($1.nameEnglish)
             return sortAscending ? (comparisonResult == .orderedAscending) : (comparisonResult == .orderedDescending)
         }
 

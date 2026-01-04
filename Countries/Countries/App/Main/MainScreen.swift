@@ -16,9 +16,10 @@ struct MainScreen: View {
     
     @Binding var path: NavigationPath
     @StateObject private var viewModel = MainScreenViewModel()
+    @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
     
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Country.name) private var allCountries: [Country]
+    @Query(sort: \Country.iso2) private var allCountries: [Country]
     
     @State private var mapRegion = MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
@@ -56,10 +57,16 @@ struct MainScreen: View {
             }
         }
         .task {
-            viewModel.update(from: allCountries)
+            let source = showOnlyUNMembers ? allCountries.filter { $0.isUNMember } : allCountries
+            viewModel.update(from: source)
         }
         .onChange(of: allCountries) { _, newValue in
-            viewModel.update(from: newValue)
+            let source = showOnlyUNMembers ? newValue.filter { $0.isUNMember } : newValue
+            viewModel.update(from: source)
+        }
+        .onChange(of: showOnlyUNMembers) { _, newValue in
+            let source = newValue ? allCountries.filter { $0.isUNMember } : allCountries
+            viewModel.update(from: source)
         }
     }
     
@@ -185,18 +192,21 @@ struct MainScreen: View {
             
             VStack(alignment: .leading, spacing: 6) {
                 
-                ForEach(countries.prefix(3), id: \.iso2) { item in
+                ForEach(countries.prefix(3), id: \.iso2) { country in
                     
                     HStack(spacing: 8) {
                         
-                        Image(item.iso2.lowercased())
+                        Image(country.iso2.lowercased())
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 10)
                             .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                            .frame(maxWidth: 15, maxHeight: 10)
                         
-                        Text(item.name)
+                        Text(country.nameEnglish)
                             .foregroundStyle(.primary)
+                            .multilineTextAlignment(.leading)
+                            .truncationMode(.tail)
+                            .lineLimit(1)
                     }
                     .font(.footnote)
                 }
@@ -229,3 +239,4 @@ struct MainScreen: View {
 #Preview {
     MainScreen(path: .constant(NavigationPath()))
 }
+
