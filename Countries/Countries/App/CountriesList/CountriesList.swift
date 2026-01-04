@@ -65,7 +65,9 @@ struct CountriesList: View {
             Section {
                 
                 ForEach(group.countries, id: \.iso2) { country in
-                    CountryRow(country: country)
+                    NavigationLink(destination: CountryDetailsView(country: country)) {
+                        CountryRow(country: country)
+                    }
                 }
             } header: {
                 Text(group.title)
@@ -81,7 +83,9 @@ struct CountriesList: View {
         Section {
             
             ForEach(countries, id: \.iso2) { country in
-                CountryRow(country: country)
+                NavigationLink(destination: CountryDetailsView(country: country)) {
+                    CountryRow(country: country)
+                }
             }
         } header: {
             Color.clear.frame(height: 20)

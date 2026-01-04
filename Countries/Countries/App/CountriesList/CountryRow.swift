@@ -20,6 +20,10 @@ struct CountryRow: View {
                 .resizable()
                 .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 .scaledToFit()
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .stroke(.quaternary, lineWidth: 1)
+                )
                 .frame(maxWidth: 40, maxHeight: 30)
                 
             

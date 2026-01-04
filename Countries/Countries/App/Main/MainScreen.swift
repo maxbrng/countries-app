@@ -200,6 +200,10 @@ struct MainScreen: View {
                             .resizable()
                             .scaledToFit()
                             .clipShape(RoundedRectangle(cornerRadius: 2, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    .stroke(.quaternary, lineWidth: 1)
+                            )
                             .frame(maxWidth: 15, maxHeight: 10)
                         
                         Text(country.nameEnglish)
