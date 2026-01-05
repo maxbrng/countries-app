@@ -9,6 +9,9 @@ import SwiftUI
 import MapKit
 
 struct MapScreen: View {
+    
+    @Environment(\.dismiss) private var dismiss
+
     @State private var selected: Country?
     
     var body: some View {
@@ -25,7 +28,14 @@ struct MapScreen: View {
             }
         }
         .ignoresSafeArea()
-        .toolbar(.hidden, for: .tabBar)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Close", systemImage: "chevron.left") {
+                    dismiss() // oder über Binding den Path anpassen
+                }
+            }
+        }
     }
 }
 

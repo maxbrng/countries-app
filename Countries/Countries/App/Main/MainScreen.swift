@@ -49,9 +49,15 @@ struct MainScreen: View {
             }
             .padding(.horizontal, 20)
         }
-        .navigationTitle("Your Countries")
-        .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Text(verbatim: "Your Countries")
+                    .fixedSize()
+                    .font(.title)
+                    .fontWeight(.bold)
+            }
+            .sharedBackgroundVisibility(.hidden)
+            
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     path.append(AppRoute.settings)

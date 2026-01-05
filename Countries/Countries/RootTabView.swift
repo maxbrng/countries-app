@@ -31,6 +31,7 @@ struct RootTabView: View {
                     MainScreen(path: $path)
                         .navigationDestination(for: AppRoute.self) { (route: AppRoute) in
                             destination(for: route)
+                                .toolbar(.hidden, for: .tabBar)
                         }
                 }
             }
