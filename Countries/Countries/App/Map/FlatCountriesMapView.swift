@@ -13,6 +13,7 @@ import Foundation
 // MARK: - View
 
 struct FlatCountriesMapView: View {
+    
     @Environment(\.modelContext) private var context
     
     enum RenderMode { case stretch, aspectFit }
@@ -49,6 +50,8 @@ struct FlatCountriesMapView: View {
     // Deceleration
     @State private var decelTask: Task<Void, Never>?
     
+    @Binding var selectedCountry: Country?
+    
     // Hard reload token (only render subtree)
     @State private var reloadToken: Int = 0
     @State private var lastSize: CGSize = .zero
@@ -66,7 +69,8 @@ struct FlatCountriesMapView: View {
         doubleTapZoomFactor: CGFloat = 2.0,
         focusOnTap: Bool = true,
         focusPadding: CGFloat = 24,
-        hardReloadOnRotation: Bool = true
+        hardReloadOnRotation: Bool = true,
+        selectedCountry: Binding<Country?>
     ) {
         self.selectionEnabled = selectionEnabled
         self.interactiveEnabled = interactiveEnabled
@@ -79,10 +83,13 @@ struct FlatCountriesMapView: View {
         self.focusOnTap = focusOnTap
         self.focusPadding = focusPadding
         self.hardReloadOnRotation = hardReloadOnRotation
+        self._selectedCountry = selectedCountry
     }
     
     var body: some View {
+        
         GeometryReader { geo in
+            
             let viewport = CGRect(origin: .zero, size: geo.size)
             let worldRect = computeWorldRect(in: viewport, mode: renderMode, projection: projectionMode)
             
@@ -91,32 +98,15 @@ struct FlatCountriesMapView: View {
             ? (viewport.height / worldRect.height)
             : 1
             
-            // ✅ dynamic min zoom so world always covers viewport (no empty rim -> no freeze)
             let minUserZoom = dynamicMinUserZoom(viewport: viewport, world: worldRect, fitScale: fitScale)
             
-            ZStack {
-                renderAndGestures(
-                    viewport: viewport,
-                    worldRect: worldRect,
-                    fitScale: fitScale,
-                    minUserZoom: minUserZoom
-                )
-                .id(reloadToken)
-                
-                if selectionEnabled,
-                   let iso = selectedISO2,
-                   let country = countriesByISO2[iso] {
-                    VStack {
-                        Spacer()
-                        Text(country.nameEnglish)
-                            .padding(10)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .padding()
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    }
-                }
-            }
+            renderAndGestures(
+                viewport: viewport,
+                worldRect: worldRect,
+                fitScale: fitScale,
+                minUserZoom: minUserZoom
+            )
+            .id(reloadToken)
             .onAppear {
                 if lastSize == .zero { lastSize = geo.size }
                 clampCamera(viewport: viewport, world: worldRect, fitScale: fitScale)
@@ -278,6 +268,7 @@ struct FlatCountriesMapView: View {
         }
         
         selectedISO2 = iso2
+        selectedCountry = countriesByISO2[iso2]
         
         if focusOnTap {
             stopDeceleration()

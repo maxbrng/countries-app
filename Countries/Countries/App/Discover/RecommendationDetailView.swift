@@ -1,5 +1,5 @@
 //
-//  CountryCardView.swift
+//  RecommendationCardView.swift
 //  Countries
 //
 //  Created by Max Breuning on 03.01.26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct CountryDetailView: View {
+struct RecommendationDetailView: View {
     
     let item: CountryRecommendation
     
@@ -24,3 +24,4 @@ struct CountryDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+

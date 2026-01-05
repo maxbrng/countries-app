@@ -55,7 +55,7 @@ struct DiscoverScreen: View {
         .navigationTitle("Recommendations")
         .toolbarTitleDisplayMode(.inlineLarge)
         .navigationDestination(for: CountryRecommendation.self) { item in
-            CountryDetailView(item: item)
+            RecommendationDetailView(item: item)
         }
     }
 }

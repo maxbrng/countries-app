@@ -7,6 +7,7 @@
 
 import SwiftUI
 import MapKit
+import SwiftData
 
 enum MapAppearance {
     case twoD
@@ -17,7 +18,7 @@ struct MapScreen: View {
     
     @Environment(\.dismiss) private var dismiss
     
-    @State private var selected: Country?
+    @State private var selectedCountry: Country?
     
     @State private var showAppearanceSheet = false
     
@@ -28,17 +29,10 @@ struct MapScreen: View {
             
             switch appearance {
             case .twoD:
-                FlatCountriesMapView(interactiveEnabled: true, renderMode: .aspectFit)
+                FlatCountriesMapView(interactiveEnabled: true,
+                                     selectedCountry: $selectedCountry)
             case .threeD:
-                GlobeMapView()
-            }
-            
-            if let country = selected {
-                Text(country.displayName(preferredLanguageCodes: Locale.preferredLanguages))
-                    .padding()
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.bottom, 50)
+                GlobeMapView(selectedCountry: $selectedCountry)
             }
         }
         .ignoresSafeArea()
@@ -55,8 +49,22 @@ struct MapScreen: View {
                 }
             }
         }
+        // TODO: Create Custom UIKit Sheets like Apple Maps - von Arbeit nehmen?
         .sheet(isPresented: $showAppearanceSheet) {
+            appearanceSettingsSheet
+        }
+        .sheet(item: $selectedCountry) { country in
+            CountryDetailSheet(country: country)
+                .presentationDetents([.fraction(0.25)])
+                .presentationBackgroundInteraction(.enabled)
+                .presentationDragIndicator(.hidden)
+        }
+    }
+    
+    private var appearanceSettingsSheet: some View {
+        
             NavigationStack {
+                
                 VStack {
                     Picker("Appearence", selection: $appearance) {
                         Text("2D").tag(MapAppearance.twoD)
@@ -75,11 +83,91 @@ struct MapScreen: View {
                 }
             }
             .presentationDetents([.fraction(0.15)])
-            
         }
-    }
 }
 
 #Preview {
     MapScreen()
 }
+
+
+struct CountryDetailSheet: View {
+    
+    let country: Country
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    @Environment(\.modelContext) private var modelContext
+    
+    @State private var showDetailSheet = false
+    
+    var body: some View {
+        NavigationStack {
+            VStack {
+                HStack(spacing: 12) {
+                    Button(action: { toggleStatus(of: country, .visited) }) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Visited")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.green)
+
+                    Button(action: { toggleStatus(of: country, .wishlist) }) {
+                        HStack {
+                            Image(systemName: "star.fill")
+                            Text("Wishlist")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.glass)
+                    .tint(.blue)
+                }
+                
+                Button {
+                    showDetailSheet = true
+                } label: {
+                    HStack {
+                        Image(systemName: "info.circle")
+                        Text("Show Details")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                }
+                .buttonStyle(.glass)
+                .sheet(isPresented: $showDetailSheet) {
+                    CountryDetailsView(country: country)
+                        .padding()
+                        .presentationDetents([.fraction(0.6), .fraction(0.8), .fraction(1.0)])
+                        .presentationDragIndicator(.visible)
+                }
+            }
+            .padding()
+            .navigationTitle(country.displayName(preferredLanguageCodes: Locale.preferredLanguages))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Close", systemImage: "xmark") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+    
+    // TODO: Func gibts schon in nem anderen File das geht nicht!!!!
+    private func toggleStatus(of country: Country, _ newStatus: CountryStatus) {
+        country.status = (country.status == newStatus) ? .none : newStatus
+        try? modelContext.save()
+    }
+    
+}
+

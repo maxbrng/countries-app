@@ -26,6 +26,8 @@ struct GlobeMapView: View {
     @State private var selectedISO2: String? = nil
     @State private var isLoading = true
     
+    @Binding var selectedCountry: Country?
+    
     @State private var position: MapCameraPosition = .camera(
         MapCamera(centerCoordinate: .init(latitude: 20, longitude: 0), distance: 25_000_000)
     )
@@ -60,11 +62,6 @@ struct GlobeMapView: View {
                     loadingOverlay
                 }
             }
-            .overlay(alignment: .bottom) {
-                if let selectedISO2, let country = countriesByISO2[selectedISO2] {
-                    selectionCard(for: country)
-                }
-            }
         }
         .toolbar(.hidden, for: .tabBar)
         .task { await loadAllData() }
@@ -85,7 +82,9 @@ struct GlobeMapView: View {
             if let newISO = foundCountry?.iso2 {
                 if selectedISO2 == newISO {
                     selectedISO2 = nil
+                    selectedCountry = nil
                 } else {
+                    selectedCountry = countriesByISO2[newISO]
                     selectedISO2 = newISO
                     focusCountry(iso2: newISO)
                 }
@@ -171,20 +170,6 @@ struct GlobeMapView: View {
             Text("Weltkarte laden...").foregroundStyle(.white).font(.caption.bold())
         }
         .padding(25).background(.ultraThinMaterial).clipShape(RoundedRectangle(cornerRadius: 20))
-    }
-    
-    @ViewBuilder
-    private func selectionCard(for country: Country) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(country.displayName(preferredLanguageCodes: Locale.preferredLanguages)).font(.headline)
-                Spacer()
-                Button { withAnimation { selectedISO2 = nil } } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
-            }
-            Text(country.status == .visited ? "Besucht" : "Wunschliste").font(.caption).foregroundStyle(.secondary)
-        }
-        .padding().frame(width: 280).background(.ultraThinMaterial).clipShape(RoundedRectangle(cornerRadius: 15))
-        .padding(.bottom, 40).transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
 
