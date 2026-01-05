@@ -34,7 +34,7 @@ struct MainScreen: View {
                 
                 NavigationLink(value: AppRoute.mapScreen) {
                     
-                    StaticCountriesMapView(selectionEnabled: false)
+                    StaticCountriesMapView(selectionEnabled: false, labelsEnabled: false, projectionMode: .plateCarree)
                         .disabled(true)
                         .padding(.horizontal)
                         .aspectRatio(1.8, contentMode: .fill)

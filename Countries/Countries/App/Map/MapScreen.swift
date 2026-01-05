@@ -12,19 +12,20 @@ struct MapScreen: View {
     @State private var selected: Country?
     
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack(alignment: .center) {
 //            CountriesMapView(selectedCountry: $selected)
-            StaticCountriesMapView()
-                .frame(height: 300)
+            StaticCountriesMapView(interactiveEnabled: true, renderMode: .aspectFit)
             
             if let country = selected {
                 Text(country.displayName(preferredLanguageCodes: Locale.preferredLanguages))
                     .padding()
                     .background(.ultraThinMaterial)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding()
+                    .padding(.bottom, 50)
             }
         }
+        .ignoresSafeArea()
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
