@@ -53,7 +53,7 @@ struct DiscoverScreen: View {
             .scrollTargetBehavior(.paging)
         }
         .navigationTitle("Recommendations")
-        .navigationBarTitleDisplayMode(.large)
+        .toolbarTitleDisplayMode(.inlineLarge)
         .navigationDestination(for: CountryRecommendation.self) { item in
             CountryDetailView(item: item)
         }
@@ -63,3 +63,4 @@ struct DiscoverScreen: View {
 #Preview {
     DiscoverScreen(path: .constant(NavigationPath()))
 }
+

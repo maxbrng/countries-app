@@ -11,12 +11,12 @@ import MapKit
 struct MapScreen: View {
     
     @Environment(\.dismiss) private var dismiss
-
+    
     @State private var selected: Country?
     
     var body: some View {
         ZStack(alignment: .center) {
-//            CountriesMapView(selectedCountry: $selected)
+            
             StaticCountriesMapView(interactiveEnabled: true, renderMode: .aspectFit)
             
             if let country = selected {

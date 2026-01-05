@@ -2,7 +2,7 @@
 //  StaticCountriesMapView.swift
 //  Countries
 //
-//  Created by Max Breuning on 04.01.26.
+//  Created by Max Breuning on 05.01.26.
 //
 
 import SwiftUI
@@ -15,18 +15,10 @@ import Foundation
 struct StaticCountriesMapView: View {
     @Environment(\.modelContext) private var context
 
-    enum RenderMode {
-        case stretch
-        case aspectFit
-    }
-
-    enum ProjectionMode: Equatable {
-        case plateCarree
-        case webMercator
-    }
+    enum RenderMode { case stretch, aspectFit }
+    enum ProjectionMode: Equatable { case plateCarree, webMercator }
 
     // MARK: Config
-
     let selectionEnabled: Bool
     let interactiveEnabled: Bool
     let labelsEnabled: Bool
@@ -34,48 +26,58 @@ struct StaticCountriesMapView: View {
     let projectionMode: ProjectionMode
     let aspectFitStartsZoomed: Bool
 
-    /// MapKit-like extras
     let wrapHorizontally: Bool
-    let rubberBanding: Bool
+    let rubberBanding: Bool               // (wird hier bewusst ignoriert -> harte Grenzen)
     let doubleTapZoomFactor: CGFloat
-
-    /// Tap-to-focus (zoom to fit and center)
     let focusOnTap: Bool
     let focusPadding: CGFloat
 
-    // MARK: Data
+    // ✅ Hard reload behavior (rotation / resize)
+    let hardReloadOnRotation: Bool
 
+    // ✅ Optional: start a bit more zoomed in landscape (only when "unzoomed")
+    let applyLandscapeZoomBiasWhenUnzoomed: Bool
+    let landscapeStartZoomMultiplier: CGFloat
+
+    // MARK: Data
     @State private var shapes: [RenderCountry] = []
     @State private var countriesByISO2: [String: Country] = [:]
     @State private var iso3ToIso2: [String: String] = [:]
     @State private var nameToIso2: [String: String] = [:]
     @State private var selectedISO2: String?
 
-    // MARK: Interaction state (user pan/zoom)
-
-    @State private var baseScale: CGFloat = 1          // user scale (multiplies initialScale)
-    @State private var baseOffset: CGSize = .zero      // screen points (camera translation)
+    // MARK: Interaction state
+    @State private var mapCenter = CGPoint(x: 0.5, y: 0.5) // normalized world (0..1)
+    @State private var baseScale: CGFloat = 1              // user zoom (relative)
 
     private let minUserScale: CGFloat = 1
-    private let maxUserScale: CGFloat = 30
+    private let maxUserScale: CGFloat = 40
 
-    // MARK: Deceleration
-
+    // Deceleration
     @State private var decelTask: Task<Void, Never>?
-    @State private var decelVelocity: CGPoint = .zero
+
+    // ✅ Hard reload token (only for render/gesture subtree)
+    @State private var reloadToken: Int = 0
+    @State private var lastSize: CGSize = .zero
+
+    // ✅ Prevent loadInitialData from resetting camera repeatedly
+    @State private var didInitCameraForProjection: Bool = false
 
     init(
         selectionEnabled: Bool = true,
         interactiveEnabled: Bool = false,
         labelsEnabled: Bool = true,
-        renderMode: RenderMode = .stretch,
+        renderMode: RenderMode = .aspectFit,
         projectionMode: ProjectionMode = .webMercator,
         aspectFitStartsZoomed: Bool = true,
         wrapHorizontally: Bool = false,
-        rubberBanding: Bool = true,
+        rubberBanding: Bool = false,
         doubleTapZoomFactor: CGFloat = 2.0,
         focusOnTap: Bool = true,
-        focusPadding: CGFloat = 24
+        focusPadding: CGFloat = 24,
+        hardReloadOnRotation: Bool = true,
+        applyLandscapeZoomBiasWhenUnzoomed: Bool = true,
+        landscapeStartZoomMultiplier: CGFloat = 1.15
     ) {
         self.selectionEnabled = selectionEnabled
         self.interactiveEnabled = interactiveEnabled
@@ -88,180 +90,61 @@ struct StaticCountriesMapView: View {
         self.doubleTapZoomFactor = doubleTapZoomFactor
         self.focusOnTap = focusOnTap
         self.focusPadding = focusPadding
+
+        self.hardReloadOnRotation = hardReloadOnRotation
+        self.applyLandscapeZoomBiasWhenUnzoomed = applyLandscapeZoomBiasWhenUnzoomed
+        self.landscapeStartZoomMultiplier = landscapeStartZoomMultiplier
     }
 
     var body: some View {
         GeometryReader { geo in
-            let viewSize = geo.size
-            let viewportRect = CGRect(origin: .zero, size: viewSize)
-            let worldRect = computeWorldRect(in: viewportRect, mode: renderMode, projection: projectionMode)
+            let viewport = CGRect(origin: .zero, size: geo.size)
+            let worldRect = computeWorldRect(in: viewport, mode: renderMode, projection: projectionMode)
 
-            let cameraScale = effectiveCameraScale(viewport: viewportRect, world: worldRect, userScaleOverride: baseScale)
-            let offsetInUse = currentOffsetInUse(viewport: viewportRect, world: worldRect, cameraScale: cameraScale)
+            let fitScale: CGFloat =
+                (renderMode == .aspectFit && aspectFitStartsZoomed && worldRect.height > 0)
+                ? (viewport.height / worldRect.height)
+                : 1
 
-            Canvas { ctx, canvasSize in
-                guard canvasSize.width > 0, canvasSize.height > 0 else { return }
+            ZStack {
+                renderAndGestures(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
+                    .id(reloadToken)
 
-                // Camera is always around VIEWPORT center (MapKit feel, fixes landscape drift).
-                let camCenter = CGPoint(x: viewportRect.midX, y: viewportRect.midY)
-
-                // 1) Draw shapes with camera transform (pan/zoom)
-                var drawCtx = ctx
-                if interactiveEnabled {
-                    drawCtx.translateBy(x: camCenter.x, y: camCenter.y)
-                    drawCtx.translateBy(x: offsetInUse.width, y: offsetInUse.height)
-                    drawCtx.scaleBy(x: cameraScale, y: cameraScale)
-                    drawCtx.translateBy(x: -camCenter.x, y: -camCenter.y)
-                }
-
-                for c in shapes {
-                    let path = scaledPath(c.path, into: worldRect)
-
-                    let fill = fillColor(for: c.iso2)
-                    let stroke = strokeColor(for: c.iso2)
-                    let lineWidth = strokeWidth(for: c.iso2) / (interactiveEnabled ? cameraScale : 1)
-
-                    drawCtx.fill(path, with: .color(fill), style: .init(eoFill: true))
-                    drawCtx.stroke(path, with: .color(stroke), lineWidth: lineWidth)
-                }
-
-                // 2) Labels (only when interactive + selection + enabled)
-                if shouldDrawLabels {
-                    for c in shapes {
-                        guard let country = countriesByISO2[c.iso2] else { continue }
-                        let name = country.displayName(preferredLanguageCodes: Locale.preferredLanguages)
-                        if name.isEmpty { continue }
-
-                        // Base anchor (normalized → worldRect)
-                        let basePoint = CGPoint(
-                            x: worldRect.minX + c.labelAnchor.x * worldRect.width,
-                            y: worldRect.minY + c.labelAnchor.y * worldRect.height
-                        )
-
-                        // Convert anchor to screen point (apply camera transform to point only)
-                        let screenPoint = interactiveEnabled
-                            ? transform(point: basePoint, viewport: viewportRect, scale: cameraScale, offset: offsetInUse)
-                            : basePoint
-
-                        // Fit check uses bbox in screen space
-                        let bbox = scaledPath(c.path, into: worldRect).boundingRect
-                        let bboxW = bbox.width * (interactiveEnabled ? cameraScale : 1)
-                        let bboxH = bbox.height * (interactiveEnabled ? cameraScale : 1)
-
-                        // Font scaling rule:
-                        // - zoom IN: do not get bigger
-                        // - zoom OUT: can get a bit bigger
-                        let baseFont: CGFloat = 10
-                        let fontScale = min(1.0, 1.0 / max(cameraScale, 0.0001))
-                        let fontSize = (baseFont * fontScale).clamped(8, 14)
-
-                        let text = Text(name)
-                            .font(.system(size: fontSize, weight: .semibold))
-                            .foregroundStyle(Color(uiColor: .label).opacity(0.70))
-
-                        let resolved = ctx.resolve(text)
-                        let textSize = resolved.measure(in: CGSize(
-                            width: CGFloat.greatestFiniteMagnitude,
-                            height: CGFloat.greatestFiniteMagnitude
-                        ))
-
-                        let pad: CGFloat = 10
-                        guard bboxW >= textSize.width + pad, bboxH >= textSize.height + pad else { continue }
-
-                        ctx.draw(resolved, at: screenPoint, anchor: .center)
-                    }
-                }
-            }
-            .contentShape(Rectangle())
-            .overlay {
-                if interactiveEnabled {
-                    MapLikeGestureView(
-                        onPanBegan: { stopDeceleration() },
-                        onPanChanged: { delta in
-                            applyPan(delta: delta, viewport: viewportRect, world: worldRect)
-                        },
-                        onPanEnded: { velocity in
-                            startDeceleration(velocity: velocity, viewport: viewportRect, world: worldRect)
-                        },
-                        onPinchBegan: { stopDeceleration() },
-                        onPinchChanged: { scaleDelta, center in
-                            applyPinch(scaleDelta: scaleDelta, center: center, viewport: viewportRect, world: worldRect)
-                        },
-                        onDoubleTap: { point in
-                            applyDoubleTap(at: point, viewport: viewportRect, world: worldRect)
-                        },
-                        onTap: { point in
-                            guard selectionEnabled else { return }
-
-                            let scaleNow = effectiveCameraScale(viewport: viewportRect, world: worldRect, userScaleOverride: baseScale)
-                            let offsetNow = currentOffsetInUse(viewport: viewportRect, world: worldRect, cameraScale: scaleNow)
-
-                            // Convert tap to world coords for hit test
-                            let worldPoint = untransform(point: point, viewport: viewportRect, scale: scaleNow, offset: offsetNow)
-
-                            guard let iso2 = hitTest(point: worldPoint, in: worldRect) else {
-                                selectedISO2 = nil
-                                return
-                            }
-
-                            selectedISO2 = iso2
-
-                            // NEW: focus/zoom-to-fit on tap
-                            guard focusOnTap else { return }
-                            focusCountry(iso2: iso2, viewport: viewportRect, world: worldRect)
-                        }
-                    )
-                    .allowsHitTesting(true)
-                }
-            }
-            .task(id: projectionMode) {
-                // Load DB countries
-                if let all = try? context.fetch(FetchDescriptor<Country>()) {
-                    countriesByISO2 = Dictionary(uniqueKeysWithValues: all.map { ($0.iso2.lowercased(), $0) })
-
-                    iso3ToIso2 = Dictionary(uniqueKeysWithValues:
-                        all.compactMap { c in
-                            guard let iso3 = c.iso3?.lowercased(), !iso3.isEmpty else { return nil }
-                            return (iso3, c.iso2.lowercased())
-                        }
-                    )
-
-                    nameToIso2 = Dictionary(uniqueKeysWithValues:
-                        all.map { c in
-                            let key = c.nameEnglish.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                            return (key, c.iso2.lowercased())
-                        }
-                    )
-                }
-
-                // Load shapes with selected projection
-                do {
-                    shapes = try CountriesGeoJSONStore.load(
-                        resource: "countries",
-                        iso3ToIso2: iso3ToIso2,
-                        nameToIso2: nameToIso2,
-                        projectionMode: projectionMode,
-                        debugFrance: false
-                    )
-                } catch {
-                    print("GeoJSON load failed:", error)
-                }
-
-                // Reset interaction when switching projection
-                stopDeceleration()
-                baseOffset = .zero
-                baseScale = 1
-            }
-            .overlay(alignment: .bottom) {
                 if selectionEnabled,
                    let iso = selectedISO2,
                    let country = countriesByISO2[iso] {
-                    Text(country.displayName(preferredLanguageCodes: Locale.preferredLanguages))
-                        .padding(10)
-                        .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .padding()
+                    VStack {
+                        Spacer()
+                        Text(country.displayName(preferredLanguageCodes: Locale.preferredLanguages))
+                            .padding(10)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding()
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                    }
                 }
+            }
+            .onAppear {
+                if lastSize == .zero { lastSize = geo.size }
+                applyLandscapeBiasIfNeeded(size: geo.size)
+            }
+            .onChange(of: geo.size) { _, newSize in
+                guard newSize != .zero else { return }
+                let old = lastSize
+                lastSize = newSize
+
+                applyLandscapeBiasIfNeeded(size: newSize)
+
+                // ✅ Hard reload on resize/rotation, keep camera state
+                guard hardReloadOnRotation else { return }
+                guard old != .zero, old != newSize else { return }
+
+                stopDeceleration()
+                reloadToken &+= 1
+            }
+            .task(id: projectionMode) {
+                didInitCameraForProjection = false
+                await loadInitialData()
             }
             .onChange(of: selectionEnabled) { _, enabled in
                 if !enabled { selectedISO2 = nil }
@@ -269,387 +152,449 @@ struct StaticCountriesMapView: View {
             .onChange(of: interactiveEnabled) { _, enabled in
                 if !enabled {
                     stopDeceleration()
-                    baseScale = 1
-                    baseOffset = .zero
+                    withAnimation(.easeInOut) {
+                        baseScale = 1
+                        mapCenter = CGPoint(x: 0.5, y: 0.5)
+                    }
+                } else {
+                    if hardReloadOnRotation { reloadToken &+= 1 }
                 }
             }
         }
     }
 
-    // Labels only when interactive + selection + enabled
-    private var shouldDrawLabels: Bool {
-        labelsEnabled && interactiveEnabled && selectionEnabled
-    }
+    // MARK: - Subtree (Render + Gestures)
 
-    // MARK: - World Rect
-
-    private func computeWorldRect(in viewport: CGRect, mode: RenderMode, projection: ProjectionMode) -> CGRect {
-        switch mode {
-        case .stretch:
-            return viewport
-        case .aspectFit:
-            return aspectFitRect(in: viewport, aspect: projection.worldAspect)
-        }
-    }
-
-    private func aspectFitRect(in viewport: CGRect, aspect: CGFloat) -> CGRect {
-        let size = viewport.size
-        guard size.width > 0, size.height > 0 else { return .zero }
-
-        let viewAspect = size.width / size.height
-
-        if viewAspect > aspect {
-            // wider: fit height
-            let h = size.height
-            let w = h * aspect
-            let x = (size.width - w) / 2
-            return CGRect(x: viewport.minX + x, y: viewport.minY, width: w, height: h)
-        } else {
-            // taller: fit width
-            let w = size.width
-            let h = w / aspect
-            let y = (size.height - h) / 2
-            return CGRect(x: viewport.minX, y: viewport.minY + y, width: w, height: h)
-        }
-    }
-
-    // MARK: - Camera scale
-
-    private func effectiveCameraScale(viewport: CGRect, world: CGRect, userScaleOverride: CGFloat? = nil) -> CGFloat {
-        let initialScale: CGFloat
-        if renderMode == .aspectFit && aspectFitStartsZoomed {
-            // Zoom so that worldRect height fills viewport height
-            initialScale = (world.height > 0) ? (viewport.height / world.height) : 1
-        } else {
-            initialScale = 1
-        }
-        let user = userScaleOverride ?? baseScale
-        return initialScale * user
-    }
-
-    // MARK: - Current offset used (wrap + clamp/band)
-
-    private func currentOffsetInUse(viewport: CGRect, world: CGRect, cameraScale: CGFloat) -> CGSize {
-        var off = baseOffset
-        if wrapHorizontally {
-            off = wrappedOffsetHorizontally(off, world: world, cameraScale: cameraScale)
-        }
-        if rubberBanding {
-            off = rubberBandedOffset(off, viewport: viewport, world: world, cameraScale: cameraScale)
-        } else {
-            off = clampedOffset(viewport: viewport, world: world, cameraScale: cameraScale, offset: off)
-        }
-        return off
-    }
-
-    // MARK: - MapKit-like gestures
-
-    private func stopDeceleration() {
-        decelTask?.cancel()
-        decelTask = nil
-        decelVelocity = .zero
-    }
-
-    private func applyPan(delta: CGSize, viewport: CGRect, world: CGRect) {
-        let scaleNow = effectiveCameraScale(viewport: viewport, world: world, userScaleOverride: baseScale)
-
-        baseOffset = CGSize(width: baseOffset.width + delta.width, height: baseOffset.height + delta.height)
-
-        if wrapHorizontally {
-            baseOffset = wrappedOffsetHorizontally(baseOffset, world: world, cameraScale: scaleNow)
-        }
-
-        if rubberBanding {
-            baseOffset = rubberBandedOffset(baseOffset, viewport: viewport, world: world, cameraScale: scaleNow)
-        } else {
-            baseOffset = clampedOffset(viewport: viewport, world: world, cameraScale: scaleNow, offset: baseOffset)
-        }
-    }
-
-    private func startDeceleration(velocity: CGPoint, viewport: CGRect, world: CGRect) {
-        stopDeceleration()
-        decelVelocity = velocity
-
-        decelTask = Task { @MainActor in
-            var v = velocity
-            let friction: CGFloat = 0.92
-            let dt: CGFloat = 1.0 / 60.0
-
-            while !Task.isCancelled {
-                let delta = CGSize(width: v.x * dt, height: v.y * dt)
-                applyPan(delta: delta, viewport: viewport, world: world)
-
-                v = CGPoint(x: v.x * friction, y: v.y * friction)
-
-                if abs(v.x) < 5, abs(v.y) < 5 { break }
-
-                try? await Task.sleep(nanoseconds: 16_666_667)
+    @ViewBuilder
+    private func renderAndGestures(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat) -> some View {
+        WorldMapRenderView(
+            shapes: shapes,
+            countriesByISO2: countriesByISO2,
+            selectedISO2: selectedISO2,
+            viewport: viewport,
+            worldRect: worldRect,
+            fitScale: fitScale,
+            userZoom: baseScale,
+            userCenter: mapCenter,
+            interactiveEnabled: interactiveEnabled,
+            labelsEnabled: labelsEnabled && interactiveEnabled && selectionEnabled,
+            selectionEnabled: selectionEnabled
+        )
+        .contentShape(Rectangle())
+        .overlay {
+            if interactiveEnabled {
+                MapLikeGestureView(
+                    onPanBegan: { stopDeceleration() },
+                    onPanChanged: { delta in
+                        applyPan(delta: delta, viewport: viewport, world: worldRect, fitScale: fitScale)
+                    },
+                    onPanEnded: { velocity in
+                        startDeceleration(velocity: velocity, viewport: viewport, world: worldRect, fitScale: fitScale)
+                    },
+                    onPinchBegan: { stopDeceleration() },
+                    onPinchChanged: { scaleDelta, center in
+                        applyPinch(scaleDelta: scaleDelta, center: center, viewport: viewport, world: worldRect, fitScale: fitScale)
+                    },
+                    onDoubleTap: { point in
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            applyDoubleTap(at: point, viewport: viewport, world: worldRect, fitScale: fitScale)
+                        }
+                    },
+                    onTap: { point in
+                        handleTap(at: point, viewport: viewport, world: worldRect, fitScale: fitScale)
+                    }
+                )
             }
         }
     }
 
-    private func applyPinch(scaleDelta: CGFloat, center: CGPoint, viewport: CGRect, world: CGRect) {
-        let oldScale = effectiveCameraScale(viewport: viewport, world: world, userScaleOverride: baseScale)
+    // MARK: - ✅ NO-EMPTY-RIM CLAMP (DER FIX)
 
-        let newUserScale = (baseScale * scaleDelta).clamped(minUserScale, maxUserScale)
-        let newScale = effectiveCameraScale(viewport: viewport, world: world, userScaleOverride: newUserScale)
+    /// Clamp so the viewport can never look beyond the world edges (no empty rim).
+    /// Works in normalized world coords (0..1).
+    private func clampCenterToWorld(_ center: CGPoint, viewport: CGRect, world: CGRect, totalScale: CGFloat) -> CGPoint {
+        guard viewport.width > 0, viewport.height > 0, world.width > 0, world.height > 0, totalScale > 0 else {
+            return center
+        }
 
-        // Zoom around pinch center (in VIEWPORT coordinates)
-        baseOffset = zoomOffsetAroundPoint(
-            offset: baseOffset,
-            oldScale: oldScale,
-            newScale: newScale,
-            viewport: viewport,
-            pinchCenter: center
-        )
+        // How much of the world is visible in normalized units?
+        let visibleW = (viewport.width / totalScale) / world.width
+        let visibleH = (viewport.height / totalScale) / world.height
 
-        baseScale = newUserScale
+        // If we're zoomed out so much that the viewport would show beyond world anyway, lock to center
+        if visibleW >= 1 || visibleH >= 1 {
+            return CGPoint(x: 0.5, y: 0.5)
+        }
+
+        let minX = visibleW / 2
+        let maxX = 1 - visibleW / 2
+        let minY = visibleH / 2
+        let maxY = 1 - visibleH / 2
+
+        var x = center.x
+        var y = center.y
 
         if wrapHorizontally {
-            baseOffset = wrappedOffsetHorizontally(baseOffset, world: world, cameraScale: newScale)
-        }
-        if rubberBanding {
-            baseOffset = rubberBandedOffset(baseOffset, viewport: viewport, world: world, cameraScale: newScale)
+            // wrapping means X can be free (no clamp), but we can still keep it reasonable
+            // (optional) – leave it untouched for true wrap behavior
         } else {
-            baseOffset = clampedOffset(viewport: viewport, world: world, cameraScale: newScale, offset: baseOffset)
+            x = x.clamped(minX, maxX)
+        }
+
+        y = y.clamped(minY, maxY)
+
+        return CGPoint(x: x, y: y)
+    }
+
+    // MARK: - Landscape zoom bias
+
+    private func applyLandscapeBiasIfNeeded(size: CGSize) {
+        guard applyLandscapeZoomBiasWhenUnzoomed else { return }
+        guard size.width > 0, size.height > 0 else { return }
+        let isLandscape = size.width > size.height
+        guard isLandscape else { return }
+
+        if abs(baseScale - 1.0) < 0.0001 {
+            baseScale = (baseScale * landscapeStartZoomMultiplier).clamped(minUserScale, maxUserScale)
         }
     }
 
-    private func applyDoubleTap(at point: CGPoint, viewport: CGRect, world: CGRect) {
-        let oldScale = effectiveCameraScale(viewport: viewport, world: world, userScaleOverride: baseScale)
+    // MARK: - Tap / Focus
 
-        let newUserScale: CGFloat = (baseScale == 30) ? min(maxUserScale, baseScale * doubleTapZoomFactor) : oldScale
-        let newScale = effectiveCameraScale(viewport: viewport, world: world, userScaleOverride: newUserScale)
+    private func handleTap(at point: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        guard selectionEnabled else { return }
 
-        baseOffset = zoomOffsetAroundPoint(
-            offset: baseOffset,
-            oldScale: oldScale,
-            newScale: newScale,
-            viewport: viewport,
-            pinchCenter: point
-        )
-        baseScale = newUserScale
+        let totalScale = fitScale * baseScale
+        let offset = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+        let worldPoint = untransform(point: point, viewport: viewport, totalScale: totalScale, offset: offset)
 
-        if wrapHorizontally {
-            baseOffset = wrappedOffsetHorizontally(baseOffset, world: world, cameraScale: newScale)
+        guard let iso2 = hitTest(point: worldPoint, in: world) else {
+            withAnimation(.easeInOut(duration: 0.2)) { selectedISO2 = nil }
+            return
         }
-        if rubberBanding {
-            baseOffset = rubberBandedOffset(baseOffset, viewport: viewport, world: world, cameraScale: newScale)
-        } else {
-            baseOffset = clampedOffset(viewport: viewport, world: world, cameraScale: newScale, offset: baseOffset)
+
+        selectedISO2 = iso2
+
+        if focusOnTap {
+            stopDeceleration()
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                focusCountry(iso2: iso2, viewport: viewport, world: world, fitScale: fitScale)
+            }
         }
     }
 
-    /// MapKit-like: keep pinch center stable on screen (anchor zoom)
-    private func zoomOffsetAroundPoint(
-        offset: CGSize,
-        oldScale: CGFloat,
-        newScale: CGFloat,
-        viewport: CGRect,
-        pinchCenter: CGPoint
-    ) -> CGSize {
+    private func focusCountry(iso2: String, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        guard let shape = shapes.first(where: { $0.iso2 == iso2 }) else { return }
+        let f = shape.focusBBoxNormalized
+        guard f.width > 0, f.height > 0 else { return }
+
+        let padded = viewport.insetBy(dx: focusPadding, dy: focusPadding)
+        guard padded.width > 0, padded.height > 0 else { return }
+
+        let wScale = padded.width / (f.width * world.width)
+        let hScale = padded.height / (f.height * world.height)
+
+        let targetCamScale = min(wScale, hScale)
+        let targetUserScale = (targetCamScale / max(fitScale, 0.0001)).clamped(minUserScale, maxUserScale)
+
+        baseScale = targetUserScale
+
+        let rawCenter = CGPoint(x: f.midX, y: f.midY)
+        let totalScale = fitScale * baseScale
+        mapCenter = clampCenterToWorld(rawCenter, viewport: viewport, world: world, totalScale: totalScale)
+    }
+
+    // MARK: - Gestures
+
+    private func applyPan(delta: CGSize, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        let totalScale = fitScale * baseScale
+        let currentOff = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+        let nextOff = CGSize(width: currentOff.width + delta.width, height: currentOff.height + delta.height)
+        updateCenterFromOffset(nextOff, viewport: viewport, world: world, totalScale: totalScale)
+    }
+
+    private func applyPinch(scaleDelta: CGFloat, center: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        let currentScale = fitScale * baseScale
+
+        let smoothDelta = pow(scaleDelta, 0.85)
+        let newUserScale = (baseScale * smoothDelta).clamped(minUserScale, maxUserScale)
+        let newTotalScale = fitScale * newUserScale
+
+        let currentOff = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: currentScale)
+        let newOff = zoomOffsetAroundPoint(offset: currentOff, oldScale: currentScale, newScale: newTotalScale, viewport: viewport, pinchCenter: center)
+
+        baseScale = newUserScale
+        updateCenterFromOffset(newOff, viewport: viewport, world: world, totalScale: newTotalScale)
+    }
+
+    private func applyDoubleTap(at point: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        let currentScale = fitScale * baseScale
+
+        let targetUser = (baseScale * doubleTapZoomFactor).clamped(minUserScale, maxUserScale)
+        let newTotalScale = fitScale * targetUser
+
+        let currentOff = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: currentScale)
+        let newOff = zoomOffsetAroundPoint(offset: currentOff, oldScale: currentScale, newScale: newTotalScale, viewport: viewport, pinchCenter: point)
+
+        baseScale = targetUser
+        updateCenterFromOffset(newOff, viewport: viewport, world: world, totalScale: newTotalScale)
+    }
+
+    // MARK: - Math Helpers (Offset <-> Center)
+
+    private func offsetFromCenter(_ center: CGPoint, viewport: CGRect, world: CGRect, totalScale: CGFloat) -> CGSize {
+        let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
+        let worldPointX = world.minX + center.x * world.width
+        let worldPointY = world.minY + center.y * world.height
+        return CGSize(
+            width: (camCenter.x - worldPointX) * totalScale,
+            height: (camCenter.y - worldPointY) * totalScale
+        )
+    }
+
+    private func updateCenterFromOffset(_ offset: CGSize, viewport: CGRect, world: CGRect, totalScale: CGFloat) {
+        guard world.width > 0, world.height > 0, totalScale > 0 else { return }
+
+        let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
+        let worldPointX = camCenter.x - (offset.width / totalScale)
+        let worldPointY = camCenter.y - (offset.height / totalScale)
+
+        var newCX = (worldPointX - world.minX) / world.width
+        var newCY = (worldPointY - world.minY) / world.height
+
+        if !wrapHorizontally {
+            // no wrap -> clamp will happen via clampCenterToWorld
+        } else {
+            // wrap -> keep x in a stable range
+            newCX = newCX.truncatingRemainder(dividingBy: 1)
+            if newCX < 0 { newCX += 1 }
+        }
+
+        var center = CGPoint(x: newCX, y: newCY)
+        center = clampCenterToWorld(center, viewport: viewport, world: world, totalScale: totalScale)
+
+        mapCenter = center
+    }
+
+    private func zoomOffsetAroundPoint(offset: CGSize, oldScale: CGFloat, newScale: CGFloat, viewport: CGRect, pinchCenter: CGPoint) -> CGSize {
         guard oldScale > 0 else { return offset }
         let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
-
-        // coords relative to camera center (viewport)
         let px = pinchCenter.x - camCenter.x
         let py = pinchCenter.y - camCenter.y
-
         let k = 1 - (newScale / oldScale)
-
         return CGSize(
             width: offset.width + (px - offset.width) * k,
             height: offset.height + (py - offset.height) * k
         )
     }
 
-    // MARK: - Focus on country (zoom-to-fit & center)
-
-    private func focusCountry(iso2: String, viewport: CGRect, world: CGRect) {
-        guard let shape = shapes.first(where: { $0.iso2 == iso2 }) else { return }
-
-        stopDeceleration()
-
-        // Country bounds in world coordinates
-        let bbox = scaledPath(shape.path, into: world).boundingRect
-        guard bbox.width > 0, bbox.height > 0 else { return }
-
-        let paddedViewport = viewport.insetBy(dx: focusPadding, dy: focusPadding)
-        guard paddedViewport.width > 0, paddedViewport.height > 0 else { return }
-
-        // Choose cameraScale so bbox fits inside viewport (with padding)
-        let initialScale: CGFloat
-        if renderMode == .aspectFit && aspectFitStartsZoomed {
-            initialScale = (world.height > 0) ? (viewport.height / world.height) : 1
-        } else {
-            initialScale = 1
-        }
-
-        let targetCameraScale = min(
-            paddedViewport.width / bbox.width,
-            paddedViewport.height / bbox.height
-        )
-
-        // Convert to user scale (cameraScale = initialScale * userScale)
-        var targetUserScale = (targetCameraScale / max(initialScale, 0.0001))
-        targetUserScale = targetUserScale.clamped(minUserScale, maxUserScale)
-
-        let finalCameraScale = initialScale * targetUserScale
-
-        // Center bbox center in viewport center: screen(p)=center => offset = -(p-center)*scale
+    private func untransform(point: CGPoint, viewport: CGRect, totalScale: CGFloat, offset: CGSize) -> CGPoint {
         let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
-        let countryCenter = CGPoint(x: bbox.midX, y: bbox.midY)
-
-        var targetOffset = CGSize(
-            width: -(countryCenter.x - camCenter.x) * finalCameraScale,
-            height: -(countryCenter.y - camCenter.y) * finalCameraScale
-        )
-
-        // Apply wrap/bounds behavior
-        if wrapHorizontally {
-            targetOffset = wrappedOffsetHorizontally(targetOffset, world: world, cameraScale: finalCameraScale)
-        }
-        if rubberBanding {
-            targetOffset = rubberBandedOffset(targetOffset, viewport: viewport, world: world, cameraScale: finalCameraScale)
-        } else {
-            targetOffset = clampedOffset(viewport: viewport, world: world, cameraScale: finalCameraScale, offset: targetOffset)
-        }
-
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-            baseScale = targetUserScale
-            baseOffset = targetOffset
-        }
-    }
-
-    // MARK: - Rubber banding & wrap
-
-    private func rubberBandedOffset(_ offset: CGSize, viewport: CGRect, world: CGRect, cameraScale: CGFloat) -> CGSize {
-        let clamped = clampedOffset(viewport: viewport, world: world, cameraScale: cameraScale, offset: offset)
-        let dx = offset.width - clamped.width
-        let dy = offset.height - clamped.height
-
-        func rubber(_ d: CGFloat) -> CGFloat {
-            let c: CGFloat = 0.55
-            return (d * c) / (1 + abs(d) / 300)
-        }
-
-        return CGSize(width: clamped.width + rubber(dx), height: clamped.height + rubber(dy))
-    }
-
-    private func wrappedOffsetHorizontally(_ offset: CGSize, world: CGRect, cameraScale: CGFloat) -> CGSize {
-        let period = world.width * cameraScale
-        guard period > 0 else { return offset }
-
-        var x = offset.width
-        x = x.truncatingRemainder(dividingBy: period)
-        if x > period / 2 { x -= period }
-        if x < -period / 2 { x += period }
-
-        return CGSize(width: x, height: offset.height)
-    }
-
-    private func clampedOffset(viewport: CGRect, world: CGRect, cameraScale: CGFloat, offset: CGSize) -> CGSize {
-        let contentW = world.width * cameraScale
-        let contentH = world.height * cameraScale
-
-        let maxX = max(0, (contentW - viewport.width) / 2)
-        let maxY = max(0, (contentH - viewport.height) / 2)
-
-        return CGSize(
-            width: offset.width.clamped(-maxX, maxX),
-            height: offset.height.clamped(-maxY, maxY)
-        )
-    }
-
-    // MARK: - Transform (screen <-> world)
-
-    private func transform(point: CGPoint, viewport: CGRect, scale: CGFloat, offset: CGSize) -> CGPoint {
-        let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
-
-        var x = point.x - camCenter.x
-        var y = point.y - camCenter.y
-
-        x *= scale
-        y *= scale
-
-        x += offset.width
-        y += offset.height
-
+        var x = point.x - camCenter.x - offset.width
+        var y = point.y - camCenter.y - offset.height
+        x /= totalScale
+        y /= totalScale
         x += camCenter.x
         y += camCenter.y
-
         return CGPoint(x: x, y: y)
-    }
-
-    private func untransform(point: CGPoint, viewport: CGRect, scale: CGFloat, offset: CGSize) -> CGPoint {
-        let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
-
-        var x = point.x - camCenter.x
-        var y = point.y - camCenter.y
-
-        x -= offset.width
-        y -= offset.height
-
-        x /= scale
-        y /= scale
-
-        x += camCenter.x
-        y += camCenter.y
-
-        return CGPoint(x: x, y: y)
-    }
-
-    // MARK: - Styling
-
-    private func fillColor(for iso2: String) -> Color {
-        guard let country = countriesByISO2[iso2] else {
-            return Color(uiColor: .systemFill).opacity(1)
-        }
-
-        switch country.status {
-        case .visited:
-            return Color(uiColor: .label).opacity(0.55)
-        case .wishlist:
-            return .orange.opacity(0.75)
-        case .none:
-            return Color(uiColor: .label).opacity(0.22)
-        @unknown default:
-            return Color(uiColor: .label).opacity(0.22)
-        }
-    }
-
-    private func strokeColor(for iso2: String) -> Color {
-        (selectionEnabled && selectedISO2 == iso2)
-        ? Color(uiColor: .label)
-        : Color(uiColor: .systemBackground).opacity(0.75)
-    }
-
-    private func strokeWidth(for iso2: String) -> Double {
-        (selectionEnabled && selectedISO2 == iso2) ? 1.2 : 0.4
-    }
-
-    // MARK: - Geometry helpers
-
-    private func scaledPath(_ cgPath: CGPath, into rect: CGRect) -> Path {
-        var t = CGAffineTransform.identity
-        t = t.translatedBy(x: rect.minX, y: rect.minY)
-        t = t.scaledBy(x: rect.width, y: rect.height)
-        let scaled = cgPath.copy(using: &t) ?? cgPath
-        return Path(scaled)
     }
 
     private func hitTest(point: CGPoint, in worldRect: CGRect) -> String? {
         for c in shapes.reversed() {
-            var t = CGAffineTransform.identity
-            t = t.translatedBy(x: worldRect.minX, y: worldRect.minY)
-            t = t.scaledBy(x: worldRect.width, y: worldRect.height)
-            let scaled = c.path.copy(using: &t) ?? c.path
-
-            if scaled.contains(point, using: .evenOdd, transform: .identity) {
+            var t = CGAffineTransform(translationX: worldRect.minX, y: worldRect.minY)
+                .scaledBy(x: worldRect.width, y: worldRect.height)
+            if c.path.copy(using: &t)?.contains(point, using: .evenOdd) == true {
                 return c.iso2
             }
         }
         return nil
+    }
+
+    // MARK: - Deceleration & Loading
+
+    private func stopDeceleration() {
+        decelTask?.cancel()
+        decelTask = nil
+    }
+
+    private func startDeceleration(velocity: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        stopDeceleration()
+        decelTask = Task { @MainActor in
+            var v = velocity
+            while !Task.isCancelled {
+                let dt: CGFloat = 1.0 / 60.0
+                let delta = CGSize(width: v.x * dt, height: v.y * dt)
+                applyPan(delta: delta, viewport: viewport, world: world, fitScale: fitScale)
+
+                v = CGPoint(x: v.x * 0.92, y: v.y * 0.92)
+                if abs(v.x) < 5 && abs(v.y) < 5 { break }
+
+                try? await Task.sleep(nanoseconds: 16_000_000)
+            }
+        }
+    }
+
+    private func computeWorldRect(in viewport: CGRect, mode: RenderMode, projection: ProjectionMode) -> CGRect {
+        if mode == .stretch { return viewport }
+        let aspect = projection.worldAspect
+        let size = viewport.size
+        let viewAspect = size.width / size.height
+        if viewAspect > aspect {
+            let w = size.height * aspect
+            return CGRect(x: (size.width - w) / 2, y: 0, width: w, height: size.height)
+        } else {
+            let h = size.width / aspect
+            return CGRect(x: 0, y: (size.height - h) / 2, width: size.width, height: h)
+        }
+    }
+
+    private func loadInitialData() async {
+        if let all = try? context.fetch(FetchDescriptor<Country>()) {
+            countriesByISO2 = Dictionary(uniqueKeysWithValues: all.map { ($0.iso2.lowercased(), $0) })
+
+            iso3ToIso2 = Dictionary(uniqueKeysWithValues: all.compactMap { c in
+                guard let iso3 = c.iso3?.lowercased(), !iso3.isEmpty else { return nil }
+                return (iso3, c.iso2.lowercased())
+            })
+
+            nameToIso2 = Dictionary(uniqueKeysWithValues: all.map { c in
+                (c.nameEnglish.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), c.iso2.lowercased())
+            })
+        }
+
+        do {
+            shapes = try CountriesGeoJSONStore.load(
+                resource: "countries",
+                iso3ToIso2: iso3ToIso2,
+                nameToIso2: nameToIso2,
+                projectionMode: projectionMode
+            )
+        } catch {
+            print("Err:", error)
+            shapes = []
+        }
+
+        stopDeceleration()
+
+        if !didInitCameraForProjection {
+            didInitCameraForProjection = true
+            baseScale = 1
+            mapCenter = CGPoint(x: 0.5, y: 0.5)
+        }
+
+        if hardReloadOnRotation { reloadToken &+= 1 }
+    }
+}
+
+// MARK: - THE MAGIC FIX: Animatable Render View
+
+struct WorldMapRenderView: View, Animatable {
+    let shapes: [RenderCountry]
+    let countriesByISO2: [String: Country]
+    let selectedISO2: String?
+
+    let viewport: CGRect
+    let worldRect: CGRect
+    let fitScale: CGFloat
+
+    var userZoom: CGFloat
+    var userCenter: CGPoint
+
+    let interactiveEnabled: Bool
+    let labelsEnabled: Bool
+    let selectionEnabled: Bool
+
+    var animatableData: AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>> {
+        get { AnimatablePair(userZoom, AnimatablePair(userCenter.x, userCenter.y)) }
+        set {
+            userZoom = newValue.first
+            userCenter = CGPoint(x: newValue.second.first, y: newValue.second.second)
+        }
+    }
+
+    var body: some View {
+        Canvas { ctx, _ in
+            guard viewport.width > 0, viewport.height > 0 else { return }
+
+            let currentScale = fitScale * userZoom
+
+            let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
+            let worldPointX = worldRect.minX + userCenter.x * worldRect.width
+            let worldPointY = worldRect.minY + userCenter.y * worldRect.height
+            let offsetX = (camCenter.x - worldPointX) * currentScale
+            let offsetY = (camCenter.y - worldPointY) * currentScale
+
+            var drawCtx = ctx
+
+            if interactiveEnabled {
+                drawCtx.translateBy(x: camCenter.x + offsetX, y: camCenter.y + offsetY)
+                drawCtx.scaleBy(x: currentScale, y: currentScale)
+                drawCtx.translateBy(x: -camCenter.x, y: -camCenter.y)
+            }
+
+            for c in shapes {
+                let path = scaledPath(c.path, into: worldRect)
+                let isSel = (selectionEnabled && selectedISO2 == c.iso2)
+
+                let fill: Color
+                if let country = countriesByISO2[c.iso2] {
+                    switch country.status {
+                    case .visited: fill = Color(uiColor: .label).opacity(0.55)
+                    case .wishlist: fill = .orange.opacity(0.75)
+                    default: fill = Color(uiColor: .label).opacity(0.22)
+                    }
+                } else {
+                    fill = Color(uiColor: .systemFill)
+                }
+
+                let stroke = isSel ? Color(uiColor: .label) : Color(uiColor: .systemBackground).opacity(0.75)
+                let lineWidth = (isSel ? 1.2 : 0.4) / (interactiveEnabled ? currentScale : 1)
+
+                drawCtx.fill(path, with: .color(fill), style: .init(eoFill: true))
+                drawCtx.stroke(path, with: .color(stroke), lineWidth: lineWidth)
+            }
+
+            if labelsEnabled {
+                for c in shapes {
+                    guard let country = countriesByISO2[c.iso2] else { continue }
+                    let name = country.displayName(preferredLanguageCodes: Locale.preferredLanguages)
+                    if name.isEmpty { continue }
+
+                    let basePoint = CGPoint(
+                        x: worldRect.minX + c.labelAnchor.x * worldRect.width,
+                        y: worldRect.minY + c.labelAnchor.y * worldRect.height
+                    )
+
+                    let tx = (basePoint.x - camCenter.x) * currentScale + camCenter.x + offsetX
+                    let ty = (basePoint.y - camCenter.y) * currentScale + camCenter.y + offsetY
+                    let screenPoint = interactiveEnabled ? CGPoint(x: tx, y: ty) : basePoint
+
+                    let f = c.focusBBoxNormalized
+                    let bboxW = f.width * worldRect.width * (interactiveEnabled ? currentScale : 1)
+
+                    let baseFont: CGFloat = 10
+                    let fontScale = min(1.0, 1.0 / max(currentScale, 0.0001))
+                    let fontSize = (baseFont * fontScale).clamped(8, 14)
+
+                    let text = Text(name)
+                        .font(.system(size: fontSize, weight: .semibold))
+                        .foregroundStyle(Color(uiColor: .label).opacity(0.70))
+
+                    let resolved = ctx.resolve(text)
+                    let textSize = resolved.measure(in: CGSize(width: CGFloat.infinity, height: CGFloat.infinity))
+
+                    if bboxW >= textSize.width + 5 {
+                        ctx.draw(resolved, at: screenPoint, anchor: .center)
+                    }
+                }
+            }
+        }
+    }
+
+    private func scaledPath(_ cgPath: CGPath, into rect: CGRect) -> Path {
+        var t = CGAffineTransform(translationX: rect.minX, y: rect.minY)
+            .scaledBy(x: rect.width, y: rect.height)
+        return Path(cgPath.copy(using: &t) ?? cgPath)
     }
 }
 
@@ -658,11 +603,9 @@ struct StaticCountriesMapView: View {
 struct MapLikeGestureView: UIViewRepresentable {
     var onPanBegan: () -> Void
     var onPanChanged: (CGSize) -> Void
-    var onPanEnded: (CGPoint) -> Void // velocity points/sec
-
+    var onPanEnded: (CGPoint) -> Void
     var onPinchBegan: () -> Void
-    var onPinchChanged: (CGFloat, CGPoint) -> Void // scaleDelta, center
-
+    var onPinchChanged: (CGFloat, CGPoint) -> Void
     var onDoubleTap: (CGPoint) -> Void
     var onTap: (CGPoint) -> Void
 
@@ -693,7 +636,6 @@ struct MapLikeGestureView: UIViewRepresentable {
         v.addGestureRecognizer(pinch)
         v.addGestureRecognizer(tap)
         v.addGestureRecognizer(doubleTap)
-
         return v
     }
 
@@ -715,10 +657,8 @@ struct MapLikeGestureView: UIViewRepresentable {
         var onPanBegan: () -> Void
         var onPanChanged: (CGSize) -> Void
         var onPanEnded: (CGPoint) -> Void
-
         var onPinchBegan: () -> Void
         var onPinchChanged: (CGFloat, CGPoint) -> Void
-
         var onDoubleTap: (CGPoint) -> Void
         var onTap: (CGPoint) -> Void
 
@@ -781,7 +721,8 @@ struct MapLikeGestureView: UIViewRepresentable {
             onDoubleTap(g.location(in: v))
         }
 
-        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
             true
         }
     }
@@ -794,8 +735,7 @@ final class CountriesGeoJSONStore {
         resource: String = "countries",
         iso3ToIso2: [String: String],
         nameToIso2: [String: String],
-        projectionMode: StaticCountriesMapView.ProjectionMode,
-        debugFrance: Bool = false
+        projectionMode: StaticCountriesMapView.ProjectionMode
     ) throws -> [RenderCountry] {
 
         guard let url = Bundle.main.url(forResource: resource, withExtension: "geojson") else {
@@ -819,13 +759,6 @@ final class CountriesGeoJSONStore {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .lowercased()
 
-            if debugFrance, rawName == "france" {
-                print("=== FRANCE FEATURE ===")
-                for k in (isoKeys + nameKeys) {
-                    print("  \(k):", props[k]?.stringValue ?? "nil")
-                }
-            }
-
             let iso2: String?
             if let rawISO, rawISO != "-99" {
                 if rawISO.count == 2 {
@@ -836,24 +769,31 @@ final class CountriesGeoJSONStore {
                     iso2 = nil
                 }
             } else {
-                if let rawName {
-                    iso2 = nameToIso2[rawName]
-                } else {
-                    iso2 = nil
-                }
+                iso2 = rawName.flatMap { nameToIso2[$0] }
             }
 
             guard let iso2, iso2.count == 2 else { continue }
 
-            let built = PathBuilder.makePathAndLabelAnchor(from: f.geometry, projectionMode: projectionMode)
-            result.append(RenderCountry(id: iso2, iso2: iso2, path: built.path, labelAnchor: built.labelAnchor))
+            let built = PathBuilder.makePathAndAnchors(
+                from: f.geometry,
+                projectionMode: projectionMode,
+                iso2: iso2
+            )
+
+            result.append(RenderCountry(
+                id: iso2,
+                iso2: iso2,
+                path: built.path,
+                labelAnchor: built.labelAnchor,
+                focusBBoxNormalized: built.focusBBox
+            ))
         }
 
         return result
     }
 }
 
-// MARK: - Projection + Path Building
+// MARK: - Projection + Path building
 
 enum Projection {
     static func project(lon: Double, lat: Double, mode: StaticCountriesMapView.ProjectionMode) -> CGPoint {
@@ -866,13 +806,11 @@ enum Projection {
         case .webMercator:
             let maxLat = 85.05112878
             let clampedLat = min(max(lat, -maxLat), maxLat)
-
             let x = (lon + 180.0) / 360.0
 
             let latRad = clampedLat * .pi / 180.0
             let merc = log(tan(.pi / 4.0 + latRad / 2.0))
             let y = (1.0 - (merc / .pi)) / 2.0
-
             return CGPoint(x: x, y: y)
         }
     }
@@ -882,16 +820,25 @@ enum PathBuilder {
     struct Built {
         let path: CGPath
         let labelAnchor: CGPoint
+        let focusBBox: CGRect
     }
 
-    static func makePathAndLabelAnchor(from geometry: GeoJSON.Geometry, projectionMode: StaticCountriesMapView.ProjectionMode) -> Built {
+    struct Candidate {
+        let area: Double
+        let centroid: CGPoint
+        let bbox: CGRect
+    }
+
+    static func makePathAndAnchors(
+        from geometry: GeoJSON.Geometry,
+        projectionMode: StaticCountriesMapView.ProjectionMode,
+        iso2: String
+    ) -> Built {
+
         let path = CGMutablePath()
+        var candidates: [Candidate] = []
 
-        var bestArea: Double = 0
-        var bestCentroid: CGPoint = CGPoint(x: 0.5, y: 0.5)
-        var bestBBox: CGRect = CGRect(x: 0.45, y: 0.45, width: 0.1, height: 0.1)
-
-        func addRing(_ ring: [[Double]]) {
+        func addRingToPath(_ ring: [[Double]]) {
             guard ring.count >= 2 else { return }
             let first = ring[0]
             let p0 = Projection.project(lon: first[0], lat: first[1], mode: projectionMode)
@@ -905,41 +852,63 @@ enum PathBuilder {
 
         func considerOuterRing(_ ring: [[Double]]) {
             let pts = ring.map { Projection.project(lon: $0[0], lat: $0[1], mode: projectionMode) }
-            let (area, centroid) = polygonAreaAndCentroid(pts)
-            let absArea = abs(area)
-            if absArea > bestArea, centroid.x.isFinite, centroid.y.isFinite {
-                bestArea = absArea
-                bestCentroid = centroid
-                bestBBox = bbox(of: pts)
-            }
+            let (aSigned, c) = polygonAreaAndCentroid(pts)
+            let area = abs(aSigned)
+            guard area > 0, c.x.isFinite, c.y.isFinite else { return }
+
+            let bbox = bboxPoints(pts)
+            guard bbox.width > 0, bbox.height > 0 else { return }
+
+            candidates.append(Candidate(area: area, centroid: c, bbox: bbox))
         }
 
         switch geometry {
         case .polygon(let rings):
             for (i, ring) in rings.enumerated() {
-                addRing(ring)
+                addRingToPath(ring)
                 if i == 0 { considerOuterRing(ring) }
             }
         case .multiPolygon(let polys):
             for poly in polys {
                 for (i, ring) in poly.enumerated() {
-                    addRing(ring)
+                    addRingToPath(ring)
                     if i == 0 { considerOuterRing(ring) }
                 }
             }
         }
 
-        let bboxCenter = CGPoint(x: bestBBox.midX, y: bestBBox.midY)
-        let anchor = bestBBox.contains(bestCentroid) ? bestCentroid : bboxCenter
+        let bestLabel = candidates.max(by: { $0.area < $1.area })
+        let labelAnchor = bestLabel?.centroid ?? CGPoint(x: 0.5, y: 0.5)
 
-        return Built(path: path, labelAnchor: anchor)
+        let focusBBox = chooseFocusBBox(candidates: candidates, iso2: iso2)
+
+        return Built(path: path, labelAnchor: labelAnchor, focusBBox: focusBBox)
     }
 
-    private static func bbox(of pts: [CGPoint]) -> CGRect {
+    private static func chooseFocusBBox(candidates: [Candidate], iso2: String) -> CGRect {
+        guard !candidates.isEmpty else {
+            return CGRect(x: 0.45, y: 0.45, width: 0.1, height: 0.1)
+        }
+
+        let maxArea = candidates.map(\.area).max() ?? 0
+        let areaThreshold = maxArea * 0.08
+
+        var filtered = candidates.filter { $0.area >= areaThreshold }
+
+        if iso2 == "us" {
+            let lower48 = filtered.filter { $0.centroid.y > 0.22 }
+            if !lower48.isEmpty { filtered = lower48 }
+        }
+
+        let chosen = filtered.max(by: { $0.area < $1.area }) ?? candidates.max(by: { $0.area < $1.area })!
+        return chosen.bbox.insetBy(dx: -0.01, dy: -0.01).clampedToUnit()
+    }
+
+    private static func bboxPoints(_ pts: [CGPoint]) -> CGRect {
         var minX = CGFloat.greatestFiniteMagnitude
         var minY = CGFloat.greatestFiniteMagnitude
-        var maxX: CGFloat = -CGFloat.greatestFiniteMagnitude
-        var maxY: CGFloat = -CGFloat.greatestFiniteMagnitude
+        var maxX = -CGFloat.greatestFiniteMagnitude
+        var maxY = -CGFloat.greatestFiniteMagnitude
 
         for p in pts {
             minX = min(minX, p.x)
@@ -947,8 +916,9 @@ enum PathBuilder {
             maxX = max(maxX, p.x)
             maxY = max(maxY, p.y)
         }
+
         if !minX.isFinite || !minY.isFinite || !maxX.isFinite || !maxY.isFinite { return .zero }
-        return CGRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
+        return CGRect(x: minX, y: minY, width: max(0.0001, maxX - minX), height: max(0.0001, maxY - minY))
     }
 
     private static func polygonAreaAndCentroid(_ pts: [CGPoint]) -> (Double, CGPoint) {
@@ -975,7 +945,7 @@ enum PathBuilder {
     }
 }
 
-// MARK: - GeoJSON Decoding
+// MARK: - GeoJSON decoding
 
 enum GeoJSON {
     struct FeatureCollection: Decodable {
@@ -1012,12 +982,7 @@ enum GeoJSON {
 }
 
 enum JSONValue: Decodable {
-    case string(String)
-    case number(Double)
-    case bool(Bool)
-    case object([String: JSONValue])
-    case array([JSONValue])
-    case null
+    case string(String), number(Double), bool(Bool), object([String: JSONValue]), array([JSONValue]), null
 
     init(from decoder: Decoder) throws {
         if let c = try? decoder.singleValueContainer() {
@@ -1046,25 +1011,24 @@ enum JSONValue: Decodable {
 extension Dictionary where Key == String, Value == JSONValue {
     func firstString(for keys: [String]) -> String? {
         for k in keys {
-            if let v = self[k]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !v.isEmpty { return v }
+            if let v = self[k]?.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines), !v.isEmpty { return v }
         }
         let lower = Set(keys.map { $0.lowercased() })
         for (k, v) in self where lower.contains(k.lowercased()) {
-            if let s = v.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines),
-               !s.isEmpty { return s }
+            if let s = v.stringValue?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty { return s }
         }
         return nil
     }
 }
 
-// MARK: - Render Model
+// MARK: - Render model
 
 struct RenderCountry: Identifiable {
     let id: String
     let iso2: String
     let path: CGPath
     let labelAnchor: CGPoint
+    let focusBBoxNormalized: CGRect
 }
 
 // MARK: - Helpers
@@ -1081,5 +1045,15 @@ private extension StaticCountriesMapView.ProjectionMode {
 private extension Comparable {
     func clamped(_ minValue: Self, _ maxValue: Self) -> Self {
         min(max(self, minValue), maxValue)
+    }
+}
+
+private extension CGRect {
+    func clampedToUnit() -> CGRect {
+        let x0 = max(0, min(1, minX))
+        let y0 = max(0, min(1, minY))
+        let x1 = max(0, min(1, maxX))
+        let y1 = max(0, min(1, maxY))
+        return CGRect(x: x0, y: y0, width: max(0.0001, x1 - x0), height: max(0.0001, y1 - y0))
     }
 }
