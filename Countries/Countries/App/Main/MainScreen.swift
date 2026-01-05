@@ -32,6 +32,10 @@ struct MainScreen: View {
             
             LazyVStack(spacing: 40) {
                 
+                NavigationLink("Globe") {
+                    GlobeMapView()
+                }
+                
                 NavigationLink(value: AppRoute.mapScreen) {
                     
                     StaticCountriesMapView(selectionEnabled: false, labelsEnabled: false, projectionMode: .plateCarree)

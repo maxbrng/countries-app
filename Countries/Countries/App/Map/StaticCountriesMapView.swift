@@ -27,17 +27,11 @@ struct StaticCountriesMapView: View {
     let aspectFitStartsZoomed: Bool
 
     let wrapHorizontally: Bool
-    let rubberBanding: Bool               // (wird hier bewusst ignoriert -> harte Grenzen)
     let doubleTapZoomFactor: CGFloat
     let focusOnTap: Bool
     let focusPadding: CGFloat
 
-    // ✅ Hard reload behavior (rotation / resize)
     let hardReloadOnRotation: Bool
-
-    // ✅ Optional: start a bit more zoomed in landscape (only when "unzoomed")
-    let applyLandscapeZoomBiasWhenUnzoomed: Bool
-    let landscapeStartZoomMultiplier: CGFloat
 
     // MARK: Data
     @State private var shapes: [RenderCountry] = []
@@ -46,21 +40,18 @@ struct StaticCountriesMapView: View {
     @State private var nameToIso2: [String: String] = [:]
     @State private var selectedISO2: String?
 
-    // MARK: Interaction state
-    @State private var mapCenter = CGPoint(x: 0.5, y: 0.5) // normalized world (0..1)
-    @State private var baseScale: CGFloat = 1              // user zoom (relative)
+    // MARK: Camera
+    @State private var mapCenter = CGPoint(x: 0.5, y: 0.5) // normalized (0..1)
+    @State private var userZoom: CGFloat = 1               // user zoom (relative to fitScale)
 
-    private let minUserScale: CGFloat = 1
     private let maxUserScale: CGFloat = 40
 
     // Deceleration
     @State private var decelTask: Task<Void, Never>?
 
-    // ✅ Hard reload token (only for render/gesture subtree)
+    // Hard reload token (only render subtree)
     @State private var reloadToken: Int = 0
     @State private var lastSize: CGSize = .zero
-
-    // ✅ Prevent loadInitialData from resetting camera repeatedly
     @State private var didInitCameraForProjection: Bool = false
 
     init(
@@ -75,9 +66,7 @@ struct StaticCountriesMapView: View {
         doubleTapZoomFactor: CGFloat = 2.0,
         focusOnTap: Bool = true,
         focusPadding: CGFloat = 24,
-        hardReloadOnRotation: Bool = true,
-        applyLandscapeZoomBiasWhenUnzoomed: Bool = true,
-        landscapeStartZoomMultiplier: CGFloat = 1.15
+        hardReloadOnRotation: Bool = true
     ) {
         self.selectionEnabled = selectionEnabled
         self.interactiveEnabled = interactiveEnabled
@@ -86,14 +75,10 @@ struct StaticCountriesMapView: View {
         self.projectionMode = projectionMode
         self.aspectFitStartsZoomed = aspectFitStartsZoomed
         self.wrapHorizontally = wrapHorizontally
-        self.rubberBanding = rubberBanding
         self.doubleTapZoomFactor = doubleTapZoomFactor
         self.focusOnTap = focusOnTap
         self.focusPadding = focusPadding
-
         self.hardReloadOnRotation = hardReloadOnRotation
-        self.applyLandscapeZoomBiasWhenUnzoomed = applyLandscapeZoomBiasWhenUnzoomed
-        self.landscapeStartZoomMultiplier = landscapeStartZoomMultiplier
     }
 
     var body: some View {
@@ -106,9 +91,17 @@ struct StaticCountriesMapView: View {
                 ? (viewport.height / worldRect.height)
                 : 1
 
+            // ✅ dynamic min zoom so world always covers viewport (no empty rim -> no freeze)
+            let minUserZoom = dynamicMinUserZoom(viewport: viewport, world: worldRect, fitScale: fitScale)
+
             ZStack {
-                renderAndGestures(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
-                    .id(reloadToken)
+                renderAndGestures(
+                    viewport: viewport,
+                    worldRect: worldRect,
+                    fitScale: fitScale,
+                    minUserZoom: minUserZoom
+                )
+                .id(reloadToken)
 
                 if selectionEnabled,
                    let iso = selectedISO2,
@@ -126,19 +119,19 @@ struct StaticCountriesMapView: View {
             }
             .onAppear {
                 if lastSize == .zero { lastSize = geo.size }
-                applyLandscapeBiasIfNeeded(size: geo.size)
+                // clamp once on appear
+                clampCamera(viewport: viewport, world: worldRect, fitScale: fitScale)
             }
             .onChange(of: geo.size) { _, newSize in
                 guard newSize != .zero else { return }
                 let old = lastSize
                 lastSize = newSize
 
-                applyLandscapeBiasIfNeeded(size: newSize)
+                // re-clamp on size change (important for rotation)
+                clampCamera(viewport: viewport, world: worldRect, fitScale: fitScale)
 
-                // ✅ Hard reload on resize/rotation, keep camera state
                 guard hardReloadOnRotation else { return }
                 guard old != .zero, old != newSize else { return }
-
                 stopDeceleration()
                 reloadToken &+= 1
             }
@@ -153,7 +146,7 @@ struct StaticCountriesMapView: View {
                 if !enabled {
                     stopDeceleration()
                     withAnimation(.easeInOut) {
-                        baseScale = 1
+                        userZoom = 1
                         mapCenter = CGPoint(x: 0.5, y: 0.5)
                     }
                 } else {
@@ -166,7 +159,12 @@ struct StaticCountriesMapView: View {
     // MARK: - Subtree (Render + Gestures)
 
     @ViewBuilder
-    private func renderAndGestures(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat) -> some View {
+    private func renderAndGestures(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat, minUserZoom: CGFloat) -> some View {
+
+        let clampedZoom = userZoom.clamped(minUserZoom, maxUserScale)
+        let totalScale = fitScale * clampedZoom
+        let clampedCenter = clampCenter(mapCenter, viewport: viewport, world: worldRect, totalScale: totalScale)
+
         WorldMapRenderView(
             shapes: shapes,
             countriesByISO2: countriesByISO2,
@@ -174,8 +172,8 @@ struct StaticCountriesMapView: View {
             viewport: viewport,
             worldRect: worldRect,
             fitScale: fitScale,
-            userZoom: baseScale,
-            userCenter: mapCenter,
+            userZoom: clampedZoom,          // animatable
+            userCenter: clampedCenter,      // animatable
             interactiveEnabled: interactiveEnabled,
             labelsEnabled: labelsEnabled && interactiveEnabled && selectionEnabled,
             selectionEnabled: selectionEnabled
@@ -190,14 +188,24 @@ struct StaticCountriesMapView: View {
                     },
                     onPanEnded: { velocity in
                         startDeceleration(velocity: velocity, viewport: viewport, world: worldRect, fitScale: fitScale)
+                        // snap hard at end
+                        withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) {
+                            clampCamera(viewport: viewport, world: worldRect, fitScale: fitScale)
+                        }
                     },
                     onPinchBegan: { stopDeceleration() },
                     onPinchChanged: { scaleDelta, center in
                         applyPinch(scaleDelta: scaleDelta, center: center, viewport: viewport, world: worldRect, fitScale: fitScale)
                     },
+                    onPinchEnded: {
+                        withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) {
+                            clampCamera(viewport: viewport, world: worldRect, fitScale: fitScale)
+                        }
+                    },
                     onDoubleTap: { point in
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
                             applyDoubleTap(at: point, viewport: viewport, world: worldRect, fitScale: fitScale)
+                            clampCamera(viewport: viewport, world: worldRect, fitScale: fitScale)
                         }
                     },
                     onTap: { point in
@@ -208,55 +216,55 @@ struct StaticCountriesMapView: View {
         }
     }
 
-    // MARK: - ✅ NO-EMPTY-RIM CLAMP (DER FIX)
+    // MARK: - ✅ Hard bounds without freeze
 
-    /// Clamp so the viewport can never look beyond the world edges (no empty rim).
-    /// Works in normalized world coords (0..1).
-    private func clampCenterToWorld(_ center: CGPoint, viewport: CGRect, world: CGRect, totalScale: CGFloat) -> CGPoint {
+    /// Minimum zoom so the world *covers* the viewport (no empty rim possible).
+    /// This prevents the “visible >= 1 => center range collapses => freeze” case entirely.
+    private func dynamicMinUserZoom(viewport: CGRect, world: CGRect, fitScale: CGFloat) -> CGFloat {
+        guard viewport.width > 0, viewport.height > 0, world.width > 0, world.height > 0, fitScale > 0 else {
+            return 1
+        }
+        // totalScale must be >= max(viewport/world) to cover in both axes
+        let minTotalScale = max(viewport.width / world.width, viewport.height / world.height)
+        let minUser = minTotalScale / fitScale
+        return max(0.0001, minUser)
+    }
+
+    private func clampCamera(viewport: CGRect, world: CGRect, fitScale: CGFloat) {
+        let minUser = dynamicMinUserZoom(viewport: viewport, world: world, fitScale: fitScale)
+        userZoom = userZoom.clamped(minUser, maxUserScale)
+
+        let totalScale = fitScale * userZoom
+        mapCenter = clampCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+    }
+
+    /// Clamp center so viewport never looks beyond world edges.
+    private func clampCenter(_ center: CGPoint, viewport: CGRect, world: CGRect, totalScale: CGFloat) -> CGPoint {
         guard viewport.width > 0, viewport.height > 0, world.width > 0, world.height > 0, totalScale > 0 else {
             return center
         }
 
-        // How much of the world is visible in normalized units?
         let visibleW = (viewport.width / totalScale) / world.width
         let visibleH = (viewport.height / totalScale) / world.height
 
-        // If we're zoomed out so much that the viewport would show beyond world anyway, lock to center
-        if visibleW >= 1 || visibleH >= 1 {
-            return CGPoint(x: 0.5, y: 0.5)
-        }
-
-        let minX = visibleW / 2
-        let maxX = 1 - visibleW / 2
-        let minY = visibleH / 2
-        let maxY = 1 - visibleH / 2
+        // because we prevent visible >= 1 with min zoom, these won't collapse anymore
+        let minX = visibleW * 0.5
+        let maxX = 1 - visibleW * 0.5
+        let minY = visibleH * 0.5
+        let maxY = 1 - visibleH * 0.5
 
         var x = center.x
         var y = center.y
 
         if wrapHorizontally {
-            // wrapping means X can be free (no clamp), but we can still keep it reasonable
-            // (optional) – leave it untouched for true wrap behavior
+            x = x.truncatingRemainder(dividingBy: 1)
+            if x < 0 { x += 1 }
         } else {
             x = x.clamped(minX, maxX)
         }
 
         y = y.clamped(minY, maxY)
-
         return CGPoint(x: x, y: y)
-    }
-
-    // MARK: - Landscape zoom bias
-
-    private func applyLandscapeBiasIfNeeded(size: CGSize) {
-        guard applyLandscapeZoomBiasWhenUnzoomed else { return }
-        guard size.width > 0, size.height > 0 else { return }
-        let isLandscape = size.width > size.height
-        guard isLandscape else { return }
-
-        if abs(baseScale - 1.0) < 0.0001 {
-            baseScale = (baseScale * landscapeStartZoomMultiplier).clamped(minUserScale, maxUserScale)
-        }
     }
 
     // MARK: - Tap / Focus
@@ -264,8 +272,12 @@ struct StaticCountriesMapView: View {
     private func handleTap(at point: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
         guard selectionEnabled else { return }
 
-        let totalScale = fitScale * baseScale
-        let offset = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+        let minUser = dynamicMinUserZoom(viewport: viewport, world: world, fitScale: fitScale)
+        let z = userZoom.clamped(minUser, maxUserScale)
+        let totalScale = fitScale * z
+        let c = clampCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+
+        let offset = offsetFromCenter(c, viewport: viewport, world: world, totalScale: totalScale)
         let worldPoint = untransform(point: point, viewport: viewport, totalScale: totalScale, offset: offset)
 
         guard let iso2 = hitTest(point: worldPoint, in: world) else {
@@ -293,54 +305,71 @@ struct StaticCountriesMapView: View {
 
         let wScale = padded.width / (f.width * world.width)
         let hScale = padded.height / (f.height * world.height)
-
         let targetCamScale = min(wScale, hScale)
-        let targetUserScale = (targetCamScale / max(fitScale, 0.0001)).clamped(minUserScale, maxUserScale)
+        let targetUser = targetCamScale / max(fitScale, 0.0001)
 
-        baseScale = targetUserScale
+        userZoom = targetUser.clamped(dynamicMinUserZoom(viewport: viewport, world: world, fitScale: fitScale), maxUserScale)
 
-        let rawCenter = CGPoint(x: f.midX, y: f.midY)
-        let totalScale = fitScale * baseScale
-        mapCenter = clampCenterToWorld(rawCenter, viewport: viewport, world: world, totalScale: totalScale)
+        let totalScale = fitScale * userZoom
+        mapCenter = clampCenter(CGPoint(x: f.midX, y: f.midY), viewport: viewport, world: world, totalScale: totalScale)
     }
 
     // MARK: - Gestures
 
     private func applyPan(delta: CGSize, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
-        let totalScale = fitScale * baseScale
-        let currentOff = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+        let minUser = dynamicMinUserZoom(viewport: viewport, world: world, fitScale: fitScale)
+        userZoom = userZoom.clamped(minUser, maxUserScale)
+
+        let totalScale = fitScale * userZoom
+        let c = clampCenter(mapCenter, viewport: viewport, world: world, totalScale: totalScale)
+
+        let currentOff = offsetFromCenter(c, viewport: viewport, world: world, totalScale: totalScale)
         let nextOff = CGSize(width: currentOff.width + delta.width, height: currentOff.height + delta.height)
-        updateCenterFromOffset(nextOff, viewport: viewport, world: world, totalScale: totalScale)
+
+        // compute new center from offset then clamp hard
+        let raw = centerFromOffset(nextOff, viewport: viewport, world: world, totalScale: totalScale)
+        mapCenter = clampCenter(raw, viewport: viewport, world: world, totalScale: totalScale)
     }
 
     private func applyPinch(scaleDelta: CGFloat, center: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
-        let currentScale = fitScale * baseScale
+        let minUser = dynamicMinUserZoom(viewport: viewport, world: world, fitScale: fitScale)
 
+        let oldTotalScale = fitScale * userZoom
         let smoothDelta = pow(scaleDelta, 0.85)
-        let newUserScale = (baseScale * smoothDelta).clamped(minUserScale, maxUserScale)
-        let newTotalScale = fitScale * newUserScale
 
-        let currentOff = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: currentScale)
-        let newOff = zoomOffsetAroundPoint(offset: currentOff, oldScale: currentScale, newScale: newTotalScale, viewport: viewport, pinchCenter: center)
+        // zoom (hard clamp with dynamic min)
+        let newUser = (userZoom * smoothDelta).clamped(minUser, maxUserScale)
+        let newTotalScale = fitScale * newUser
 
-        baseScale = newUserScale
-        updateCenterFromOffset(newOff, viewport: viewport, world: world, totalScale: newTotalScale)
+        // stabilize around pinch center
+        let c = clampCenter(mapCenter, viewport: viewport, world: world, totalScale: oldTotalScale)
+        let currentOff = offsetFromCenter(c, viewport: viewport, world: world, totalScale: oldTotalScale)
+        let newOff = zoomOffsetAroundPoint(offset: currentOff, oldScale: oldTotalScale, newScale: newTotalScale, viewport: viewport, pinchCenter: center)
+
+        userZoom = newUser
+
+        let raw = centerFromOffset(newOff, viewport: viewport, world: world, totalScale: newTotalScale)
+        mapCenter = clampCenter(raw, viewport: viewport, world: world, totalScale: newTotalScale)
     }
 
     private func applyDoubleTap(at point: CGPoint, viewport: CGRect, world: CGRect, fitScale: CGFloat) {
-        let currentScale = fitScale * baseScale
+        let minUser = dynamicMinUserZoom(viewport: viewport, world: world, fitScale: fitScale)
 
-        let targetUser = (baseScale * doubleTapZoomFactor).clamped(minUserScale, maxUserScale)
+        let oldTotalScale = fitScale * userZoom
+        let targetUser = (userZoom * doubleTapZoomFactor).clamped(minUser, maxUserScale)
         let newTotalScale = fitScale * targetUser
 
-        let currentOff = offsetFromCenter(mapCenter, viewport: viewport, world: world, totalScale: currentScale)
-        let newOff = zoomOffsetAroundPoint(offset: currentOff, oldScale: currentScale, newScale: newTotalScale, viewport: viewport, pinchCenter: point)
+        let c = clampCenter(mapCenter, viewport: viewport, world: world, totalScale: oldTotalScale)
+        let currentOff = offsetFromCenter(c, viewport: viewport, world: world, totalScale: oldTotalScale)
+        let newOff = zoomOffsetAroundPoint(offset: currentOff, oldScale: oldTotalScale, newScale: newTotalScale, viewport: viewport, pinchCenter: point)
 
-        baseScale = targetUser
-        updateCenterFromOffset(newOff, viewport: viewport, world: world, totalScale: newTotalScale)
+        userZoom = targetUser
+
+        let raw = centerFromOffset(newOff, viewport: viewport, world: world, totalScale: newTotalScale)
+        mapCenter = clampCenter(raw, viewport: viewport, world: world, totalScale: newTotalScale)
     }
 
-    // MARK: - Math Helpers (Offset <-> Center)
+    // MARK: - Math helpers
 
     private func offsetFromCenter(_ center: CGPoint, viewport: CGRect, world: CGRect, totalScale: CGFloat) -> CGSize {
         let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
@@ -352,28 +381,14 @@ struct StaticCountriesMapView: View {
         )
     }
 
-    private func updateCenterFromOffset(_ offset: CGSize, viewport: CGRect, world: CGRect, totalScale: CGFloat) {
-        guard world.width > 0, world.height > 0, totalScale > 0 else { return }
-
+    private func centerFromOffset(_ offset: CGSize, viewport: CGRect, world: CGRect, totalScale: CGFloat) -> CGPoint {
+        guard world.width > 0, world.height > 0, totalScale > 0 else { return mapCenter }
         let camCenter = CGPoint(x: viewport.midX, y: viewport.midY)
         let worldPointX = camCenter.x - (offset.width / totalScale)
         let worldPointY = camCenter.y - (offset.height / totalScale)
-
-        var newCX = (worldPointX - world.minX) / world.width
-        var newCY = (worldPointY - world.minY) / world.height
-
-        if !wrapHorizontally {
-            // no wrap -> clamp will happen via clampCenterToWorld
-        } else {
-            // wrap -> keep x in a stable range
-            newCX = newCX.truncatingRemainder(dividingBy: 1)
-            if newCX < 0 { newCX += 1 }
-        }
-
-        var center = CGPoint(x: newCX, y: newCY)
-        center = clampCenterToWorld(center, viewport: viewport, world: world, totalScale: totalScale)
-
-        mapCenter = center
+        let cx = (worldPointX - world.minX) / world.width
+        let cy = (worldPointY - world.minY) / world.height
+        return CGPoint(x: cx, y: cy)
     }
 
     private func zoomOffsetAroundPoint(offset: CGSize, oldScale: CGFloat, newScale: CGFloat, viewport: CGRect, pinchCenter: CGPoint) -> CGSize {
@@ -403,14 +418,12 @@ struct StaticCountriesMapView: View {
         for c in shapes.reversed() {
             var t = CGAffineTransform(translationX: worldRect.minX, y: worldRect.minY)
                 .scaledBy(x: worldRect.width, y: worldRect.height)
-            if c.path.copy(using: &t)?.contains(point, using: .evenOdd) == true {
-                return c.iso2
-            }
+            if c.path.copy(using: &t)?.contains(point, using: .evenOdd) == true { return c.iso2 }
         }
         return nil
     }
 
-    // MARK: - Deceleration & Loading
+    // MARK: - Deceleration
 
     private func stopDeceleration() {
         decelTask?.cancel()
@@ -431,8 +444,14 @@ struct StaticCountriesMapView: View {
 
                 try? await Task.sleep(nanoseconds: 16_000_000)
             }
+
+            withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) {
+                clampCamera(viewport: viewport, world: world, fitScale: fitScale)
+            }
         }
     }
+
+    // MARK: - World rect
 
     private func computeWorldRect(in viewport: CGRect, mode: RenderMode, projection: ProjectionMode) -> CGRect {
         if mode == .stretch { return viewport }
@@ -448,15 +467,15 @@ struct StaticCountriesMapView: View {
         }
     }
 
+    // MARK: - Loading
+
     private func loadInitialData() async {
         if let all = try? context.fetch(FetchDescriptor<Country>()) {
             countriesByISO2 = Dictionary(uniqueKeysWithValues: all.map { ($0.iso2.lowercased(), $0) })
-
             iso3ToIso2 = Dictionary(uniqueKeysWithValues: all.compactMap { c in
                 guard let iso3 = c.iso3?.lowercased(), !iso3.isEmpty else { return nil }
                 return (iso3, c.iso2.lowercased())
             })
-
             nameToIso2 = Dictionary(uniqueKeysWithValues: all.map { c in
                 (c.nameEnglish.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), c.iso2.lowercased())
             })
@@ -478,7 +497,7 @@ struct StaticCountriesMapView: View {
 
         if !didInitCameraForProjection {
             didInitCameraForProjection = true
-            baseScale = 1
+            userZoom = 1
             mapCenter = CGPoint(x: 0.5, y: 0.5)
         }
 
@@ -606,6 +625,7 @@ struct MapLikeGestureView: UIViewRepresentable {
     var onPanEnded: (CGPoint) -> Void
     var onPinchBegan: () -> Void
     var onPinchChanged: (CGFloat, CGPoint) -> Void
+    var onPinchEnded: () -> Void
     var onDoubleTap: (CGPoint) -> Void
     var onTap: (CGPoint) -> Void
 
@@ -648,6 +668,7 @@ struct MapLikeGestureView: UIViewRepresentable {
             onPanEnded: onPanEnded,
             onPinchBegan: onPinchBegan,
             onPinchChanged: onPinchChanged,
+            onPinchEnded: onPinchEnded,
             onDoubleTap: onDoubleTap,
             onTap: onTap
         )
@@ -659,6 +680,7 @@ struct MapLikeGestureView: UIViewRepresentable {
         var onPanEnded: (CGPoint) -> Void
         var onPinchBegan: () -> Void
         var onPinchChanged: (CGFloat, CGPoint) -> Void
+        var onPinchEnded: () -> Void
         var onDoubleTap: (CGPoint) -> Void
         var onTap: (CGPoint) -> Void
 
@@ -668,6 +690,7 @@ struct MapLikeGestureView: UIViewRepresentable {
             onPanEnded: @escaping (CGPoint) -> Void,
             onPinchBegan: @escaping () -> Void,
             onPinchChanged: @escaping (CGFloat, CGPoint) -> Void,
+            onPinchEnded: @escaping () -> Void,
             onDoubleTap: @escaping (CGPoint) -> Void,
             onTap: @escaping (CGPoint) -> Void
         ) {
@@ -676,6 +699,7 @@ struct MapLikeGestureView: UIViewRepresentable {
             self.onPanEnded = onPanEnded
             self.onPinchBegan = onPinchBegan
             self.onPinchChanged = onPinchChanged
+            self.onPinchEnded = onPinchEnded
             self.onDoubleTap = onDoubleTap
             self.onTap = onTap
         }
@@ -706,6 +730,8 @@ struct MapLikeGestureView: UIViewRepresentable {
                 let center = g.location(in: v)
                 onPinchChanged(g.scale, center)
                 g.scale = 1
+            case .ended, .cancelled, .failed:
+                onPinchEnded()
             default:
                 break
             }
@@ -774,19 +800,8 @@ final class CountriesGeoJSONStore {
 
             guard let iso2, iso2.count == 2 else { continue }
 
-            let built = PathBuilder.makePathAndAnchors(
-                from: f.geometry,
-                projectionMode: projectionMode,
-                iso2: iso2
-            )
-
-            result.append(RenderCountry(
-                id: iso2,
-                iso2: iso2,
-                path: built.path,
-                labelAnchor: built.labelAnchor,
-                focusBBoxNormalized: built.focusBBox
-            ))
+            let built = PathBuilder.makePathAndAnchors(from: f.geometry, projectionMode: projectionMode, iso2: iso2)
+            result.append(RenderCountry(id: iso2, iso2: iso2, path: built.path, labelAnchor: built.labelAnchor, focusBBoxNormalized: built.focusBBox))
         }
 
         return result
@@ -829,11 +844,9 @@ enum PathBuilder {
         let bbox: CGRect
     }
 
-    static func makePathAndAnchors(
-        from geometry: GeoJSON.Geometry,
-        projectionMode: StaticCountriesMapView.ProjectionMode,
-        iso2: String
-    ) -> Built {
+    static func makePathAndAnchors(from geometry: GeoJSON.Geometry,
+                                   projectionMode: StaticCountriesMapView.ProjectionMode,
+                                   iso2: String) -> Built {
 
         let path = CGMutablePath()
         var candidates: [Candidate] = []
