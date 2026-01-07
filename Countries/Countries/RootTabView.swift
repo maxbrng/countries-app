@@ -10,7 +10,7 @@ import MapKit
 import Foundation
 
 // Conforms to Hashable so it can be used with NavigationPath and navigationDestination.
-public enum AppRoute: Hashable {
+enum AppRoute: Hashable {
     //    case countryDetail(country: Country)
     case fullCountryList
     case mapScreen
