@@ -1,5 +1,5 @@
 //
-//  FlatCountryPathBuilder.swift
+//  FlatPathBuilder.swift
 //  Countries
 //
 //  Created by Max Breuning on 07.01.26.
@@ -7,7 +7,7 @@
 
 import CoreGraphics
 
-enum FlatCountryPathBuilder {
+enum FlatPathBuilder {
     
     struct BuildResult: Sendable {
         let path: CGPath

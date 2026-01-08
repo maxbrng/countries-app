@@ -29,8 +29,9 @@ struct MapScreen: View {
             
             switch appearance {
             case .twoD:
-                FlatCountriesMapView(interactiveEnabled: true,
-                                     selectedCountry: $selectedCountry)
+                FlatMapView(interactiveEnabled: true,
+                            initialStartZoom: 1.5,
+                            selectedCountry: $selectedCountry)
             case .threeD:
                 GlobeMapView(selectedCountry: $selectedCountry)
             }

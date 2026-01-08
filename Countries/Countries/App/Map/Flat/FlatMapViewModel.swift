@@ -23,12 +23,13 @@ final class FlatMapViewModel {
     }
 
     func loadShapesIfNeeded(projectionMode: FlatMapProjectionMode) async {
+        
         do {
             let resolved = try await GeoJSONLoader.loadResolvedFeatures(index: countryIndex, keySet: .init())
             
             let builtShapes = resolved.compactMap { feature -> RenderCountryShape? in
                 
-                let built = FlatCountryPathBuilder.build(from: feature.geometry, projectionMode: projectionMode, iso2: feature.iso2)
+                let built = FlatPathBuilder.build(from: feature.geometry, projectionMode: projectionMode, iso2: feature.iso2)
                 
                 return RenderCountryShape(
                     id: feature.iso2,
