@@ -57,7 +57,8 @@ struct RootTabView: View {
         case .fullCountryList:
             CountriesList(path: $path)
         case .mapScreen:
-            MapScreen()
+            MapControllerRepresentable()
+                .ignoresSafeArea()
         case .settings:
             SettingsScreen()
         }
