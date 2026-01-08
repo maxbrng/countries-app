@@ -34,11 +34,11 @@ struct MainScreen: View {
                 
                 NavigationLink(value: AppRoute.mapScreen) {
                     
-                    FlatCountriesMapView(selectionEnabled: false,
-                                         labelsEnabled: false,
-                                         renderMode: .stretch,
-                                         projectionMode: .plateCarree,
-                                         selectedCountry: .constant(nil))
+                    FlatMapView(selectionEnabled: false,
+                                labelsEnabled: false,
+                                renderMode: .stretch,
+                                projectionMode: .plateCarree,
+                                selectedCountry: .constant(nil))
                         .disabled(true)
                         .padding(.horizontal)
                         .aspectRatio(1.8, contentMode: .fill)
