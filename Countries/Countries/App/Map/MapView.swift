@@ -16,8 +16,7 @@ enum MapAppearance {
 
 struct MapView: View {
     
-    @Environment(\.dismiss) private var dismiss
-    
+    @Binding var path: NavigationPath
     @Binding var selectedCountry: Country?
     @Binding var showAppearancePanel: Bool
     @Binding var appearance: MapAppearance
@@ -39,7 +38,7 @@ struct MapView: View {
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button("Close", systemImage: "chevron.left") {
-                    dismiss() // oder über Binding den Path anpassen
+                    path.removeLast()
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
