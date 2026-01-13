@@ -401,9 +401,9 @@ struct FlatMapView: View {
         var targetCenterX = focus.midX
         
         // landscape shift of center
-        if viewport.width > viewport.height {
+        if viewport.width > viewport.height && selectedISO2 != nil {
             
-            let screenShiftRatio: CGFloat = 0.2
+            let screenShiftRatio: CGFloat = 0.15
             let screenPixelShift = viewport.width * screenShiftRatio
             
             // 4. Umrechnung: Pixel -> Normalisierte Welt-Koordinaten (0.0 bis 1.0)

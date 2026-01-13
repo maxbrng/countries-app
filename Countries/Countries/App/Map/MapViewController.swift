@@ -235,7 +235,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     var preferredSheetContentSize: CGSize {
         let width = isSheetCentered
         ? view.bounds.width
-        : (view.bounds.width - view.safeAreaInsets.left) * 0.5
+        : (view.bounds.width - view.safeAreaInsets.left) * 0.4
         return .init(width: width, height: view.bounds.height)
     }
     
