@@ -155,6 +155,13 @@ struct FlatMapView: View {
                 guard hardReloadOnRotation else { return }
                 guard oldSize != .zero, oldSize != newSize else { return }
                 stopDeceleration()
+                
+                if let selectedISO2 {
+                    focusCountry(iso2: selectedISO2,
+                                 viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
+                }
                 renderTreeReloadToken &+= 1
             }
             .task(id: projectionMode) {
@@ -178,6 +185,11 @@ struct FlatMapView: View {
             .onChange(of: countries) { _, _ in
                 // Keeps maps live when SwiftData updates.
                 Task { @MainActor in await reloadData() }
+            }
+            .onChange(of: selectedCountry) {
+                if selectedCountry == nil {
+                    selectedISO2 = nil
+                }
             }
         }
     }
@@ -385,7 +397,23 @@ struct FlatMapView: View {
                                                  camera.maxUserZoom)
 
         let totalScale = fitScale * camera.userZoom
-        camera.normalizedCenter = camera.clampCenter(CGPoint(x: focus.midX, y: focus.midY),
+        
+        var targetCenterX = focus.midX
+        
+        // landscape shift of center
+        if viewport.width > viewport.height {
+            
+            let screenShiftRatio: CGFloat = 0.2
+            let screenPixelShift = viewport.width * screenShiftRatio
+            
+            // 4. Umrechnung: Pixel -> Normalisierte Welt-Koordinaten (0.0 bis 1.0)
+            // Formel: Pixel / (WeltBreite * AktuellerZoom)
+            let normalizedShift = screenPixelShift / (worldRect.width * totalScale)
+            
+            targetCenterX -= normalizedShift
+        }
+        
+        camera.normalizedCenter = camera.clampCenter(CGPoint(x: targetCenterX, y: focus.midY),
                                                      viewport: viewport,
                                                      worldRect: worldRect,
                                                      totalScale: totalScale)

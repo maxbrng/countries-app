@@ -18,37 +18,25 @@ struct CountryQuickActionPanelView: View {
     @State private var showDetailSheet = false
     
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                
-                actionButtons
-                
-                Button {
-                    showDetailSheet = true
-                } label: {
-                    Label("Show Details", systemImage: "info.circle")
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                }
-                .buttonStyle(.glass)
-                .sheet(isPresented: $showDetailSheet) {
-                    CountryDetailsView(country: country)
-                        .presentationDetents([.fraction(0.6), .fraction(0.8), .large])
-                }
+        
+        VStack(spacing: 12) {
+            
+            actionButtons
+            
+            Button {
+                showDetailSheet = true
+            } label: {
+                Label("Show Details", systemImage: "info.circle")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding()
             }
-            .padding()
-            .navigationTitle(country.displayName(
-                preferredLanguageCodes: Locale.preferredLanguages)
-            )
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close", systemImage: "xmark") {
-                        onClose()
-                    }
-                }
+            .buttonStyle(.glass)
+            .sheet(isPresented: $showDetailSheet) {
+                CountryDetailsView(country: country)
+                    .presentationDetents([.fraction(0.6), .fraction(0.8), .large])
             }
         }
+        .padding()
     }
     
     private var actionButtons: some View {
@@ -66,7 +54,7 @@ struct CountryQuickActionPanelView: View {
             }
             .buttonStyle(.glass)
             .tint(.green)
-
+            
             Button(action: { toggle(.wishlist) }) {
                 HStack {
                     Image(systemName: "star.fill")

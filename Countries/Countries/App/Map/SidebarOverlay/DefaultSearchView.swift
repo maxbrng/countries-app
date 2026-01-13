@@ -13,13 +13,9 @@ import SwiftUI
 struct DefaultSearchView: View {
     var body: some View {
         VStack(spacing: 15) {
-            // Der typische "Grabber" oben am Sheet
-            Capsule()
-                .fill(Color.secondary.opacity(0.3))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-            
             // Die simulierte Searchbar (deine Inspo)
+            Spacer()
+
             HStack {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
@@ -44,6 +40,5 @@ struct DefaultSearchView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
     }
 }

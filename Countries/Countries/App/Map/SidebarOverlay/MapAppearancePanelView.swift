@@ -11,11 +11,8 @@ import SwiftUI
 struct MapAppearancePanelView: View {
 
     @Binding var appearance: MapAppearance
-    let onClose: () -> Void
 
     var body: some View {
-        
-        NavigationStack {
             
             VStack {
                 Picker("Appearance", selection: $appearance) {
@@ -26,15 +23,5 @@ struct MapAppearancePanelView: View {
                 .padding()
                 .padding(.horizontal, 4)
             }
-            .navigationTitle("Appearance")
-            .toolbarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done", systemImage: "xmark") {
-                        onClose()
-                    }
-                }
-            }
-        }
     }
 }
