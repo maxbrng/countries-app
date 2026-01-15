@@ -401,7 +401,7 @@ struct FlatMapView: View {
         var targetCenterX = focus.midX
         
         // landscape shift of center
-        if viewport.width > viewport.height && selectedISO2 != nil {
+        if viewport.width > viewport.height {
             
             let screenShiftRatio: CGFloat = 0.15
             let screenPixelShift = viewport.width * screenShiftRatio
