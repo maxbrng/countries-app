@@ -74,7 +74,6 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     private var bottomSheetAnchorCenterXConstraint: NSLayoutConstraint!
 
     private let leftPadding: CGFloat = 0
-    private let smallDetentHeight: CGFloat = 130
 
     private var didPresentInitialSheet = false
     private var isSwappingSheets = false
@@ -434,7 +433,9 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
         updateAnchorNow()
 
-        let sheetVC = SheetViewController(rootView: AnyView(DefaultSearchView()))
+        let rootView = AnyView(DefaultSearchView())
+        
+        let sheetVC = SheetViewController(rootView: rootView)
         sheetVC.modalPresentationStyle = .pageSheet
         baseBottomSheetViewController = sheetVC
 
@@ -449,9 +450,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
         if let sheet = sheetVC.sheetPresentationController {
             sheet.detents = [
-                .custom(identifier: .init("small")) { [weak self] _ in
-                    CGFloat(self?.smallDetentHeight ?? 130)
-                },
+                .custom(identifier: .init("small")) { _ in CGFloat(85) },
                 .medium(),
                 .large()
             ]
