@@ -8,16 +8,20 @@
 import UIKit
 import SwiftUI
 import MapKit
+import SwiftData
 
 // MARK: - SwiftUI Bridge
 
 struct MapControllerRepresentable: UIViewControllerRepresentable {
+    
     @Binding var path: NavigationPath
+    
+    @Environment(\.modelContext) private var modelContext
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIViewController(context: Context) -> MapViewController {
-        let controller = MapViewController()
+        let controller = MapViewController(modelContext: modelContext)
         controller.path = $path
         return controller
     }
@@ -48,6 +52,17 @@ struct MapControllerRepresentable: UIViewControllerRepresentable {
 
 final class MapViewController: UIViewController, UINavigationControllerDelegate {
 
+    // Designated initializer to provide required dependencies
+    init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        // Interface Builder is not used; provide a default fatalError to catch accidental init
+        fatalError("init(coder:) has not been implemented")
+    }
+
     // MARK: - State
     var path: Binding<NavigationPath>!
 
@@ -60,6 +75,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
     private var showAppearancePanel: Bool = false { didSet { syncStack() } }
     private var appearance: MapAppearance = .twoD { didSet { rebuildMapRoot() } }
+    private var filter: CountryStatusFilter = .all { didSet { rebuildMapRoot() } }
 
     // MARK: - UI
     private var mapHost: UIHostingController<AnyView>!
@@ -68,6 +84,8 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     private var baseBottomSheetViewController: SheetViewController<AnyView>?
     private var countrySheetVC: UIViewController?
     private var appearanceSheetVC: UIViewController?
+    
+    var modelContext: ModelContext
     
     // Stack Logic: Merkt sich die Größe des Base Sheets, bevor es minimiert wird
     private var storedBaseDetent: UISheetPresentationController.Detent.Identifier?
@@ -214,7 +232,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             // Ensure base exists
             if baseBottomSheetViewController == nil {
                 guard canPresentNow else { return }
-                presentBaseBottomSheetIfNeeded(animated: false, completion: nil)
+                presentBaseBottomSheetIfNeeded(animated: true, completion: nil)
                 didPresentInitialSheet = true
             }
             setBaseSheetHidden(false, animated: false)
@@ -432,7 +450,20 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
         updateAnchorNow()
 
-        let rootView = AnyView(DefaultSearchView())
+        let selectedCountryBinding = Binding<Country?>(
+            get: { [weak self] in self?.selectedCountry },
+            set: { [weak self] in self?.selectedCountry = $0 }
+        )
+        
+        let filterBinding = Binding<CountryStatusFilter>(
+            get: { [weak self] in self?.filter ?? .all },
+            set: { [weak self] in self?.filter = $0 }
+        )
+
+        let rootView = AnyView(
+            DefaultSearchView(selectedCountry: selectedCountryBinding, filter: filterBinding)
+                .environment(\.modelContext, modelContext)
+        )
         
         let sheetVC = SheetViewController(rootView: rootView)
         baseBottomSheetViewController = sheetVC
@@ -500,7 +531,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
         }
 
         // Create base as hidden root if needed (portrait case)
-        presentBaseBottomSheetIfNeeded(animated: false) { [weak self] in
+        presentBaseBottomSheetIfNeeded(animated: true) { [weak self] in
             guard let self else { return }
             self.didPresentInitialSheet = true
             self.setBaseSheetHidden(!self.shouldShowDefaultSheet(), animated: false)
@@ -770,13 +801,19 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             get: { self.appearance },
             set: { [weak self] in self?.appearance = $0 }
         )
+        
+        let filterBinding = Binding<CountryStatusFilter>(
+            get: { self.filter },
+            set: { [weak self] in self?.filter = $0 }
+        )
 
         return AnyView(
             MapView(
                 path: path,
                 selectedCountry: selectedCountryBinding,
                 showAppearancePanel: showAppearanceBinding,
-                appearance: appearanceBinding
+                appearance: appearanceBinding,
+                filter: filterBinding
             )
             .ignoresSafeArea()
         )
@@ -889,3 +926,4 @@ extension UIViewController {
         dismiss(animated: animated) { completion?() }
     }
 }
+

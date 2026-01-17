@@ -43,6 +43,7 @@ struct FlatMapView: View {
 
     @Query private var countries: [Country]
     @Binding private var selectedCountry: Country?
+    @Binding private var filter: CountryStatusFilter
 
     @State private var viewModel = FlatMapViewModel()
 
@@ -91,7 +92,8 @@ struct FlatMapView: View {
         focusOnTap: Bool = true,
         focusPadding: CGFloat = 24,
         hardReloadOnRotation: Bool = true,
-        selectedCountry: Binding<Country?>
+        selectedCountry: Binding<Country?>,
+        filter: Binding<CountryStatusFilter>
     ) {
         self.selectionEnabled = selectionEnabled
         self.interactiveEnabled = interactiveEnabled
@@ -106,6 +108,7 @@ struct FlatMapView: View {
         self.focusPadding = focusPadding
         self.hardReloadOnRotation = hardReloadOnRotation
         self._selectedCountry = selectedCountry
+        self._filter = filter
 
         _countries = Query()
     }
@@ -115,6 +118,7 @@ struct FlatMapView: View {
         
         GeometryReader { geometryProxy in
             
+            // Standard calculations for the render tree
             let viewport = CGRect(origin: .zero, size: geometryProxy.size)
             let worldRect = computeWorldRect(viewport: viewport,
                                              mode: renderMode,
@@ -156,6 +160,7 @@ struct FlatMapView: View {
                 guard oldSize != .zero, oldSize != newSize else { return }
                 stopDeceleration()
                 
+                // If a country is selected during rotation, maintain focus
                 if let selectedISO2 {
                     focusCountry(iso2: selectedISO2,
                                  viewport: viewport,
@@ -186,9 +191,30 @@ struct FlatMapView: View {
                 // Keeps maps live when SwiftData updates.
                 Task { @MainActor in await reloadData() }
             }
-            .onChange(of: selectedCountry) {
-                if selectedCountry == nil {
-                    selectedISO2 = nil
+            .onChange(of: filter) { _, _ in
+                renderTreeReloadToken &+= 1
+            }
+            // MARK: - Selection changes
+            .onChange(of: selectedCountry) { _, newCountry in
+                if let newCountry {
+                    // Resolve iso2
+                    let iso2 = viewModel.countryIndex.countriesByISO2.first(where: { $0.value == newCountry })?.key ?? ""
+                    guard !iso2.isEmpty else { return }
+
+                    selectedISO2 = iso2
+
+                    stopDeceleration()
+
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                        focusCountry(iso2: iso2,
+                                     viewport: viewport,
+                                     worldRect: worldRect,
+                                     fitScale: fitScale)
+                    }
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedISO2 = nil
+                    }
                 }
             }
         }
@@ -214,9 +240,23 @@ struct FlatMapView: View {
                                                worldRect: worldRect,
                                                totalScale: totalScale)
 
+        // Only adjust marking: keep rendering all shapes, but filter which countries are considered for status-based styling
+        let countriesByISO2ForMarking: [String: Country] = {
+            switch filter {
+            case .all:
+                return viewModel.countryIndex.countriesByISO2
+            case .visited:
+                let allowed = Set(countries.filter { $0.status == .visited }.map { $0.iso2.lowercased() })
+                return viewModel.countryIndex.countriesByISO2.filter { allowed.contains($0.key) }
+            case .wishlist:
+                let allowed = Set(countries.filter { $0.status == .wishlist }.map { $0.iso2.lowercased() })
+                return viewModel.countryIndex.countriesByISO2.filter { allowed.contains($0.key) }
+            }
+        }()
+
         FlatMapRenderer(
             shapes: viewModel.shapes,
-            countriesByISO2: viewModel.countryIndex.countriesByISO2,
+            countriesByISO2: countriesByISO2ForMarking,
             selectedISO2: selectedISO2,
             viewport: viewport,
             worldRect: worldRect,
@@ -344,25 +384,11 @@ struct FlatMapView: View {
                                             offset: offset)
 
         guard let iso2 = hitTest(worldPoint: worldPoint, in: worldRect) else {
-            withAnimation(.easeInOut(duration: 0.2)) { selectedISO2 = nil }
             selectedCountry = nil
             return
         }
 
-        selectedISO2 = iso2
         selectedCountry = viewModel.countryIndex.countriesByISO2[iso2]
-
-        if focusOnTap {
-            
-            stopDeceleration()
-            
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                focusCountry(iso2: iso2,
-                             viewport: viewport,
-                             worldRect: worldRect,
-                             fitScale: fitScale)
-            }
-        }
     }
 
     /// Frames the given country by computing a target zoom/center with padding and clamping.
@@ -406,8 +432,8 @@ struct FlatMapView: View {
             let screenShiftRatio: CGFloat = 0.15
             let screenPixelShift = viewport.width * screenShiftRatio
             
-            // 4. Umrechnung: Pixel -> Normalisierte Welt-Koordinaten (0.0 bis 1.0)
-            // Formel: Pixel / (WeltBreite * AktuellerZoom)
+            // Conversion: pixels -> normalized world coordinates (0.0 to 1.0)
+            // Formula: pixels / (world width * current zoom)
             let normalizedShift = screenPixelShift / (worldRect.width * totalScale)
             
             targetCenterX -= normalizedShift

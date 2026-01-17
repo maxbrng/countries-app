@@ -6,17 +6,30 @@
 //
 
 import SwiftUI
-
+import SwiftData
 
 struct StatView: View {
     
-    @ObservedObject var viewModel: MainScreenViewModel
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Country.iso2) private var allCountries: [Country]
+    @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
     
     var body: some View {
         
+        let source = showOnlyUNMembers ? allCountries.filter { $0.isUNMember } : allCountries
+
+        let visited = source.filter { $0.status == .visited }
+        let countriesVisited = Double(visited.count)
+        let totalCountries = Double(source.count)
+
+        let allContinents = Set(source.compactMap(\.continent))
+        let totalContinents = Double(allContinents.count)
+        let visitedContinents = Set(visited.compactMap(\.continent))
+        let continentsVisited = Double(visitedContinents.count)
+        
         HStack(alignment: .center, spacing: 0) {
-            statistic(currentValue: viewModel.countriesVisited,
-                      maxValue: viewModel.totalCountries,
+            statistic(currentValue: countriesVisited,
+                      maxValue: totalCountries,
                       text: "countries",
                       graphVisualization: false)
             .frame(maxWidth: .infinity)
@@ -24,8 +37,8 @@ struct StatView: View {
             
             Divider()
             
-            statistic(currentValue: viewModel.countriesVisited,
-                      maxValue: viewModel.totalCountries,
+            statistic(currentValue: countriesVisited,
+                      maxValue: totalCountries,
                       text: "of the world",
                       graphVisualization: true)
             .frame(maxWidth: .infinity)
@@ -33,8 +46,8 @@ struct StatView: View {
             
             Divider()
             
-            statistic(currentValue: viewModel.continentsVisited,
-                      maxValue: viewModel.totalContinents,
+            statistic(currentValue: continentsVisited,
+                      maxValue: totalContinents,
                       text: "continents",
                       graphVisualization: false)
             .frame(maxWidth: .infinity)

@@ -20,6 +20,7 @@ struct MapView: View {
     @Binding var selectedCountry: Country?
     @Binding var showAppearancePanel: Bool
     @Binding var appearance: MapAppearance
+    @Binding var filter: CountryStatusFilter
     
     var body: some View {
         ZStack(alignment: .center) {
@@ -28,7 +29,8 @@ struct MapView: View {
             case .twoD:
                 FlatMapView(interactiveEnabled: true,
                             initialStartZoom: 1.5,
-                            selectedCountry: $selectedCountry)
+                            selectedCountry: $selectedCountry,
+                            filter: $filter)
             case .threeD:
                 GlobeMapView(selectedCountry: $selectedCountry)
             }

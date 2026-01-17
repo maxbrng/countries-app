@@ -21,11 +21,6 @@ struct MainScreen: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Country.iso2) private var allCountries: [Country]
     
-    @State private var mapRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-        span: MKCoordinateSpan(latitudeDelta: 90, longitudeDelta: 180)
-    )
-    
     var body: some View {
         
         ScrollView {
@@ -38,7 +33,8 @@ struct MainScreen: View {
                                 labelsEnabled: false,
                                 renderMode: .stretch,
                                 projectionMode: .plateCarree,
-                                selectedCountry: .constant(nil))
+                                selectedCountry: .constant(nil),
+                                filter: .constant(.all))
                         .disabled(true)
                         .padding(.horizontal)
                         .aspectRatio(1.8, contentMode: .fill)
@@ -47,7 +43,7 @@ struct MainScreen: View {
                         .padding(.top)
                 }
                 
-                StatView(viewModel: viewModel)
+                StatView()
                 
                 countryCard
             }

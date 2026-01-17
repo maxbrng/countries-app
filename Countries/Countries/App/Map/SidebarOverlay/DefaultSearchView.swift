@@ -20,31 +20,37 @@ struct DefaultSearchView: View {
     
     @FocusState private var focusedField: Field?
     
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Country.iso2) private var allCountries: [Country]
     
-    @State private var sortAscending: Bool = true
-    @State private var showOnlyUNMembers: Bool = false
+    @Binding var selectedCountry: Country?
+    @Binding var filter: CountryStatusFilter
     
     var body: some View {
         
         NavigationStack {
             
-            ScrollView {
+            Group {
                 
-                VStack(alignment: .leading, spacing: 20) {
+                if !isShowingResults {
                     
-                    if !isShowingResults {
-                        filterSection
-                        statisticsSection
-                        tipsSection
-                    } else {
+                    ScrollView {
+                        VStack(spacing: 30) {
+                            filterSection
+                            StatView()
+                            Spacer()
+                        }
+                        .padding()
+                    }
+                    
+                } else {
+                    
+                    List {
                         resultsList
                     }
+                    .contentMargins(.top, 0)
                 }
-                .padding()
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            
             .safeAreaBar(edge: .top) {
                 ScrollView { // needed else the safeareabar breaks the focusstate
                     searchbarWithCloseButton
@@ -109,7 +115,17 @@ struct DefaultSearchView: View {
     }
     
     private var baseCountries: [Country] {
-        showOnlyUNMembers ? allCountries.filter { $0.isUNMember } : allCountries
+        
+        var base = allCountries
+        switch filter {
+        case .all:
+            break
+        case .visited:
+            base = base.filter { $0.status == .visited }
+        case .wishlist:
+            base = base.filter { $0.status == .wishlist }
+        }
+        return base
     }
     
     private var filteredCountries: [Country] {
@@ -134,11 +150,8 @@ struct DefaultSearchView: View {
             }
         }
         
-        if sortAscending {
-            return filtered.sorted { ($0.nameEnglish) < ($1.nameEnglish) }
-        } else {
-            return filtered.sorted { ($0.nameEnglish) > ($1.nameEnglish) }
-        }
+        
+        return filtered.sorted { ($0.nameEnglish) < ($1.nameEnglish) }
     }
     
     private var isShowingResults: Bool {
@@ -148,27 +161,25 @@ struct DefaultSearchView: View {
     // MARK: - Sections when not searching
     
     private var filterSection: some View {
+        
         VStack(alignment: .leading, spacing: 12) {
+            
             Text("Map filters")
                 .font(.headline)
-            Text("Hier kannst du später die Karte filtern (Kontinente, Kategorien, besuchte Länder, Wunschliste, etc.).")
-                .foregroundStyle(.secondary)
-            Toggle(isOn: $showOnlyUNMembers) {
-                Label("Only UN members", systemImage: "globe")
+            
+            Picker("Filter", selection: $filter) {
+                Text("All").tag(CountryStatusFilter.all)
+                Text("Visited").tag(CountryStatusFilter.visited)
+                Text("Wishlist").tag(CountryStatusFilter.wishlist)
             }
-            .toggleStyle(.switch)
+            .pickerStyle(.segmented)
+            
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(.ultraThinMaterial)
         )
-    }
-    
-    private var statisticsSection: some View {
-        
-        StatView(viewModel: MainScreenViewModel())
-        
     }
     
     private var tipsSection: some View {
@@ -188,81 +199,19 @@ struct DefaultSearchView: View {
     // MARK: - Results list (shown when searching)
     
     private var resultsList: some View {
-        Group {
+        
+        Section {
             if filteredCountries.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("No results")
-                        .font(.headline)
-                    Text("Keine Länder gefunden. Probiere einen anderen Suchbegriff.")
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                ContentUnavailableView("No country found.", systemImage: "magnifyingglass", description: Text("Check the spelling or try a new search"))
             } else {
-                // Eine einfache Liste der Länder, ähnlich zur CountriesList (ohne Gruppen)
-                VStack(spacing: 0) {
-                    ForEach(filteredCountries, id: \.iso2) { country in
-                        NavigationLink(destination: CountryDetailsView(country: country)) {
-                            CountryRow(country: country)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
+                ForEach(filteredCountries, id: \.iso2) { country in
+                    CountryRow(country: country)
+                        .onTapGesture {
+                            selectedCountry = country
                         }
-                        .buttonStyle(.plain)
-                        Divider().padding(.leading)
-                    }
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                )
             }
         }
-    }
-    
-    // MARK: - Toolbar
-    
-    @ToolbarContentBuilder
-    private var sortToolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
-            Menu {
-                Button(action: { sortAscending.toggle() }) {
-                    Label(sortAscending ? "Sort Z→A" : "Sort A→Z", systemImage: "arrow.up.arrow.down")
-                }
-            } label: {
-                Label("Sort", systemImage: "arrow.up.arrow.down.circle")
-            }
-        }
-    }
-    
-    // MARK: - Helpers
-    
-    private func statPill(title: String, value: Int?) -> some View {
-        HStack(spacing: 6) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            if let value { Text("\(value)").font(.headline) }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous).fill(Color(.tertiarySystemFill))
-        )
-    }
-    
-    private func statPill(title: String, value: Int?, systemImage: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .imageScale(.small)
-                .foregroundStyle(.secondary)
-            Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            Capsule(style: .continuous).fill(Color(.tertiarySystemFill))
-        )
     }
 }
 
@@ -283,8 +232,4 @@ struct CloseButton: View {
         }
         .buttonStyle(.glass)
     }
-}
-
-#Preview {
-    DefaultSearchView()
 }
