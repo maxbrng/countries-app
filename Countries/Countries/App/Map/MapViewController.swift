@@ -68,6 +68,9 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     private var baseBottomSheetViewController: SheetViewController<AnyView>?
     private var countrySheetVC: UIViewController?
     private var appearanceSheetVC: UIViewController?
+    
+    // Stack Logic: Merkt sich die Größe des Base Sheets, bevor es minimiert wird
+    private var storedBaseDetent: UISheetPresentationController.Detent.Identifier?
 
     // MARK: - Anchor
     private(set) var bottomSheetAnchorView: UIView!
@@ -333,6 +336,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
         isSwappingSheets = false
         selectedCountry = nil
         showAppearancePanel = false
+        storedBaseDetent = nil
     }
 
     // MARK: - Preferred size
@@ -402,27 +406,22 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             }
         }
 
-        if #available(iOS 18, *) {
-            let widthMismatch = abs(containerView.bounds.width - preferredSize.width) > 1.0
-            let xMismatch = abs(containerView.center.x - desiredCenterX) > 1.0
+        let widthMismatch = abs(containerView.bounds.width - preferredSize.width) > 1.0
+        let xMismatch = abs(containerView.center.x - desiredCenterX) > 1.0
 
-            let offscreen: Bool = {
-                if let win = containerView.window ?? view.window {
-                    let frameInWin = containerView.convert(containerView.bounds, to: win)
-                    return !frameInWin.intersects(win.bounds.insetBy(dx: -20, dy: -20))
-                }
-                return false
-            }()
-
-            if widthMismatch || xMismatch || offscreen {
-                UIView.performWithoutAnimation { applyFix() }
+        let offscreen: Bool = {
+            if let win = containerView.window ?? view.window {
+                let frameInWin = containerView.convert(containerView.bounds, to: win)
+                return !frameInWin.intersects(win.bounds.insetBy(dx: -20, dy: -20))
             }
-            return
+            return false
+        }()
+
+        if widthMismatch || xMismatch || offscreen {
+            UIView.performWithoutAnimation { applyFix() }
         }
-
-        UIView.performWithoutAnimation { applyFix() }
     }
-
+    
     // MARK: - Base Bottom Sheet
 
     private func presentBaseBottomSheetIfNeeded(animated: Bool, completion: (() -> Void)?) {
@@ -563,10 +562,10 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             rootView: contentView,
             title: country.nameEnglish,
             detents: [
-                .custom(identifier: .init("small")) { _ in CGFloat(210) },
-                .medium(),
-                .large()
-            ]
+                .custom(identifier: .init("small")) { _ in CGFloat(210) }
+            ],
+            prefersGrabberVisible: false,
+            largestUndimmedDetentIdentifier: .init(rawValue: "small")
         ) { [weak self] in
             self?.selectedCountry = nil
         }
@@ -597,6 +596,41 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
     private func syncStack() {
         if isSwappingSheets { return }
+
+        // --- Logic: Stack Overlays ---
+        let isShowingSecondary = (selectedCountry != nil) || showAppearancePanel
+        
+        // ANIMATION BASE SHEET:
+        // Wenn Stack (Overlay) aktiv: Base Sheet auf "small" (85pt) minimieren.
+        // Wenn Stack inaktiv: Base Sheet wieder hochfahren auf den letzten gespeicherten Detent.
+        if let baseSheet = baseBottomSheetViewController?.sheetPresentationController {
+            
+            if isShowingSecondary {
+                // Wir speichern den aktuellen Detent nur, wenn wir ihn nicht schon gespeichert haben.
+                // Grund: Wenn man von Country A -> Country B wechselt, bleibt isShowingSecondary true.
+                // Wir wollen aber nicht den Status "small" speichern, sondern den Status, bevor IRGENDWAS aufging.
+                if storedBaseDetent == nil {
+                    // Default fallback: .medium wenn nichts gesetzt war
+                    storedBaseDetent = baseSheet.selectedDetentIdentifier ?? .medium
+                }
+                
+                // Animiere auf small
+                baseSheet.animateChanges {
+                    baseSheet.selectedDetentIdentifier = .init("small")
+                }
+            } else {
+                // Stack ist weg -> Restore
+                if let restoreDetent = storedBaseDetent {
+                    baseSheet.animateChanges {
+                        baseSheet.selectedDetentIdentifier = restoreDetent
+                    }
+                    // Reset, damit beim nächsten Mal wieder neu gespeichert wird
+                    storedBaseDetent = nil
+                }
+            }
+        }
+
+        // --- Logic: Secondary Sheets Presentation ---
 
         // if Appearance open and now a country is selected -> dismiss appearance first then show/update country
         if let country = selectedCountry, let appearanceVC = appearanceSheetVC {
@@ -759,6 +793,21 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
 extension MapViewController: UISheetPresentationControllerDelegate {
     func sheetPresentationControllerDidChangeSelectedDetentIdentifier(_ sheetPresentationController: UISheetPresentationController) {
+        
+        // Wenn der User am Base Sheet zieht, während KEIN Stack oben drauf ist,
+        // merken wir uns das für später (falls wir storedBaseDetent aktualisieren müssen).
+        // Wir dürfen es NICHT updaten, wenn ein Stack drauf ist, da wir das Base Sheet ja gerade zwangsweise
+        // auf "small" gezwungen haben. Das soll nicht als Präferenz des Users gespeichert werden.
+        let isSecondarySheetPresented = (countrySheetVC != nil || appearanceSheetVC != nil)
+        
+        if sheetPresentationController.presentedViewController === baseBottomSheetViewController {
+            if !isSecondarySheetPresented {
+                // User interacting with base sheet freely -> Update internal logic if needed,
+                // but strictly `storedBaseDetent` is mainly for restore logic.
+                // However, if we wanted to be super precise, we could track last known state here.
+            }
+        }
+        
         updateSheetsContentSizeAndPosition()
     }
 

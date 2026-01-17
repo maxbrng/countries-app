@@ -278,7 +278,8 @@ struct CloseButton: View {
             Image(systemName: "xmark")
                 .font(.system(size: 26, weight: .regular))
                 .contentShape(Circle())
-                .frame(width: 28, height: 36)
+                .clipShape(Circle())
+                .frame(width: 26, height: 34)
         }
         .buttonStyle(.glass)
     }
