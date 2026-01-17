@@ -435,7 +435,6 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
         let rootView = AnyView(DefaultSearchView())
         
         let sheetVC = SheetViewController(rootView: rootView)
-        sheetVC.modalPresentationStyle = .pageSheet
         baseBottomSheetViewController = sheetVC
 
         sheetVC.sheetPresentationControllerContainerViewDidInit = { [weak self] controller in
@@ -525,7 +524,6 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
         )
 
         let nav = SheetNavigationController(rootViewController: host)
-        nav.modalPresentationStyle = .pageSheet
         nav.preferredContentSize = preferredSheetContentSize
 
         nav.sheetPresentationControllerContainerViewDidInit = { [weak self] controller in
