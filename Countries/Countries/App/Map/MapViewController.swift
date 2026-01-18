@@ -7,8 +7,15 @@
 
 import UIKit
 import SwiftUI
-import MapKit
 import SwiftData
+import Combine
+
+final class SheetStackStateModel: ObservableObject {
+    @Published var baseDetentIdentifier: UISheetPresentationController.Detent.Identifier?
+    @Published var hasStoredBaseDetent: Bool = false
+    @Published var isCountrySheetPresented: Bool = false
+    @Published var isAppearanceSheetPresented: Bool = false
+}
 
 // MARK: - SwiftUI Bridge
 
@@ -76,6 +83,8 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     private var showAppearancePanel: Bool = false { didSet { syncStack() } }
     private var appearance: MapAppearance = .twoD { didSet { rebuildMapRoot() } }
     private var filter: CountryStatusFilter = .all { didSet { rebuildMapRoot() } }
+    
+    private let sheetState = SheetStackStateModel()
 
     // MARK: - UI
     private var mapHost: UIHostingController<AnyView>!
@@ -355,6 +364,17 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
         selectedCountry = nil
         showAppearancePanel = false
         storedBaseDetent = nil
+        
+        updateSheetState()
+    }
+    
+    // MARK: - Sheet State Update Helper
+    
+    private func updateSheetState() {
+        sheetState.baseDetentIdentifier = baseBottomSheetViewController?.sheetPresentationController?.selectedDetentIdentifier
+        sheetState.hasStoredBaseDetent = (storedBaseDetent != nil)
+        sheetState.isCountrySheetPresented = (countrySheetVC != nil)
+        sheetState.isAppearanceSheetPresented = (appearanceSheetVC != nil)
     }
 
     // MARK: - Preferred size
@@ -461,7 +481,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
         )
 
         let rootView = AnyView(
-            DefaultSearchView(selectedCountry: selectedCountryBinding, filter: filterBinding)
+            DefaultSearchView(selectedCountry: selectedCountryBinding, filter: filterBinding, sheetState: sheetState)
                 .environment(\.modelContext, modelContext)
         )
         
@@ -497,6 +517,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             guard let self else { return }
             self.updateContentSizeAndPosition(forSheetViewController: sheetVC)
             self.setBaseSheetHidden(!self.shouldShowDefaultSheet(), animated: false)
+            self.updateSheetState()
             completion?()
         }
     }
@@ -597,7 +618,9 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             largestUndimmedDetentIdentifier: .init(rawValue: "small")
         ) { [weak self] in
             self?.selectedCountry = nil
+            self?.updateSheetState()
         }
+        updateSheetState()
     }
 
     private func presentAppearanceSheet() {
@@ -618,7 +641,9 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
             largestUndimmedDetentIdentifier: .init(rawValue: "small")
         ) { [weak self] in
             self?.showAppearancePanel = false
+            self?.updateSheetState()
         }
+        updateSheetState()
     }
 
     // MARK: - Sync (present / update / dismiss)
@@ -641,6 +666,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
                 if storedBaseDetent == nil {
                     // Default fallback: .medium wenn nichts gesetzt war
                     storedBaseDetent = baseSheet.selectedDetentIdentifier ?? .medium
+                    updateSheetState()
                 }
                 
                 // Animiere auf small
@@ -655,6 +681,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
                     }
                     // Reset, damit beim nächsten Mal wieder neu gespeichert wird
                     storedBaseDetent = nil
+                    updateSheetState()
                 }
             }
         }
@@ -844,6 +871,7 @@ extension MapViewController: UISheetPresentationControllerDelegate {
         }
         
         updateSheetsContentSizeAndPosition()
+        updateSheetState()
     }
 
     func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
@@ -859,6 +887,7 @@ extension MapViewController: UISheetPresentationControllerDelegate {
         }
 
         reconcileDefaultSheetVisibility()
+        updateSheetState()
     }
 }
 

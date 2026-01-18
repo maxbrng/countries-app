@@ -7,12 +7,15 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 /// Diese View wird im permanenten Sheet angezeigt,
 /// wenn selectedCountry == nil und showAppearancePanel == false ist.
 struct DefaultSearchView: View {
     
     @State var searchText = ""
+    @State private var start: Date = Calendar.current.date(byAdding: .year, value: -20, to: Date()) ?? Date()
+    @State private var end: Date = Date()
     
     private enum Field: Hashable {
         case search
@@ -25,43 +28,57 @@ struct DefaultSearchView: View {
     
     @Binding var selectedCountry: Country?
     @Binding var filter: CountryStatusFilter
+    @ObservedObject var sheetState: SheetStackStateModel
     
     var body: some View {
         
         NavigationStack {
             
-            Group {
+            ScrollViewReader { proxy in
                 
-                if !isShowingResults {
-                    
-                    ScrollView {
-                        VStack(spacing: 30) {
-                            filterSection
-                            StatView()
-                            Spacer()
-                        }
-                        .padding()
-                    }
-                    
-                } else {
-                    
-                    List {
+                List {
+                    if isShowingResults {
                         resultsList
+                        
+                    } else {
+                        Section {
+                            StatView()
+                                .id("statView")
+                            countryFilter
+                            dateFilter
+                        }
+                        .listRowSeparator(.hidden)
                     }
-                    .contentMargins(.top, 0)
+                }
+                .onChange(of: sheetState.baseDetentIdentifier) {
+                    
+                    if !sheetState.hasStoredBaseDetent && sheetState.baseDetentIdentifier == .init("small") {
+                        
+                        focusedField = nil
+                        searchText = ""
+                        
+                        Task { @MainActor in
+                            await Task.yield() // waits exactly 1 Runloop
+                            proxy.scrollTo("statView", anchor: .top)
+                        }
+                    }
                 }
             }
+            .listStyle(.plain)
+            .contentMargins(.top, 0)
             .safeAreaBar(edge: .top) {
                 ScrollView { // needed else the safeareabar breaks the focusstate
                     searchbarWithCloseButton
-                        .contentShape(Rectangle())
-                        .allowsHitTesting(true)
-                        .zIndex(10)
                         .padding(18)
-                        .frame(maxWidth: .infinity)
                 }
                 .scrollDisabled(true)
                 .frame(maxHeight: 90)
+            }
+            .onChange(of: sheetState.isCountrySheetPresented) { _, _ in
+                updateFocusForSheetState()
+            }
+            .onChange(of: sheetState.isAppearanceSheetPresented) { _, _ in
+                updateFocusForSheetState()
             }
         }
     }
@@ -158,14 +175,24 @@ struct DefaultSearchView: View {
         !searchText.isEmpty
     }
     
+    private func updateFocusForSheetState() {
+        
+        if sheetState.isCountrySheetPresented || sheetState.isAppearanceSheetPresented {
+            focusedField = nil
+        }
+        if !sheetState.isCountrySheetPresented && !sheetState.isAppearanceSheetPresented && searchText != "" {
+            focusedField = .search
+        }
+    }
+    
     // MARK: - Sections when not searching
     
-    private var filterSection: some View {
+    private var countryFilter: some View {
         
         VStack(alignment: .leading, spacing: 12) {
             
-            Text("Map filters")
-                .font(.headline)
+            Text("Country filter")
+                .font(.callout)
             
             Picker("Filter", selection: $filter) {
                 Text("All").tag(CountryStatusFilter.all)
@@ -173,13 +200,55 @@ struct DefaultSearchView: View {
                 Text("Wishlist").tag(CountryStatusFilter.wishlist)
             }
             .pickerStyle(.segmented)
-            
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(.ultraThinMaterial)
         )
+    }
+    
+    private var dateFilter: some View {
+        
+        VStack(alignment: .leading, spacing: 8) {
+            
+            Text("Timerange")
+                .font(.callout)
+            
+            HStack {
+                // TODO: add custom range slider with glasseffect later
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("From")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    DatePicker("Von", selection: $start, in: ...end, displayedComponents: .date)
+                        .labelsHidden()
+                }
+                .fixedSize()
+                
+                Spacer()
+                
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("To")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    DatePicker("Bis", selection: $end, in: start..., displayedComponents: .date)
+                        .labelsHidden()
+                }
+                .fixedSize()
+            }
+        }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .onChange(of: start) { oldValue, newValue in
+            if newValue > end { end = newValue }
+        }
+        .onChange(of: end) { oldValue, newValue in
+            if newValue < start { start = newValue }
+        }
     }
     
     private var tipsSection: some View {
@@ -203,6 +272,7 @@ struct DefaultSearchView: View {
         Section {
             if filteredCountries.isEmpty {
                 ContentUnavailableView("No country found.", systemImage: "magnifyingglass", description: Text("Check the spelling or try a new search"))
+                    .listRowSeparator(.hidden)
             } else {
                 ForEach(filteredCountries, id: \.iso2) { country in
                     CountryRow(country: country)
@@ -233,3 +303,4 @@ struct CloseButton: View {
         .buttonStyle(.glass)
     }
 }
+
