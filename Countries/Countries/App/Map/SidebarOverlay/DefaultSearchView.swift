@@ -16,6 +16,7 @@ struct DefaultSearchView: View {
     @State var searchText = ""
     @State private var start: Date = Calendar.current.date(byAdding: .year, value: -20, to: Date()) ?? Date()
     @State private var end: Date = Date()
+    @State private var scrollIndicatorVisibility: ScrollIndicatorVisibility = .automatic
     
     private enum Field: Hashable {
         case search
@@ -50,16 +51,20 @@ struct DefaultSearchView: View {
                         .listRowSeparator(.hidden)
                     }
                 }
+                .scrollIndicators(scrollIndicatorVisibility)
                 .onChange(of: sheetState.baseDetentIdentifier) {
                     
                     if !sheetState.hasStoredBaseDetent && sheetState.baseDetentIdentifier == .init("small") {
                         
                         focusedField = nil
                         searchText = ""
+                        scrollIndicatorVisibility = .hidden
                         
                         Task { @MainActor in
                             await Task.yield() // waits exactly 1 Runloop
                             proxy.scrollTo("statView", anchor: .top)
+                            await Task.yield()
+                            scrollIndicatorVisibility = .visible
                         }
                     }
                 }
