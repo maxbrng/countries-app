@@ -85,6 +85,9 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     private var filter: CountryStatusFilter = .all { didSet { rebuildMapRoot() } }
     
     private let sheetState = SheetStackStateModel()
+    
+    // Coalesce sheet state publishing to avoid publishing during view updates
+    private var isSheetStateUpdateScheduled = false
 
     // MARK: - UI
     private var mapHost: UIHostingController<AnyView>!
@@ -371,10 +374,23 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
     // MARK: - Sheet State Update Helper
     
     private func updateSheetState() {
-        sheetState.baseDetentIdentifier = baseBottomSheetViewController?.sheetPresentationController?.selectedDetentIdentifier
-        sheetState.hasStoredBaseDetent = (storedBaseDetent != nil)
-        sheetState.isCountrySheetPresented = (countrySheetVC != nil)
-        sheetState.isAppearanceSheetPresented = (appearanceSheetVC != nil)
+        // Coalesce to the next run loop tick to avoid publishing during SwiftUI view updates
+        if isSheetStateUpdateScheduled { return }
+        isSheetStateUpdateScheduled = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            self.isSheetStateUpdateScheduled = false
+            let baseDetent = self.baseBottomSheetViewController?.sheetPresentationController?.selectedDetentIdentifier
+            let hasStored = (self.storedBaseDetent != nil)
+            let hasCountry = (self.countrySheetVC != nil)
+            let hasAppearance = (self.appearanceSheetVC != nil)
+
+            // Apply all @Published changes together on the main queue, outside of view update phase
+            self.sheetState.baseDetentIdentifier = baseDetent
+            self.sheetState.hasStoredBaseDetent = hasStored
+            self.sheetState.isCountrySheetPresented = hasCountry
+            self.sheetState.isAppearanceSheetPresented = hasAppearance
+        }
     }
 
     // MARK: - Preferred size
@@ -499,7 +515,7 @@ final class MapViewController: UIViewController, UINavigationControllerDelegate 
 
         if let sheet = sheetVC.sheetPresentationController {
             sheet.detents = [
-                .custom(identifier: .init("small")) { _ in CGFloat(85) },
+                .custom(identifier: .init("small")) { _ in CGFloat(84) },
                 .medium(),
                 .large()
             ]

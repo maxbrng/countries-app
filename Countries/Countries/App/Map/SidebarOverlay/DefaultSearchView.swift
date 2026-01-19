@@ -49,6 +49,7 @@ struct DefaultSearchView: View {
                             dateFilter
                         }
                         .listRowSeparator(.hidden)
+                        .listRowInsets(.vertical, 12)
                     }
                 }
                 .scrollIndicators(scrollIndicatorVisibility)
@@ -107,6 +108,7 @@ struct DefaultSearchView: View {
                 .transition(.scale(scale: 0.9).combined(with: .opacity).combined(with: .move(edge: .trailing)))
             }
         }
+        .frame(height: 48)
         .animation(.snappy(duration: 0.25), value: focusedField)
     }
     
@@ -120,6 +122,7 @@ struct DefaultSearchView: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .focused($focusedField, equals: .search)
+                .submitLabel(.search)
             
             if !searchText.isEmpty {
                 Button {
@@ -305,6 +308,7 @@ struct CloseButton: View {
                 .clipShape(Circle())
                 .frame(width: 26, height: 34)
         }
+        .frame(width: 48, height: 48)
         .buttonStyle(.glass)
     }
 }
