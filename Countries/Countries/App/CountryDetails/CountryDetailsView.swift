@@ -95,29 +95,63 @@ struct CountryDetailsView: View {
             if let capital = country.capital, !capital.isEmpty {
                 infoRow(title: "Capital", value: capital)
             }
-            
-            if !country.currencies.isEmpty {
-                infoRow(title: "Currencies", value: country.currencies.joined(separator: ", "))
-            }
-            
-            if !country.languages.isEmpty {
-                infoRow(title: "Languages", value: country.languages.joined(separator: ", "))
-            }
-            
-            if !country.currencies.isEmpty {
-                infoRow(title: "Currencies", value: country.currencies.joined(separator: ", "))
-            }
-            
+
+            // Status
+            infoRow(title: "Status", value: {
+                switch country.status {
+                case .none: return "None"
+                case .visited: return "Visited"
+                case .wishlist: return "Wishlist"
+                }
+            }())
+
+            // UN Member and Source Translations
+            infoRow(title: "UN Member", value: country.isUNMember ? "Yes" : "No")
+            infoRow(title: "Has Source Translations", value: country.dataHadSourceTranslations ? "Yes" : "No")
+
+            // Phone Codes
             if !country.phoneCodes.isEmpty {
                 let codes = country.phoneCodes.map { "+\($0)" }.joined(separator: ", ")
                 infoRow(title: "Phone Codes", value: codes)
             }
-            
-            if let iso3 = country.iso3 {
+
+            // Currencies & Languages
+            if !country.currencies.isEmpty {
+                infoRow(title: "Currencies", value: country.currencies.joined(separator: ", "))
+            }
+
+            if !country.languages.isEmpty {
+                infoRow(title: "Languages", value: country.languages.joined(separator: ", "))
+            }
+
+            // ISO Codes
+            if let iso3 = country.iso3, !iso3.isEmpty {
                 infoRow(title: "ISO3", value: iso3)
             }
-            
             infoRow(title: "ISO2", value: country.iso2)
+
+            // Tags
+            if !country.travelTags.isEmpty {
+                let tags = country.travelTags.map { $0.rawValue.capitalized }.joined(separator: ", ")
+                infoRow(title: "Travel Tags", value: tags)
+            }
+
+            if !country.climateTags.isEmpty {
+                let tags = country.climateTags.map { $0.rawValue.capitalized }.joined(separator: ", ")
+                infoRow(title: "Climate Tags", value: tags)
+            }
+
+            // Levels
+            infoRow(title: "Cost Level", value: String(describing: country.costLevel).capitalized)
+            infoRow(title: "Safety Level", value: String(describing: country.safetyLevel).capitalized)
+
+            // Hero Image URL
+            if let hero = country.heroImageURL, !hero.isEmpty {
+                infoRow(title: "Hero Image URL", value: hero)
+            }
+
+            // Trips count
+            infoRow(title: "Trips", value: "\(country.trips.count)")
         }
     }
 

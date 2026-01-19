@@ -8,12 +8,6 @@
 import Foundation
 import SwiftData
 
-enum CountryStatus: Int, Codable, CaseIterable {
-    case none = 0
-    case visited = 1
-    case wishlist = 2
-}
-
 @Model
 final class Country {
 
@@ -35,6 +29,15 @@ final class Country {
     var isUNMember: Bool
     var dataHadSourceTranslations: Bool // others had translations added with AI
     
+    var travelTags: [TravelTag]
+    var climateTags: [ClimateTag]
+    var costLevel: CostLevel
+    var safetyLevel: SafetyLevel
+    
+    var heroImageURL: String?
+    
+    @Relationship var trips: [Trip] = []
+    
     @Attribute(.externalStorage) var translationsData: Data?
 
     init(
@@ -51,6 +54,11 @@ final class Country {
         isUNMember: Bool,
         dataHasSourceTranslation: Bool,
         notes: String? = nil,
+        travelTags: [TravelTag],
+        climateTags: [ClimateTag],
+        costLevel: CostLevel,
+        safetyLevel: SafetyLevel,
+        heroImageURL: String? = nil,
         translations: [String: String]
     ) {
         self.iso2 = iso2.uppercased()
@@ -66,6 +74,11 @@ final class Country {
         self.isUNMember = isUNMember
         self.dataHadSourceTranslations = dataHasSourceTranslation
         self.notes = notes
+        self.travelTags = travelTags
+        self.climateTags = climateTags
+        self.costLevel = costLevel
+        self.safetyLevel = safetyLevel
+        self.heroImageURL = heroImageURL
         self.translationsData = try? JSONEncoder().encode(translations)
     }
     
