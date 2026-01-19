@@ -28,7 +28,12 @@ struct CountriesList: View {
             if viewModel.search.isEmpty {
                 groupedList(groups: groups)
             } else {
-                ungroupedList(countries: filtered)
+                
+                if filtered.isEmpty {
+                    ContentUnavailableView("No country found.", systemImage: "magnifyingglass", description: Text("Check the spelling or try a new search"))
+                } else {
+                    ungroupedList(countries: filtered)
+                }
             }
         }
         .searchable(text: $viewModel.search)
