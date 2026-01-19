@@ -10,7 +10,7 @@ import MapKit
 import Foundation
 
 // Conforms to Hashable so it can be used with NavigationPath and navigationDestination.
-public enum AppRoute: Hashable {
+enum AppRoute: Hashable {
     //    case countryDetail(country: Country)
     case fullCountryList
     case mapScreen
@@ -31,6 +31,7 @@ struct RootTabView: View {
                     MainScreen(path: $path)
                         .navigationDestination(for: AppRoute.self) { (route: AppRoute) in
                             destination(for: route)
+                                .toolbar(.hidden, for: .tabBar)
                         }
                 }
             }
@@ -56,7 +57,8 @@ struct RootTabView: View {
         case .fullCountryList:
             CountriesList(path: $path)
         case .mapScreen:
-            MapScreen()
+            MapControllerRepresentable(path: $path)
+                .ignoresSafeArea()
         case .settings:
             SettingsScreen()
         }
