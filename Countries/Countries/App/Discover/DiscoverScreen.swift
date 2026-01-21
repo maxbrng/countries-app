@@ -6,26 +6,39 @@
 //
 
 import SwiftUI
-import MapKit
+import SwiftData
 
 struct DiscoverScreen: View {
     
     @Binding var path: NavigationPath
-    @StateObject private var viewModel = DiscoverViewModel()
+    
+    @Environment(\.modelContext) private var modelContext
+    @Query(sort: \Country.iso2) private var allCountries: [Country]
+    
+    @StateObject private var service = PhotoService()
     
     var body: some View {
         
         GeometryReader { geo in
             let cardHeight = geo.size.height - 40
+            let cardWidth = geo.size.width - 40
             
             ScrollView(.vertical) {
                 
                 LazyVStack(spacing: 0) {
-
-                    ForEach(viewModel.items) { item in
-                        NavigationLink(value: item) {
+                    
+                    ForEach(allCountries) { country in
+                        
+                        NavigationLink(value: country) {
                             
-                            CountryCardView(item: item, height: cardHeight)
+                            CountryCardView(country: country,
+                                            height: cardHeight,
+                                            width: cardWidth,
+                                            service: service)
+                                
+                                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 36, style: .continuous))
+                                .frame(width: cardWidth, height: cardHeight)
+                                .frame(maxWidth: cardWidth, maxHeight: cardHeight)
                                 .containerRelativeFrame(.vertical, count: 1, spacing: 0)
                                 .visualEffect { content, proxy in
                                     let frame = proxy.frame(in: .scrollView)
@@ -51,16 +64,34 @@ struct DiscoverScreen: View {
             
             .scrollIndicators(.hidden)
             .scrollTargetBehavior(.paging)
+            .edgesIgnoringSafeArea(.all)
         }
         .navigationTitle("Recommendations")
         .toolbarTitleDisplayMode(.inlineLarge)
-        .navigationDestination(for: CountryRecommendation.self) { item in
-            RecommendationDetailView(item: item)
+        .navigationDestination(for: Country.self) { country in
+            CountryDetailsView(country: country)
+        }
+        .task(id: allCountries.count) {
+            // 1) Erstmal “above the fold” + bisschen Buffer:
+            let firstBatch = Array(allCountries.prefix(30))
+            service.preload(countries: firstBatch)
+            
+            // 2) Optional: “gefühlt alles” – in kleinen Wellen nachladen
+            // (Wenn du wirklich ALLES sofort willst: wiki.preloadAll(countries: allCountries))
+            var index = 30
+            while index < allCountries.count {
+                let next = Array(allCountries[index..<min(index + 20, allCountries.count)])
+                service.preload(countries: next)
+                index += 20
+                
+                // kleine Pause, damit UI nicht leidet (und Server nicht komplett stresst)
+                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2s
+            }
+        }
+        .onDisappear {
+            // Optional: wenn du willst, dass beim Verlassen abgebrochen wird
+            service.cancelAll()
         }
     }
-}
-
-#Preview {
-    DiscoverScreen(path: .constant(NavigationPath()))
 }
 

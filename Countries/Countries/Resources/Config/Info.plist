@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>UNSPLASH_ACCESS_KEY</key>
+	<string>2rLsWls2bJMvQHd-4aM82Bv6eOaTyVypaTmvNLPbd0g</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
