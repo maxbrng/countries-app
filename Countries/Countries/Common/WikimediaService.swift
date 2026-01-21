@@ -32,19 +32,30 @@ struct WikiImageInfo: Codable {
 @MainActor
 final class WikimediaService: ObservableObject {
 
+    enum LoadPriority: Int {
+        case background = 0
+        case userInitiated = 1
+    }
+
     @Published private(set) var imageURLs: [String: URL] = [:]
     @Published private(set) var loadingKeys: Set<String> = []
     @Published private(set) var errors: [String: String] = [:]
 
     private var tasks: [String: Task<Void, Never>] = [:]
+    private var taskPriority: [String: LoadPriority] = [:]
+
+    private var usedURLStrings = Set<String>()
 
     private let thumbWidth: Int
     private let semaphore: AsyncSemaphore
 
-    // ✅ Falls du Portrait bevorzugen willst (true) oder egal (false)
-    private let preferPortrait: Bool = false
+    // ✅ Tuning (50 + 4s ist “zu hart”)
+    private let perQueryLimit: Int = 25
+    private let requestTimeout: TimeInterval = 9
+    private let retriesOnTimeout: Int = 1
+    private let maxCandidates: Int = 2
 
-    init(thumbWidth: Int = 2200, maxConcurrent: Int = 6) {
+    init(thumbWidth: Int = 2000, maxConcurrent: Int = 2) {
         self.thumbWidth = thumbWidth
         self.semaphore = AsyncSemaphore(value: maxConcurrent)
     }
@@ -53,168 +64,164 @@ final class WikimediaService: ObservableObject {
     func isLoading(_ key: String) -> Bool { loadingKeys.contains(key) }
     func errorMessage(for key: String) -> String? { errors[key] }
 
-    func fetchImageIfNeeded(key: String, searchTerm: String) {
+    func fetchImageIfNeeded(key: String, searchTerm: String, priority: LoadPriority = .background) {
         guard !key.isEmpty else { return }
         let term = searchTerm.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !term.isEmpty else { return }
 
         if imageURLs[key] != nil { return }
-        if tasks[key] != nil { return }
+
+        if let existing = tasks[key] {
+            let current = taskPriority[key] ?? .background
+            if priority.rawValue > current.rawValue {
+                existing.cancel()
+                tasks[key] = nil
+                taskPriority[key] = nil
+            } else {
+                return
+            }
+        }
 
         loadingKeys.insert(key)
         errors[key] = nil
+        taskPriority[key] = priority
 
-        let task = Task { [weak self] in
+        let task = Task(priority: priority == .userInitiated ? .userInitiated : .utility) { [weak self] in
             guard let self else { return }
 
-            await self.semaphore.wait()
-            defer { Task { await self.semaphore.signal() } }
+            await semaphore.wait()
+            defer { Task { await semaphore.signal() } }
 
             do {
-                let queries = self.makeQueryCandidates(for: term)
-                var foundURL: URL?
+                let queries = Array(makeFastCandidates(for: term).prefix(maxCandidates))
+                var chosenURL: URL? = nil
 
                 for q in queries {
                     if Task.isCancelled { break }
 
-                    let url = try self.buildURL(searchTerm: q, limit: 10)
-                    let (data, response) = try await URLSession.shared.data(from: url)
+                    let request = try buildRequest(searchTerm: q, limit: perQueryLimit)
+                    let decoded = try await fetchWithRetry(request: request, retries: retriesOnTimeout)
 
-                    guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-                        continue
-                    }
-
-                    let decoded = try JSONDecoder().decode(WikiResponse.self, from: data)
                     guard let pages = decoded.query?.pages.values, !pages.isEmpty else {
                         continue
                     }
 
-                    // ✅ wir iterieren über mehrere Ergebnisse und picken das erste, das “gut” ist
-                    if let chosen = self.pickBestPage(from: Array(pages)) {
-                        foundURL = chosen
+                    for page in pages {
+                        if Task.isCancelled { break }
+
+                        guard let titleRaw = page.title else { continue }
+                        let title = titleRaw.lowercased()
+                        guard let info = page.imageinfo?.first else { continue }
+
+                        // ✅ harte Filter inkl. “nur Foto-Dateitypen”
+                        if isBlockedTitle(title) { continue }
+                        if !isAllowedImageFile(title: title) { continue }
+
+                        let urlString = info.thumburl ?? info.url
+
+                        if usedURLStrings.contains(urlString) { continue }
+                        guard let u = URL(string: urlString) else { continue }
+
+                        chosenURL = u
+                        usedURLStrings.insert(urlString)
                         break
                     }
+
+                    if chosenURL != nil { break }
                 }
 
-                if let u = foundURL {
-                    self.imageURLs[key] = u
+                if let u = chosenURL {
+                    imageURLs[key] = u
+                } else {
+                    errors[key] = "Wikimedia: kein passendes Foto gefunden."
                 }
 
-                self.loadingKeys.remove(key)
-                self.tasks[key] = nil
+                loadingKeys.remove(key)
+                tasks[key] = nil
+                taskPriority[key] = nil
 
             } catch {
-                self.errors[key] = error.localizedDescription
-                self.loadingKeys.remove(key)
-                self.tasks[key] = nil
+                errors[key] = prettyError(error)
+                loadingKeys.remove(key)
+                tasks[key] = nil
+                taskPriority[key] = nil
             }
         }
 
         tasks[key] = task
     }
 
-    func preload(countries: [Country]) {
-        for c in countries {
-            fetchImageIfNeeded(key: c.iso2, searchTerm: c.nameEnglish)
+    func preload(countries: [Country], count: Int = 20) {
+        for c in countries.prefix(count) {
+            fetchImageIfNeeded(key: c.iso2, searchTerm: c.nameEnglish, priority: .background)
         }
     }
 
     func cancelAll() {
         for (_, t) in tasks { t.cancel() }
         tasks.removeAll()
+        taskPriority.removeAll()
         loadingKeys.removeAll()
     }
 
-    // MARK: - Auswahl/Filter
+    // MARK: - Queries (einfach halten)
 
-    private func pickBestPage(from pages: [WikiPage]) -> URL? {
-        // optional: erst Portrait versuchen, sonst egal
-        let candidates = pages.compactMap { page -> (title: String, info: WikiImageInfo)? in
-            guard let title = page.title?.lowercased(),
-                  let info = page.imageinfo?.first else { return nil }
-            return (title: title, info: info)
+    private func makeFastCandidates(for country: String) -> [String] {
+        // ✅ Wir versuchen statt “photo OR …” einfach: Landschaft/Sehenswürdigkeit.
+        // Den Rest macht unser lokaler Filter + filetype.
+        return [
+            "\(country) landscape",
+            "\(country) landmark",
+            "\(country) skyline",
+            "\(country) nature"
+        ]
+    }
+
+    // MARK: - Filtering
+
+    /// ✅ nur echte Rasterbilder für deine Cards:
+    /// jpg/jpeg/png/webp (kein svg, pdf, tif, djvu, ogg, etc.)
+    private func isAllowedImageFile(title: String) -> Bool {
+        // Commons Titles sind meist wie: "File:Something.jpg"
+        // Wir checken auf Endung:
+        if title.hasSuffix(".jpg") || title.hasSuffix(".jpeg") || title.hasSuffix(".png") || title.hasSuffix(".webp") {
+            return true
         }
-
-        // 1) harte Filter: keine flags/maps/wappen/paintings/satellite usw.
-        let filtered = candidates.filter { (title, info) in
-            !isBlockedTitle(title) && !isSatelliteLike(title) && !isArtworkLike(title)
-        }
-
-        if preferPortrait {
-            // 2) Portrait bevorzugen, wenn size vorhanden
-            if let portrait = filtered.first(where: { (_, info) in
-                if let w = info.width, let h = info.height { return h > w }
-                return false
-            }) {
-                return URL(string: portrait.info.thumburl ?? portrait.info.url)
-            }
-        }
-
-        // 3) sonst: erstes “ok” nehmen
-        if let first = filtered.first {
-            return URL(string: first.info.thumburl ?? first.info.url)
-        }
-
-        return nil
+        return false
     }
 
     private func isBlockedTitle(_ t: String) -> Bool {
-        // flags
-        if t.contains("flag") || t.contains("flags") { return true }
+        // flags / maps / wappen
+        if containsAny(t, ["flag", "flags", " map", " maps", "coat of arms", "coat-of-arms", "emblem", "seal"]) { return true }
 
-        // maps
-        if t.contains("map") || t.contains("maps") { return true }
+        // people / portraits
+        if containsAny(t, ["portrait", "portraits", "person", "people", "president", "king", "queen", "prime minister"]) { return true }
 
-        // wappen / coat of arms / emblem / seal
-        if t.contains("coat of arms") || t.contains("coat-of-arms") { return true }
-        if t.contains("emblem") || t.contains("seal") { return true }
+        // art / illustration
+        if containsAny(t, ["painting", "oil painting", "watercolor", "illustration", "drawing", "sketch", "artwork", "lithograph", "engraving"]) { return true }
+
+        // satellite / aerial
+        if containsAny(t, ["satellite", "aerial", "landsat", "sentinel", "nasa", "esa", "iss", "orthophoto", "google earth"]) { return true }
+        
+        // ✅ Text/Scans/Documents
+        if containsAny(t, [
+            "text", "article", "document", "manual", "brochure", "leaflet", "newspaper",
+            "scan", "scanned", "page", "pages", "book", "magazine", "paper", "pdf", "djvu"
+        ]) { return true }
+
+        // ✅ Vektoren/Icons/Logos (meist SVG)
+        if containsAny(t, ["svg", "icon", "logo", "pictogram"]) { return true }
 
         return false
     }
 
-    private func isArtworkLike(_ t: String) -> Bool {
-        // Gemälde/Zeichnungen/Illustrationen etc.
-        let bad = [
-            "painting", "oil on", "oil painting", "watercolor", "gouache",
-            "illustration", "drawing", "sketch", "engraving", "lithograph",
-            "poster", "artwork", "mural", "fresco", "icon", "stamp"
-        ]
-        return bad.contains(where: { t.contains($0) })
+    private func containsAny(_ t: String, _ list: [String]) -> Bool {
+        list.contains(where: { t.contains($0) })
     }
 
-    private func isSatelliteLike(_ t: String) -> Bool {
-        let bad = [
-            "satellite", "aerial", "orthophoto", "orthophotograph",
-            "landsat", "sentinel", "nasa", "esa", "iss",
-            "google earth", "spaceborne"
-        ]
-        return bad.contains(where: { t.contains($0) })
-    }
+    // MARK: - Network
 
-    // MARK: - Query Kandidaten
-
-    private func makeQueryCandidates(for country: String) -> [String] {
-        // ✅ Negative Keywords: keine flags/maps/wappen + keine paintings + keine satellite/aerial
-        let negative =
-            "-flag -flags -map -maps -\"coat of arms\" -\"coat-of-arms\" -emblem -seal " +
-            "-painting -illustration -drawing -sketch -watercolor -poster " +
-            "-satellite -aerial -landsat -sentinel -nasa -esa -orthophoto"
-
-        // ✅ Positive Richtung: Foto/Photograph erhöht “echte Fotos”-Treffer
-        // (Commons ist nicht perfekt, aber hilft)
-        let positive = "photo OR photograph OR \"taken in\" OR \"taken at\""
-
-        return [
-            "\(country) landmark \(positive) \(negative)",
-            "\(country) landscape \(positive) \(negative)",
-            "\(country) skyline \(positive) \(negative)",
-            "\(country) city \(positive) \(negative)",
-        ]
-    }
-
-    // MARK: - URL
-
-    private func buildURL(searchTerm: String, limit: Int) throws -> URL {
+    private func buildRequest(searchTerm: String, limit: Int) throws -> URLRequest {
         var components = URLComponents(string: "https://commons.wikimedia.org/w/api.php")
         components?.queryItems = [
             URLQueryItem(name: "action", value: "query"),
@@ -228,24 +235,55 @@ final class WikimediaService: ObservableObject {
             URLQueryItem(name: "format", value: "json")
         ]
 
-        guard let url = components?.url else {
-            throw URLError(.badURL)
+        guard let url = components?.url else { throw URLError(.badURL) }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = requestTimeout
+        request.setValue("CountriesApp/1.0 (iOS)", forHTTPHeaderField: "User-Agent")
+        return request
+    }
+
+    private func fetchWithRetry(request: URLRequest, retries: Int) async throws -> WikiResponse {
+        var lastError: Error?
+
+        for attempt in 0...retries {
+            do {
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+                    throw URLError(.badServerResponse)
+                }
+                return try JSONDecoder().decode(WikiResponse.self, from: data)
+            } catch {
+                lastError = error
+
+                if let e = error as? URLError, e.code == .timedOut, attempt < retries {
+                    try? await Task.sleep(nanoseconds: UInt64(250_000_000 * (attempt + 1)))
+                    continue
+                }
+                throw error
+            }
         }
-        return url
+
+        throw lastError ?? URLError(.unknown)
+    }
+
+    private func prettyError(_ error: Error) -> String {
+        if let e = error as? URLError, e.code == .timedOut {
+            return "Wikimedia: Timeout."
+        }
+        return error.localizedDescription
     }
 }
 
 
-
-// MARK: - AsyncSemaphore (kleines Hilfsding, damit Parallelität begrenzt ist)
+// MARK: - AsyncSemaphore
 
 actor AsyncSemaphore {
     private var value: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
-    init(value: Int) {
-        self.value = value
-    }
+    init(value: Int) { self.value = value }
 
     func wait() async {
         if value > 0 {
@@ -261,8 +299,7 @@ actor AsyncSemaphore {
         if waiters.isEmpty {
             value += 1
         } else {
-            let cont = waiters.removeFirst()
-            cont.resume()
+            waiters.removeFirst().resume()
         }
     }
 }
