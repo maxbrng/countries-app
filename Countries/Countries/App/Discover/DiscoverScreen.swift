@@ -16,17 +16,6 @@ struct DiscoverScreen: View {
     @Query(sort: \Country.iso2) private var allCountries: [Country]
     
     @StateObject private var service = PhotoService()
-    @State private var sortAscending: Bool = true
-    
-    private var displayedCountries: [Country] {
-        allCountries.sorted { a, b in
-            if sortAscending {
-                return a.iso2 < b.iso2
-            } else {
-                return a.iso2 > b.iso2
-            }
-        }
-    }
     
     var body: some View {
         
@@ -38,7 +27,7 @@ struct DiscoverScreen: View {
                 
                 LazyVStack(spacing: 0) {
                     
-                    ForEach(displayedCountries) { country in
+                    ForEach(allCountries) { country in
                         
                         NavigationLink(value: country) {
                             
@@ -82,12 +71,10 @@ struct DiscoverScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    sortAscending.toggle()
+                    
                 } label: {
-                    Label(sortAscending ? "A→Z" : "Z→A", systemImage: sortAscending ? "arrow.up" : "arrow.down")
+                    Image(systemName: "slider.horizontal.3")
                 }
-                .accessibilityLabel(sortAscending ? "Sort descending" : "Sort ascending")
-                .accessibilityHint("Toggle country sort order")
             }
         }
         .navigationDestination(for: Country.self) { country in
@@ -95,14 +82,14 @@ struct DiscoverScreen: View {
         }
         .task(id: allCountries.count) {
             // 1) Erstmal “above the fold” + bisschen Buffer:
-            let firstBatch = Array(displayedCountries.prefix(30))
+            let firstBatch = Array(allCountries.prefix(30))
             service.preload(countries: firstBatch)
             
             // 2) Optional: “gefühlt alles” – in kleinen Wellen nachladen
             // (Wenn du wirklich ALLES sofort willst: wiki.preloadAll(countries: allCountries))
             var index = 30
-            while index < displayedCountries.count {
-                let next = Array(displayedCountries[index..<min(index + 20, displayedCountries.count)])
+            while index < allCountries.count {
+                let next = Array(allCountries[index..<min(index + 20, allCountries.count)])
                 service.preload(countries: next)
                 index += 20
                 
