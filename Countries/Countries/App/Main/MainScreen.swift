@@ -36,6 +36,7 @@ struct MainScreen: View {
                                 selectedCountry: .constant(nil),
                                 filter: .constant(.all))
                         .disabled(true)
+                        //.drawingGroup()
                         .padding(.horizontal)
                         .aspectRatio(1.8, contentMode: .fill)
                         .clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))

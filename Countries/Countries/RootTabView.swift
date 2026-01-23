@@ -23,6 +23,8 @@ struct RootTabView: View {
     
     @State private var search = ""
     
+    @State private var toolbarVisibility = Visibility.visible
+    
     var body: some View {
         
         TabView {
@@ -31,14 +33,17 @@ struct RootTabView: View {
                     MainScreen(path: $path)
                         .navigationDestination(for: AppRoute.self) { (route: AppRoute) in
                             destination(for: route)
-                                .toolbar(.hidden, for: .tabBar)
+                                .onAppear { toolbarVisibility = .hidden }
                         }
+                        .onAppear { toolbarVisibility = .visible }
                 }
+                .toolbar(toolbarVisibility, for: .tabBar)
             }
             
             Tab("Discover", systemImage: "binoculars.fill") {
                 NavigationStack {
                     DiscoverScreen(path: $path)
+                        .onAppear { toolbarVisibility = .visible }
                 }
             }
             
@@ -46,6 +51,7 @@ struct RootTabView: View {
                 NavigationStack {
                     CountriesList(path: $path)
                         .searchable(text: $search, placement: .automatic, prompt: "Search countries")
+                        .onAppear { toolbarVisibility = .visible }
                 }
             }
         }
