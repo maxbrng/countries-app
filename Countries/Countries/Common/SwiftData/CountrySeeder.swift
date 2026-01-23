@@ -8,33 +8,6 @@
 import Foundation
 import SwiftData
 
-struct MockProfiles {
-    static let user1Visited: Set<String> = ["US", "DE", "FR", "JP", "BR"]
-    static let user1Wishlist: Set<String> = ["NZ", "CA", "NO", "ZA"]
-
-    static let user2Visited: Set<String> = ["IN", "CN", "TH", "VN", "ID"]
-    static let user2Wishlist: Set<String> = ["AU", "MX", "ES", "PT"]
-
-    static let user3Visited: Set<String> = ["IT", "GR", "TR", "EG"]
-    static let user3Wishlist: Set<String> = ["AR", "CL", "PE", "CO"]
-
-    static func status(for iso2: String, selectedUser: Int) -> CountryStatus {
-        let code = iso2.uppercased()
-        switch selectedUser {
-        case 1:
-            if user2Visited.contains(code) { return .visited }
-            if user2Wishlist.contains(code) { return .wishlist }
-        case 2:
-            if user3Visited.contains(code) { return .visited }
-            if user3Wishlist.contains(code) { return .wishlist }
-        default:
-            if user1Visited.contains(code) { return .visited }
-            if user1Wishlist.contains(code) { return .wishlist }
-        }
-        return .none
-    }
-}
-
 // JSON-DTO: Data Transfer Object um die items aus der JSON eins zu eins zu übertragen
 struct CountryJSON: Decodable {
     
@@ -98,29 +71,6 @@ private extension Season {
 
 @MainActor
 struct CountrySeeder {
-
-    static func applyMockProfile(in context: ModelContext) throws {
-        // Read selected user
-        let selectedUser = UserDefaults.standard.integer(forKey: "selectedMockUser")
-        
-        // Fetch all countries
-        var descriptor = FetchDescriptor<Country>()
-        descriptor.fetchLimit = nil
-        let countries = try context.fetch(descriptor)
-        
-        // Reset all to .none
-        for country in countries {
-            country.status = .none
-        }
-        
-        // Apply visited/wishlist from mock profile
-        for country in countries {
-            let newStatus = MockProfiles.status(for: country.iso2, selectedUser: selectedUser)
-            country.status = newStatus
-        }
-        
-        try context.save()
-    }
 
     static func seedIfNeeded(in context: ModelContext) throws {
 

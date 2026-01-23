@@ -90,7 +90,7 @@ final class WikimediaService: ObservableObject {
             guard let self else { return }
 
             await semaphore.wait()
-            defer { Task { await semaphore.signal() } }
+            defer { Task { await self.semaphore.signal() } }
 
             do {
                 let queries = Array(makeFastCandidates(for: term).prefix(maxCandidates))

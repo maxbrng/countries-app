@@ -202,12 +202,8 @@ struct CountryDetailsView: View {
     }
 
     private func toggleStatus(_ newStatus: CountryStatus) {
-        if country.status == newStatus {
-            country.status = .none
-        } else {
-            country.status = newStatus
-        }
-        try? modelContext.save()
+        country.status = (country.status == newStatus) ? .none : newStatus
+        try? MockProfileService.handleCountryStatusChange(for: country, in: modelContext)
     }
 
     // MARK: - Helpers

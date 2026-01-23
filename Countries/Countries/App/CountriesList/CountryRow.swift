@@ -25,7 +25,6 @@ struct CountryRow: View {
                         .stroke(.quaternary, lineWidth: 1)
                 )
                 .frame(maxWidth: 40, maxHeight: 30)
-                
             
             VStack(alignment: .leading) {
                 Text(country.nameEnglish)
@@ -51,7 +50,7 @@ struct CountryRow: View {
     
     private func toggleStatus(of country: Country, _ newStatus: CountryStatus) {
         country.status = (country.status == newStatus) ? .none : newStatus
-        try? modelContext.save()
+        try? MockProfileService.handleCountryStatusChange(for: country, in: modelContext)
     }
     
     @ViewBuilder

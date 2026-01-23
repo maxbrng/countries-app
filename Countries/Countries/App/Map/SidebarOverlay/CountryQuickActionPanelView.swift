@@ -71,6 +71,6 @@ struct CountryQuickActionPanelView: View {
     
     private func toggle(_ status: CountryStatus) {
         country.status = (country.status == status) ? .none : status
-        try? modelContext.save()
+        try? MockProfileService.handleCountryStatusChange(for: country, in: modelContext)
     }
 }

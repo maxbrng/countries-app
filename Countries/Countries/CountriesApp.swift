@@ -16,7 +16,11 @@ struct CountriesApp: App {
     
     private let sharedModelContainer: ModelContainer = {
         
-        let schema = Schema([Country.self])
+        let schema = Schema([
+                Country.self,
+                Trip.self,
+                UserPreferences.self
+            ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         
         do {

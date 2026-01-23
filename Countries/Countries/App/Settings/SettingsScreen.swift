@@ -26,7 +26,7 @@ struct SettingsScreen: View {
                 .pickerStyle(.menu)
                 .onChange(of: selectedMockUser) { _, _ in
                     do {
-                        try CountrySeeder.applyMockProfile(in: modelContext)
+                        try MockProfileService.applySelectedMockProfile(in: modelContext)
                     } catch {
                         // Optionally handle error (e.g., show alert). For now, just log.
                         print("Failed to apply mock profile: \(error)")
