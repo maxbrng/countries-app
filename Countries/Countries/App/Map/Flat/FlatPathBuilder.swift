@@ -7,9 +7,20 @@
 
 import CoreGraphics
 
-enum FlatPathBuilder {
+nonisolated enum FlatPathBuilder {
+
+    // MARK: - Variant
+
+    enum Variant: Sendable {
+        /// Interactive / detail mode (uses hybrid centroid + polylabel).
+        case full
+        /// Preview / lightweight mode (no polylabel).
+        case light
+    }
     
-    struct BuildResult: Sendable {
+    // CGPath is not formally Sendable. We only pass results within the same task.
+    // Marking it unchecked keeps Swift 6 concurrency checking happy.
+    struct BuildResult: @unchecked Sendable {
         let path: CGPath
         let labelAnchor: CGPoint
         let focusBoundingBox: CGRect
@@ -24,11 +35,11 @@ enum FlatPathBuilder {
         let ring: [CGPoint]
         let compactness: Double // area / bboxArea
     }
-    
-    static func build(
+    nonisolated static func build(
         from geometry: GeoJSON.Geometry,
         projectionMode: FlatMapProjectionMode,
-        iso2: String
+        iso2: String,
+        variant: Variant = .full
     ) -> BuildResult {
         
         let mutablePath = CGMutablePath()
@@ -93,7 +104,14 @@ enum FlatPathBuilder {
         
         let best = candidates.max(by: { $0.area < $1.area })
         
-        let labelAnchor = makeHybridLabelAnchor(bestCandidate: best)
+        let labelAnchor: CGPoint = {
+            switch variant {
+            case .full:
+                return makeHybridLabelAnchor(bestCandidate: best)
+            case .light:
+                return makeLightLabelAnchor(bestCandidate: best)
+            }
+        }()
         let focusBoundingBox = chooseFocusBoundingBox(candidates: candidates, iso2: iso2)
         
         return .init(path: mutablePath,
@@ -102,6 +120,19 @@ enum FlatPathBuilder {
     }
     
     // MARK: - Label anchor
+
+    /// Lightweight label anchor: prefers centroid if inside, otherwise bbox center, otherwise cheap fallback.
+    private static func makeLightLabelAnchor(bestCandidate: Candidate?) -> CGPoint {
+        guard let bestCandidate else { return CGPoint(x: 0.5, y: 0.5) }
+
+        let centroid = bestCandidate.centroid
+        if pointInPolygon(centroid, bestCandidate.ring) { return centroid }
+
+        let bboxCenter = CGPoint(x: bestCandidate.boundingBox.midX, y: bestCandidate.boundingBox.midY)
+        if pointInPolygon(bboxCenter, bestCandidate.ring) { return bboxCenter }
+
+        return pointOnSurfaceFallback(ring: bestCandidate.ring, bbox: bestCandidate.boundingBox) ?? centroid
+    }
     
     private static func makeHybridLabelAnchor(bestCandidate: Candidate?) -> CGPoint {
         

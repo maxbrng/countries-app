@@ -1,8 +1,34 @@
+//
+//  GeoJSONLoader.swift
+//  Countries
+//
+//  Swift 6 / Concurrency-safe implementation:
+//  - Bundle IO + JSON decoding happen off-main
+//  - Decoded FeatureCollections are cached in an actor
+//  - ISO resolution uses a Sendable `ResolverIndex` (no SwiftData models across actors)
+//  - Convenience overload for `CountryIndex` is @MainActor (CountryIndex contains SwiftData models)
+//
+
 import Foundation
 
 /// Shared loader that decodes GeoJSON from the app bundle and resolves each feature to an ISO2 code.
 /// The resulting `ResolvedFeature` can be used by different renderers (Flat / Globe) without duplicating decoding code.
-enum GeoJSONLoader {
+nonisolated enum GeoJSONLoader {
+
+    // MARK: - Resolver
+
+    /// Sendable lookup tables (no SwiftData types) for resolving features to ISO2.
+    struct ResolverIndex: Sendable {
+        let iso3ToIso2: [String: String]
+        let nameToIso2: [String: String]
+
+        init(iso3ToIso2: [String: String], nameToIso2: [String: String]) {
+            self.iso3ToIso2 = iso3ToIso2
+            self.nameToIso2 = nameToIso2
+        }
+    }
+
+    // MARK: - Output
 
     struct ResolvedFeature: Sendable {
         let iso2: String
@@ -10,7 +36,9 @@ enum GeoJSONLoader {
         let properties: [String: JSONValue]
     }
 
-    struct KeySet: Sendable {
+    // MARK: - Key config
+
+    nonisolated struct KeySet: Sendable {
         let isoKeys: [String]
         let nameKeys: [String]
 
@@ -23,52 +51,54 @@ enum GeoJSONLoader {
         }
     }
 
+    // MARK: - API
+
+    /// Primary API: resolves using a Sendable resolver.
+    static func loadResolvedFeatures(
+        resource: String = "countries",
+        resolver: ResolverIndex,
+        keySet: KeySet = .init()
+    ) async throws -> [ResolvedFeature] {
+
+        let collection = try await GeoJSONResourceCache.shared.featureCollection(resource: resource)
+
+        // Resolve off-main (pure data work).
+        return await Task.detached(priority: .userInitiated) {
+            var resolved: [ResolvedFeature] = []
+            resolved.reserveCapacity(collection.features.count)
+
+            for feature in collection.features {
+                let props = feature.properties ?? [:]
+
+                let rawISO = props.firstString(for: keySet.isoKeys)?.lowercased()
+                let rawName = props.firstString(for: keySet.nameKeys)?.lowercased()
+
+                let iso2 = resolveISO2(rawISO: rawISO, rawName: rawName, resolver: resolver)
+                guard let iso2, iso2.count == 2 else { continue }
+
+                resolved.append(.init(iso2: iso2, geometry: feature.geometry, properties: props))
+            }
+
+            return resolved
+        }.value
+    }
+
+    /// Convenience overload used by existing code (Globe/Flat VMs).
+    /// `CountryIndex` contains SwiftData models, so keep this on the MainActor.
+    @MainActor
     static func loadResolvedFeatures(
         resource: String = "countries",
         index: CountryIndex,
-        keySet: KeySet
+        keySet: KeySet = .init()
     ) async throws -> [ResolvedFeature] {
-        
-        let data = try await loadResourceData(resource: resource,
-                                              fileExtension: "geojson")
-        
-        let collection = try JSONDecoder().decode(GeoJSON.FeatureCollection.self, from: data)
-
-        var resolved: [ResolvedFeature] = []
-        resolved.reserveCapacity(collection.features.count)
-
-        for feature in collection.features {
-            
-            let props = feature.properties ?? [:]
-
-            let rawISO = props.firstString(for: keySet.isoKeys)?.lowercased()
-            let rawName = props.firstString(for: keySet.nameKeys)?.lowercased()
-
-            let iso2 = resolveISO2(rawISO: rawISO, rawName: rawName, index: index)
-            guard let iso2, iso2.count == 2 else { continue }
-
-            resolved.append(.init(iso2: iso2, geometry: feature.geometry, properties: props))
-        }
-
-        return resolved
+        try await loadResolvedFeatures(resource: resource, resolver: index.resolverIndex, keySet: keySet)
     }
 
     // MARK: - Private
 
-    private static func loadResourceData(resource: String, fileExtension: String) async throws -> Data {
-        guard let url = Bundle.main.url(forResource: resource, withExtension: fileExtension) else {
-            throw CocoaError(.fileNoSuchFile)
-        }
-
-        // Keep file IO off the main actor.
-        return try await Task.detached(priority: .userInitiated) {
-            try Data(contentsOf: url)
-        }.value
-    }
-
-    private static func resolveISO2(rawISO: String?, rawName: String?, index: CountryIndex) -> String? {
+    private static func resolveISO2(rawISO: String?, rawName: String?, resolver: ResolverIndex) -> String? {
         guard let rawISO, rawISO != "-99" else {
-            if let rawName { return index.nameToIso2[rawName] }
+            if let rawName { return resolver.nameToIso2[rawName] }
             return nil
         }
 
@@ -76,37 +106,71 @@ enum GeoJSONLoader {
         case 2:
             return rawISO
         case 3:
-            return index.iso3ToIso2[rawISO]
+            return resolver.iso3ToIso2[rawISO]
         default:
             return nil
         }
     }
 }
 
-// MARK: - GeoJSONModels
+// MARK: - GeoJSON Resource Cache (decoded collections)
 
-enum GeoJSON {
+private actor GeoJSONResourceCache {
+    static let shared = GeoJSONResourceCache()
+
+    private var cachedCollections: [String: GeoJSON.FeatureCollection] = [:]
+    private var inFlight: [String: Task<GeoJSON.FeatureCollection, Error>] = [:]
+
+    func featureCollection(resource: String) async throws -> GeoJSON.FeatureCollection {
+        if let cached = cachedCollections[resource] { return cached }
+        if let task = inFlight[resource] { return try await task.value }
+
+        let task = Task.detached(priority: .userInitiated) { () throws -> GeoJSON.FeatureCollection in
+            guard let url = Bundle.main.url(forResource: resource, withExtension: "geojson") else {
+                throw CocoaError(.fileNoSuchFile)
+            }
+            let data = try Data(contentsOf: url)
+            return try JSONDecoder().decode(GeoJSON.FeatureCollection.self, from: data)
+        }
+
+        inFlight[resource] = task
+        do {
+            let collection = try await task.value
+            cachedCollections[resource] = collection
+            inFlight[resource] = nil
+            return collection
+        } catch {
+            inFlight[resource] = nil
+            throw error
+        }
+    }
+}
+
+// MARK: - GeoJSON Models
+
+nonisolated enum GeoJSON {
+
     struct FeatureCollection: Decodable, Sendable {
         let type: String
         let features: [Feature]
     }
-    
+
     struct Feature: Decodable, Sendable {
         let type: String
         let properties: [String: JSONValue]?
         let geometry: Geometry
     }
-    
+
     enum Geometry: Decodable, Sendable {
         case polygon([[[Double]]])
         case multiPolygon([[[[Double]]]])
-        
+
         private enum CodingKeys: String, CodingKey { case type, coordinates }
-        
+
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let type = try container.decode(String.self, forKey: .type)
-            
+
             switch type {
             case "Polygon":
                 self = .polygon(try container.decode([[[Double]]].self, forKey: .coordinates))
@@ -119,63 +183,61 @@ enum GeoJSON {
     }
 }
 
-enum JSONValue: Decodable, Sendable {
-    
+// MARK: - JSONValue
+
+nonisolated enum JSONValue: Decodable, Sendable {
     case string(String)
     case number(Double)
     case bool(Bool)
     case object([String: JSONValue])
     case array([JSONValue])
     case null
-    
+
     init(from decoder: Decoder) throws {
-        if let container = try? decoder.singleValueContainer() {
-            if container.decodeNil() { self = .null; return }
-            if let string = try? container.decode(String.self) { self = .string(string); return }
-            if let number = try? container.decode(Double.self) { self = .number(number); return }
-            if let bool = try? container.decode(Bool.self) { self = .bool(bool); return }
-            if let object = try? container.decode([String: JSONValue].self) { self = .object(object); return }
-            if let array = try? container.decode([JSONValue].self) { self = .array(array); return }
-        }
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() { self = .null; return }
+        if let s = try? container.decode(String.self) { self = .string(s); return }
+        if let n = try? container.decode(Double.self) { self = .number(n); return }
+        if let b = try? container.decode(Bool.self) { self = .bool(b); return }
+        if let o = try? container.decode([String: JSONValue].self) { self = .object(o); return }
+        if let a = try? container.decode([JSONValue].self) { self = .array(a); return }
         self = .null
     }
-    
+
     var stringValue: String? {
-        
         switch self {
-        case .string(let string):
-            return string
-            
-        case .number(let number):
-            if number.rounded() == number { return String(Int(number)) }
-            return String(number)
-            
-        case .bool(let bool):
-            return bool ? "true" : "false"
-            
+        case .string(let s):
+            return s
+        case .number(let n):
+            if n.rounded() == n { return String(Int(n)) }
+            return String(n)
+        case .bool(let b):
+            return b ? "true" : "false"
         default:
             return nil
         }
     }
 }
 
+// MARK: - Property helpers
+
 extension Dictionary where Key == String, Value == JSONValue {
     /// Returns the first non-empty string value for any of the keys, case-insensitive.
-    func firstString(for keys: [String]) -> String? {
+    nonisolated func firstString(for keys: [String]) -> String? {
         for key in keys {
             if let value = self[key]?.stringValue?.trimmedNonEmpty { return value }
         }
-        
+
         let lowerKeys = Set(keys.map { $0.lowercased() })
         for (key, value) in self where lowerKeys.contains(key.lowercased()) {
-            if let value = value.stringValue?.trimmedNonEmpty { return value }
+            if let v = value.stringValue?.trimmedNonEmpty { return v }
         }
         return nil
     }
 }
 
 extension String {
-    var trimmedNonEmpty: String? {
+    nonisolated var trimmedNonEmpty: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }

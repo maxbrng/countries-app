@@ -174,8 +174,13 @@ enum MockProfileService {
         
         let allCountries = try context.fetch(FetchDescriptor<Country>())
         let visitedCountries = allCountries.filter { $0.status == .visited }
-        
-        let auto = PreferenceDerivationService.derive(from: visitedCountries, trips: trips)
+        let wishlistedCountries = allCountries.filter { $0.status == .wishlist }
+
+        let auto = PreferenceDerivationService.derive(
+            visitedCountries: visitedCountries,
+            wishlistedCountries: wishlistedCountries,
+            trips: trips
+        )
         
         prefs.desiredTags = auto.desiredTags
         prefs.preferredClimate = auto.preferredClimate
@@ -272,4 +277,3 @@ private extension TravelDuration {
         }
     }
 }
-

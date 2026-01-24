@@ -64,6 +64,14 @@ struct FlatMapView: View {
     @State private var renderTreeReloadToken: Int = 0
     @State private var lastViewportSize: CGSize = .zero
 
+    // MARK: - Shape variant (preview vs. full)
+
+    private var shapeVariant: FlatMapShapeCache.Variant {
+        // Preview: no interaction, no selection, no labels.
+        if !interactiveEnabled && !selectionEnabled && !labelsEnabled { return .light }
+        return .full
+    }
+
     /// Creates a FlatMapView.
     /// - Parameters:
     ///   - selectionEnabled: Enable/disable selection + hit-testing.
@@ -173,6 +181,9 @@ struct FlatMapView: View {
                 viewModel.resetCameraInitialization()
                 await reloadData()
             }
+            .task(id: shapeVariant) {
+                await reloadData()
+            }
             .onChange(of: selectionEnabled) { _, enabled in
                 if !enabled { selectedISO2 = nil }
             }
@@ -188,8 +199,10 @@ struct FlatMapView: View {
                 }
             }
             .onChange(of: countries) { _, _ in
-                // Keeps maps live when SwiftData updates.
-                Task { @MainActor in await reloadData() }
+                // Country status changes should NOT re-build shapes.
+                // Only update the lookup tables and refresh the render tree.
+                viewModel.updateCountryIndex(countries: countries)
+                renderTreeReloadToken &+= 1
             }
             .onChange(of: filter) { _, _ in
                 renderTreeReloadToken &+= 1
@@ -333,7 +346,7 @@ struct FlatMapView: View {
         
         viewModel.updateCountryIndex(countries: countries)
         
-        await viewModel.loadShapesIfNeeded(projectionMode: projectionMode)
+        await viewModel.loadShapesIfNeeded(projectionMode: projectionMode, variant: shapeVariant)
 
         stopDeceleration()
 
