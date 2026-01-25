@@ -7,13 +7,13 @@
 
 import CoreGraphics
 
-extension Comparable {
+nonisolated extension Comparable {
     func clamped(_ minValue: Self, _ maxValue: Self) -> Self {
         min(max(self, minValue), maxValue)
     }
 }
 
-extension CGRect {
+nonisolated extension CGRect {
     func clampedToUnit() -> CGRect {
         let x0 = max(0, min(1, minX))
         let y0 = max(0, min(1, minY))
@@ -23,7 +23,7 @@ extension CGRect {
     }
 }
 
-extension CGFloat {
+nonisolated extension CGFloat {
     static func log2(_ x: CGFloat) -> CGFloat {
         CGFloat(Darwin.log2(Double(x)))
     }
