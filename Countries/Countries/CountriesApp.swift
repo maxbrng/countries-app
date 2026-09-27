@@ -18,15 +18,14 @@ struct CountriesApp: App {
 
     // MARK: - Properties
 
-    /// The single on-disk container for ``Country``, ``Trip`` and ``UserPreferences``.
+    /// The single on-disk container for ``Country`` and ``Trip``.
     ///
     /// - Note: The app cannot run without its store, so a failure here is fatal by design.
     private let sharedModelContainer: ModelContainer = {
 
         let schema = Schema([
                 Country.self,
-                Trip.self,
-                UserPreferences.self
+                Trip.self
             ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -47,8 +46,6 @@ struct CountriesApp: App {
                     do {
                         let context = sharedModelContainer.mainContext
                         try CountrySeeder.seedIfNeeded(in: context)
-                        // Must exist before Discover or the algorithm settings are opened.
-                        try PreferencesService.loadOrCreate(in: context)
                         logger.info("App bootstrap completed.")
                     } catch {
                         logger.error(

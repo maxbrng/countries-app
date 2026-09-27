@@ -17,7 +17,7 @@ enum AppRoute: Hashable {
     case settings
 }
 
-/// Root of the app: Countries, Discover, and the country list in the search role.
+/// Root of the app: Countries, and the country list in the search role.
 ///
 /// - Note: Only the first tab owns a ``NavigationPath``; ``AppRoute`` is resolved there.
 struct RootTabView: View {
@@ -47,12 +47,6 @@ struct RootTabView: View {
                 }
                 // From the path, not from `onAppear`, which fires after the transition.
                 .toolbar(path.isEmpty ? .visible : .hidden, for: .tabBar)
-            }
-
-            Tab("Discover", systemImage: "binoculars.fill") {
-                NavigationStack {
-                    DiscoverScreen()
-                }
             }
 
             Tab("All Countries", systemImage: "magnifyingglass", role: .search) {

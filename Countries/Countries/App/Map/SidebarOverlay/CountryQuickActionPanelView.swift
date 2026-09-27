@@ -118,14 +118,14 @@ struct CountryQuickActionPanelView: View {
 
     // MARK: - Actions
 
-    /// Toggles a status for ``country``, which also refreshes the derived preferences.
+    /// Toggles a status for ``country``.
     ///
     /// - Parameter status: The status to set, or to clear when the country already has it.
     /// - Note: A failure leaves the country unchanged; there is no UI for it, so it is
     ///   only logged.
     private func toggle(_ status: CountryStatus) {
         do {
-            try PreferencesService.toggleStatus(status, for: country, in: modelContext)
+            try CountryStatusService.toggleStatus(status, for: country, in: modelContext)
         } catch {
             logger.error("Toggling status failed: \(error.localizedDescription, privacy: .public)")
         }
