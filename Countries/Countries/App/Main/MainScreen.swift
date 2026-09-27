@@ -48,6 +48,9 @@ struct MainScreen: View {
     /// Number of countries listed per column before the "+n more" line takes over.
     private static let previewCountryLimit = 3
 
+    /// Number of trips listed on the dashboard before the card only links onwards.
+    private static let recentTripLimit = 3
+
     /// Head start given to the on-screen map preview before the interactive map's geometry
     /// is built in the background.
     private static let geometryWarmUpDelay: Duration = .milliseconds(600)
@@ -162,7 +165,7 @@ struct MainScreen: View {
 
             VStack(alignment: .leading, spacing: Layout.cardContentSpacing) {
 
-                Text(verbatim: "Countries & Territories")
+                Text("Countries & Territories")
                     .font(.headline)
                     .foregroundStyle(.primary)
 
@@ -249,7 +252,10 @@ struct MainScreen: View {
 
     // MARK: - TripsCard
 
-    /// Card showing how many trips are recorded; pushes the trips list.
+    /// Card listing the most recent trips; pushes the trips list.
+    ///
+    /// Shows at most ``MainScreen/recentTripLimit`` of them, so the dashboard states what has
+    /// happened lately instead of only counting it.
     ///
     /// Pushes ``AppRoute/tripsList`` rather than selecting the trips tab: the dashboard is a
     /// summary, and drilling into one of its cards must stay undoable with the back gesture,
@@ -260,19 +266,20 @@ struct MainScreen: View {
 
             VStack(alignment: .leading, spacing: Layout.cardContentSpacing) {
 
-                Text("Trips")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-
                 HStack(spacing: Layout.countLabelSpacing) {
+
+                    Text("Trips")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    Spacer()
 
                     Text(verbatim: "\(allTrips.count)")
                         .font(.headline).fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                    Text("Recorded")
-                        .font(.body)
                         .foregroundStyle(.secondary)
                 }
+
+                recentTripList
 
                 Divider()
 
@@ -287,6 +294,41 @@ struct MainScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: Layout.cardCornerRadius, style: .continuous))
         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: Layout.cardCornerRadius))
         .contentShape(Rectangle())
+    }
+
+    /// The most recent trips, or a line explaining the card while there are none.
+    @ViewBuilder
+    private var recentTripList: some View {
+
+        let recent = TripFormatting.sortedNewestFirst(allTrips).prefix(Self.recentTripLimit)
+
+        if recent.isEmpty {
+            Text("Group the countries of a journey into a trip.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: Layout.previewListSpacing) {
+                ForEach(recent) { trip in
+                    HStack(spacing: Layout.flagLabelSpacing) {
+
+                        Text(TripFormatting.displayTitle(for: trip))
+                            .font(.footnote)
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        if let range = TripFormatting.dateRange(for: trip) {
+                            Text(range)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Footer row of a card, hinting that the card is tappable.

@@ -56,20 +56,12 @@ struct TripsListView: View {
 
     // MARK: - Content
 
-    /// Trips sorted newest first, with undated trips last.
+    /// Trips sorted newest first.
     ///
     /// Sorted here rather than in the `@Query` so that trips without a start date land at the
     /// end instead of wherever the store puts `nil`.
     private var sortedTrips: [Trip] {
-        allTrips.sorted { lhs, rhs in
-            switch (lhs.startDate, rhs.startDate) {
-            case let (left?, right?): return left > right
-            case (nil, _?): return false
-            case (_?, nil): return true
-            case (nil, nil): return TripFormatting.displayTitle(for: lhs)
-                < TripFormatting.displayTitle(for: rhs)
-            }
-        }
+        TripFormatting.sortedNewestFirst(allTrips)
     }
 
     /// The populated list, with swipe-to-delete on each row.

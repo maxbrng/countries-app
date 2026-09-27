@@ -11,6 +11,25 @@ import Foundation
 /// the same way.
 enum TripFormatting {
 
+    /// Sorts trips newest first, with undated trips last.
+    ///
+    /// Used by both the trips list and the dashboard, so the two can never disagree about
+    /// what "recent" means.
+    ///
+    /// - Parameter trips: The trips to sort, in any order.
+    /// - Returns: Dated trips by descending start date, then undated ones by title.
+    static func sortedNewestFirst(_ trips: [Trip]) -> [Trip] {
+
+        trips.sorted { lhs, rhs in
+            switch (lhs.startDate, rhs.startDate) {
+            case let (left?, right?): return left > right
+            case (nil, _?): return false
+            case (_?, nil): return true
+            case (nil, nil): return displayTitle(for: lhs) < displayTitle(for: rhs)
+            }
+        }
+    }
+
     /// Title to show for a trip, falling back to a placeholder while the user has given none.
     ///
     /// - Parameter trip: The trip to label.
