@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Shared loader that decodes GeoJSON from the app bundle and resolves each feature to an ISO2 code.
 /// The resulting `ResolvedFeature` can be used by different renderers (Flat / Globe) without duplicating decoding code.
@@ -141,11 +142,27 @@ nonisolated enum GeoJSONLoader {
 
 // MARK: - GeoJSON Resource Cache (decoded collections)
 
+/// Holds the decoded feature collections so the file is parsed once per run.
+///
+/// The decoded tree is large - around 29 MB for the bundled countries - and is only needed
+/// while shapes are being built from it. It is kept anyway, because the flat map, the globe
+/// and every projection ask for it separately and re-parsing costs well over a tenth of a
+/// second each time. What it must not do is hold that memory while the app is in the
+/// background or while the system is short of it, which is exactly when iOS decides what to
+/// terminate - hence ``discardCachedCollections()`` and the observers that call it.
 private actor GeoJSONResourceCache {
     static let shared = GeoJSONResourceCache()
 
     private var cachedCollections: [String: GeoJSON.FeatureCollection] = [:]
     private var inFlight: [String: Task<GeoJSON.FeatureCollection, Error>] = [:]
+
+    /// Drops every decoded collection. The next request parses the file again.
+    ///
+    /// In-flight decodes are left alone: they have a caller waiting, and their result is
+    /// cached when they finish.
+    func discardCachedCollections() {
+        cachedCollections.removeAll()
+    }
 
     func featureCollection(resource: String) async throws -> GeoJSON.FeatureCollection {
         if let cached = cachedCollections[resource] { return cached }
@@ -168,6 +185,31 @@ private actor GeoJSONResourceCache {
         } catch {
             inFlight[resource] = nil
             throw error
+        }
+    }
+}
+
+// MARK: - Memory pressure
+
+extension GeoJSONLoader {
+
+    /// Starts releasing the decoded GeoJSON when the app is backgrounded or memory runs short.
+    ///
+    /// Call once, at launch. The decoded collections are a cache and nothing reads them
+    /// between map sessions, so giving the memory back costs only a re-parse the next time a
+    /// map is opened.
+    static func startReleasingCacheUnderPressure() {
+
+        let center = NotificationCenter.default
+        let names: [Notification.Name] = [
+            UIApplication.didEnterBackgroundNotification,
+            UIApplication.didReceiveMemoryWarningNotification
+        ]
+
+        for name in names {
+            center.addObserver(forName: name, object: nil, queue: nil) { _ in
+                Task { await GeoJSONResourceCache.shared.discardCachedCollections() }
+            }
         }
     }
 }

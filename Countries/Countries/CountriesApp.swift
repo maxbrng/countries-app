@@ -50,6 +50,10 @@ struct CountriesApp: App {
             RootTabView()
                 .task {
                     do {
+                        // The decoded map data is a cache worth ~29 MB; it is handed back
+                        // when the app is backgrounded or the system is short of memory.
+                        GeoJSONLoader.startReleasingCacheUnderPressure()
+
                         let context = sharedModelContainer.mainContext
                         try CountrySeeder.seedIfNeeded(in: context)
                         logger.info("App bootstrap completed.")
