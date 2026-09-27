@@ -244,13 +244,12 @@ struct CountryDetailsView: View {
 
     // MARK: - Actions
 
-    /// Applies `newStatus` to the country and lets ``PreferencesService`` re-derive the
-    /// recommendation preferences.
+    /// Applies `newStatus` to the country.
     ///
     /// - Parameter newStatus: The status the tapped toolbar button stands for. Tapping the
     ///   button of the status the country already has clears it again.
     private func toggleStatus(_ newStatus: CountryStatus) {
-        try? PreferencesService.toggleStatus(newStatus, for: country, in: modelContext)
+        try? CountryStatusService.toggleStatus(newStatus, for: country, in: modelContext)
     }
 
     // MARK: - Helpers
