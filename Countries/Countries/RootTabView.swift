@@ -13,6 +13,8 @@ enum AppRoute: Hashable {
     case fullCountryList
     /// The interactive map screen.
     case mapScreen
+    /// The list of the user's trips, pushed from the main screen's trip card.
+    case tripsList
     /// The settings screen.
     case settings
 }
@@ -75,6 +77,8 @@ struct RootTabView: View {
         case .mapScreen:
             MapControllerRepresentable(path: $path)
                 .ignoresSafeArea()
+        case .tripsList:
+            TripsListView()
         case .settings:
             SettingsScreen()
         }

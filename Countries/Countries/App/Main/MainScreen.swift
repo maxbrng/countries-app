@@ -63,6 +63,7 @@ struct MainScreen: View {
 
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Country.iso2) private var allCountries: [Country]
+    @Query private var allTrips: [Trip]
 
     // MARK: - Body
 
@@ -94,6 +95,8 @@ struct MainScreen: View {
                 StatView()
 
                 countryCard
+
+                tripsCard
             }
             .padding(.horizontal, Layout.screenHorizontalPadding)
         }
@@ -171,7 +174,7 @@ struct MainScreen: View {
 
                 Divider()
 
-                cardDetailLink()
+                cardDetailLink(title: "See Full List")
             }
         }
         .tint(.primary)
@@ -244,12 +247,52 @@ struct MainScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Footer row of the country card hinting that the card is tappable.
+    // MARK: - TripsCard
+
+    /// Card showing how many trips are recorded; pushes the trips list.
+    private var tripsCard: some View {
+
+        NavigationLink(value: AppRoute.tripsList) {
+
+            VStack(alignment: .leading, spacing: Layout.cardContentSpacing) {
+
+                Text("Trips")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: Layout.countLabelSpacing) {
+
+                    Text(verbatim: "\(allTrips.count)")
+                        .font(.headline).fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                    Text("Recorded")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                }
+
+                Divider()
+
+                cardDetailLink(title: "See All Trips")
+            }
+        }
+        .tint(.primary)
+        .padding(.vertical, Layout.cardVerticalPadding)
+        .padding(.horizontal, Layout.cardHorizontalPadding)
+        .frame(maxWidth: .infinity)
+        .background(Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: Layout.cardCornerRadius, style: .continuous))
+        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: Layout.cardCornerRadius))
+        .contentShape(Rectangle())
+    }
+
+    /// Footer row of a card, hinting that the card is tappable.
+    ///
+    /// - Parameter title: Caption of the row, looked up in the string catalog.
     @ViewBuilder
-    private func cardDetailLink() -> some View {
+    private func cardDetailLink(title: LocalizedStringKey) -> some View {
 
         HStack {
-            Text("See Full List")
+            Text(title)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Spacer()

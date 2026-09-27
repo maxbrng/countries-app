@@ -63,12 +63,6 @@ private extension SafetyLevel {
     }
 }
 
-private extension Season {
-    static func from(_ raw: Int) -> Season? {
-        Season(rawValue: raw)
-    }
-}
-
 @MainActor
 struct CountrySeeder {
 
@@ -94,9 +88,6 @@ struct CountrySeeder {
             
             let costLevel = CostLevel.from(item.costLevel ?? CostLevel.medium.rawValue) ?? .medium
             let safetyLevel = SafetyLevel.from(item.safetyLevel ?? SafetyLevel.mixed.rawValue) ?? .mixed
-            
-//            let optimalSeasons = (item.optimalTravelSeasons ?? [])
-//                .compactMap { Season.from($0) }
             
             context.insert(
                 Country(
