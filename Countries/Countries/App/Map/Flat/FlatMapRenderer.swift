@@ -101,14 +101,13 @@ struct FlatMapRenderer: View, Animatable {
         /// the edge while panning.
         static let viewportOverscan: CGFloat = 80
 
-        /// Label font size before the zoom compensation is applied.
-        static let baseFontSize: CGFloat = 10
-        /// Lower bound of the zoom-compensated font size.
-        static let minimumFontSize: CGFloat = 8
-        /// Upper bound of the zoom-compensated font size.
-        static let maximumFontSize: CGFloat = 14
-        /// Guards the font scale against dividing by a near-zero camera scale.
-        static let minimumScaleDivisor: CGFloat = 0.0001
+        /// Size every label is drawn at, in screen points.
+        ///
+        /// - Note: Constant on purpose. Labels are drawn in screen space, so they never grow
+        ///   with the camera and never needed a compensation. The earlier `baseFontSize /
+        ///   currentScale` shrank them instead, and the 8 pt floor was reached at about 1.25x,
+        ///   which is why a zoomed-in map read worse than a zoomed-out one.
+        static let fontSize: CGFloat = 11
 
         /// Horizontal slack a country's box needs on top of the text width.
         static let textFitPaddingWidth: CGFloat = 10
@@ -355,23 +354,21 @@ struct FlatMapRenderer: View, Animatable {
             )
             let anchorScreen = worldToScreen(anchorWorld)
 
-            let focus = shape.focusBoundingBoxNormalized
+            // The unpadded box: how much room the outline really offers, not what the
+            // camera would frame.
+            let fitBox = shape.labelFitBoundingBoxNormalized
 
-            let focusWorld = CGRect(
-                x: worldRect.minX + focus.minX * worldRect.width,
-                y: worldRect.minY + focus.minY * worldRect.height,
-                width: focus.width * worldRect.width,
-                height: focus.height * worldRect.height
+            let fitWorld = CGRect(
+                x: worldRect.minX + fitBox.minX * worldRect.width,
+                y: worldRect.minY + fitBox.minY * worldRect.height,
+                width: fitBox.width * worldRect.width,
+                height: fitBox.height * worldRect.height
             )
-            let focusScreenRect = worldRectToScreenRect(focusWorld)
+            let fitScreenRect = worldRectToScreenRect(fitWorld)
 
-            guard focusScreenRect.intersects(viewportExpanded) else { continue }
+            guard fitScreenRect.intersects(viewportExpanded) else { continue }
 
-            let fontScale = min(1.0, 1.0 / max(currentScale, LabelLayout.minimumScaleDivisor))
-            // Rounded so the metrics cache hits instead of missing on every frame.
-            let fontSize = (LabelLayout.baseFontSize * fontScale)
-                .clamped(LabelLayout.minimumFontSize, LabelLayout.maximumFontSize)
-                .rounded()
+            let fontSize = LabelLayout.fontSize
 
             // Measured through UIKit and cached across frames. The SwiftUI Text is
             // resolved further down, only for labels that actually get drawn.
@@ -385,10 +382,10 @@ struct FlatMapRenderer: View, Animatable {
             let minimumArea: CGFloat = max(LabelLayout.minimumBoxAreaFloor,
                                            textArea * LabelLayout.boxToTextAreaFactor)
 
-            let bboxArea = focusScreenRect.width * focusScreenRect.height
+            let bboxArea = fitScreenRect.width * fitScreenRect.height
 
-            guard focusScreenRect.width >= minimumBoxWidth,
-                  focusScreenRect.height >= minimumBoxHeight,
+            guard fitScreenRect.width >= minimumBoxWidth,
+                  fitScreenRect.height >= minimumBoxHeight,
                   bboxArea >= minimumArea
             else { continue }
 

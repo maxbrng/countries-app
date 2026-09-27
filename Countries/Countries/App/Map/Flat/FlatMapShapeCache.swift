@@ -114,6 +114,7 @@ actor FlatMapShapeCache {
                         path: result.path,
                         labelAnchor: result.labelAnchor,
                         focusBoundingBoxNormalized: result.focusBoundingBox,
+                        labelFitBoundingBoxNormalized: result.labelFitBoundingBox,
                         boundsNormalized: result.path.boundingBoxOfPath
                     )
                 )

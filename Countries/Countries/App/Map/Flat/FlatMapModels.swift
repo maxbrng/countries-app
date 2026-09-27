@@ -68,8 +68,14 @@ nonisolated struct RenderCountryShape: Identifiable, @unchecked Sendable {
     /// Where a label for this country is anchored, in normalized world space.
     let labelAnchor: CGPoint
 
-    /// Bounds of the largest ring, which is what the camera frames when focusing.
+    /// Bounds of the largest ring plus camera padding, which is what the camera frames.
     let focusBoundingBoxNormalized: CGRect
+
+    /// Bounds of that same ring without the camera padding.
+    ///
+    /// What the label pass measures a name against: the padded box answers "what should be on
+    /// screen when this country is focused", not "how much room does this country have".
+    let labelFitBoundingBoxNormalized: CGRect
 
     /// Bounds of the *whole* path including outlying islands. Hit-test prefilter.
     let boundsNormalized: CGRect

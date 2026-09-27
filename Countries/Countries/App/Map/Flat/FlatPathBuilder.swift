@@ -41,6 +41,8 @@ nonisolated enum FlatPathBuilder {
         let path: CGPath
         let labelAnchor: CGPoint
         let focusBoundingBox: CGRect
+        /// The same ring's bounds without the camera padding, for the label fit test.
+        let labelFitBoundingBox: CGRect
     }
     
     // MARK: - Internals
@@ -182,11 +184,17 @@ nonisolated enum FlatPathBuilder {
                 return makeLightLabelAnchor(bestCandidate: best)
             }
         }()
-        let focusBoundingBox = chooseFocusBoundingBox(candidates: candidates, iso2: iso2)
-        
+        let labelFitBoundingBox = chooseFocusBoundingBox(candidates: candidates,
+                                                         iso2: iso2,
+                                                         padding: 0)
+        let focusBoundingBox = chooseFocusBoundingBox(candidates: candidates,
+                                                      iso2: iso2,
+                                                      padding: cameraFocusPadding)
+
         return .init(path: mutablePath,
                      labelAnchor: labelAnchor,
-                     focusBoundingBox: focusBoundingBox)
+                     focusBoundingBox: focusBoundingBox,
+                     labelFitBoundingBox: labelFitBoundingBox)
     }
     
     // MARK: - Label anchor
@@ -258,14 +266,27 @@ nonisolated enum FlatPathBuilder {
     /// of the normalized world. Never rendered for real data, only a defined fallback.
     private static let fallbackFocusBoundingBox = CGRect(x: 0.45, y: 0.45, width: 0.1, height: 0.1)
 
+    /// Breathing room the camera keeps around a country it frames, in normalized world units.
+    ///
+    /// - Note: This is camera padding and nothing else. It used to be baked into the one box
+    ///   the label pass measured against as well, where 0.01 of the world is enormous next to a
+    ///   small country: it inflated Vatican City's box roughly 200-fold and the median country's
+    ///   by a factor of 2.8, so micro states claimed labels their outline cannot hold. The label
+    ///   pass now measures the unpadded box.
+    private static let cameraFocusPadding: CGFloat = 0.01
+
     /// Picks the ring whose bounding box the camera should frame when focusing a country.
     ///
     /// - Parameters:
     ///   - candidates: All rings built for the country, in normalized world units.
     ///   - iso2: Lowercased ISO2 code, used for the per-country special cases.
-    /// - Returns: The chosen ring's bounding box, slightly inset and clamped to 0...1,
+    ///   - padding: Outset applied to the chosen box, in normalized world units. Pass `0` to
+    ///     get the ring's true bounds.
+    /// - Returns: The chosen ring's bounding box, outset by `padding` and clamped to 0...1,
     ///   or ``fallbackFocusBoundingBox`` when there is nothing to frame.
-    private static func chooseFocusBoundingBox(candidates: [Candidate], iso2: String) -> CGRect {
+    private static func chooseFocusBoundingBox(candidates: [Candidate],
+                                               iso2: String,
+                                               padding: CGFloat) -> CGRect {
 
         guard !candidates.isEmpty else {
             return fallbackFocusBoundingBox
@@ -290,7 +311,7 @@ nonisolated enum FlatPathBuilder {
             return fallbackFocusBoundingBox
         }
         
-        return chosen.boundingBox.insetBy(dx: -0.01, dy: -0.01).clampedToUnit()
+        return chosen.boundingBox.insetBy(dx: -padding, dy: -padding).clampedToUnit()
     }
     
     // MARK: - Geometry helpers
