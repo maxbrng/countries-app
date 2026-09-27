@@ -60,11 +60,15 @@ struct FlatMapRenderer: View, Animatable {
     /// Whether the selected country is highlighted.
     let selectionEnabled: Bool
 
-    // MARK: - Label metrics
+    // MARK: - Caches
 
     /// Reference type on purpose: the renderer struct is rebuilt every frame, the
     /// measured label sizes must outlive it.
     let labelMetrics: LabelMetricsCache
+
+    /// Reference type for the same reason: scaling a country's path into the drawing
+    /// rectangle produces the same result on every frame, so it is done once per layout.
+    let scaledPaths: ScaledPathCache
 
     // MARK: - Constants
 
@@ -161,6 +165,7 @@ struct FlatMapRenderer: View, Animatable {
     ///   - labelsEnabled: Whether labels are drawn.
     ///   - selectionEnabled: Whether the selection is highlighted.
     ///   - labelMetrics: Cache that outlives the per-frame struct rebuild.
+    ///   - scaledPaths: Path cache that outlives the per-frame struct rebuild.
     init(
         shapes: [RenderCountryShape],
         countriesByISO2: [String: Country],
@@ -173,7 +178,8 @@ struct FlatMapRenderer: View, Animatable {
         interactiveEnabled: Bool,
         labelsEnabled: Bool,
         selectionEnabled: Bool,
-        labelMetrics: LabelMetricsCache
+        labelMetrics: LabelMetricsCache,
+        scaledPaths: ScaledPathCache
     ) {
         self.shapes = shapes
         self.countriesByISO2 = countriesByISO2
@@ -187,6 +193,7 @@ struct FlatMapRenderer: View, Animatable {
         self.labelsEnabled = labelsEnabled
         self.selectionEnabled = selectionEnabled
         self.labelMetrics = labelMetrics
+        self.scaledPaths = scaledPaths
     }
 
     // MARK: - Body
@@ -216,7 +223,7 @@ struct FlatMapRenderer: View, Animatable {
             }
 
             for shape in shapes {
-                let path = scaledPath(shape.path, into: worldRect)
+                let path = scaledPaths.path(for: shape.path, in: worldRect)
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
 
                 let fillColor = fill(for: shape.iso2, isSelected: isSelected)
@@ -470,18 +477,4 @@ struct FlatMapRenderer: View, Animatable {
         }
     }
 
-    // MARK: - Path scaling
-
-    /// Scales a normalized path into the given rectangle.
-    /// - Parameters:
-    ///   - cgPath: Path in normalized world space (0...1 on both axes).
-    ///   - rect: Target rectangle, usually ``worldRect``.
-    /// - Returns: The transformed path, or the untransformed one if the copy fails.
-    private func scaledPath(_ cgPath: CGPath, into rect: CGRect) -> Path {
-
-        var transform = CGAffineTransform(translationX: rect.minX, y: rect.minY)
-            .scaledBy(x: rect.width, y: rect.height)
-
-        return Path(cgPath.copy(using: &transform) ?? cgPath)
-    }
 }
