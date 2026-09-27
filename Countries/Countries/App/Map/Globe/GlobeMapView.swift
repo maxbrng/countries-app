@@ -53,11 +53,27 @@ struct GlobeMapView: View {
     private enum Style {
 
         /// Stroke width of the selected country's outline.
-        static let selectedStrokeWidth: CGFloat = 2
+        static let selectedStrokeWidth: CGFloat = 1.8
         /// Stroke width of every other highlighted country.
-        static let strokeWidth: CGFloat = 1
+        ///
+        /// Thinner than it was. Over photography a heavy line is what reads as scribble; the
+        /// casing underneath is what makes a thin line legible, not the weight.
+        static let strokeWidth: CGFloat = 0.8
+
+        /// How much wider the dark casing is than the line it sits behind, in points.
+        ///
+        /// The casing has to show on both sides of the light line, so this is added to the
+        /// width and half of it ends up visible on each side.
+        static let casingWidthAddition: CGFloat = 2
+
+        /// Opacity of the dark casing under the outline.
+        ///
+        /// Dark enough to separate the light line from bright desert, translucent enough that
+        /// the imagery still reads through it over the sea.
+        static let casingOpacity: Double = 0.55
+
         /// Outline opacity of unselected countries; the selected one is drawn fully opaque.
-        static let unselectedStrokeOpacity: Double = 0.6
+        static let unselectedStrokeOpacity: Double = 0.85
 
         static let visitedSelectedFillOpacity: Double = 0.55
         static let visitedFillOpacity: Double = 0.4
@@ -131,20 +147,35 @@ struct GlobeMapView: View {
 
                 Map(position: $cameraPosition) {
 
+                    // The casing pass first, for every country, so that a neighbouring
+                    // country's light outline can never be drawn over another's dark one.
+                    ForEach(highlightedShapes) { shape in
+
+                        let width = strokeWidth(isSelected: selectedISO2 == shape.iso2)
+
+                        ForEach(Array(shape.polygons.enumerated()), id: \.offset) { _, polygon in
+                            MapPolygon(coordinates: polygon.coordinates)
+                                .foregroundStyle(.clear)
+                                .stroke(MapPalette.Globe.outlineCasing
+                                            .opacity(Style.casingOpacity),
+                                        lineWidth: width + Style.casingWidthAddition)
+                        }
+                    }
+
                     ForEach(highlightedShapes) { shape in
 
                         let isSelected = selectedISO2 == shape.iso2
                         let fill = fillColor(for: shape.iso2, isSelected: isSelected)
+                        let width = strokeWidth(isSelected: isSelected)
 
                         ForEach(Array(shape.polygons.enumerated()), id: \.offset) { _, polygon in
                             MapPolygon(coordinates: polygon.coordinates)
                                 .foregroundStyle(fill)
                                 .stroke(isSelected
-                                            ? .white
-                                            : .white.opacity(Style.unselectedStrokeOpacity),
-                                        lineWidth: isSelected
-                                            ? Style.selectedStrokeWidth
-                                            : Style.strokeWidth)
+                                            ? MapPalette.Globe.outline
+                                            : MapPalette.Globe.outline
+                                                .opacity(Style.unselectedStrokeOpacity),
+                                        lineWidth: width)
                         }
                     }
                 }
@@ -264,23 +295,31 @@ struct GlobeMapView: View {
     private func fillColor(for iso2: String, isSelected: Bool) -> Color {
 
         guard let country = viewModel.countryIndex.countriesByISO2[iso2] else {
-            return .white.opacity(Style.neutralFillOpacity)
+            return MapPalette.Globe.neutralFill.opacity(Style.neutralFillOpacity)
         }
 
         switch country.status {
         case .visited:
-            return .blue.opacity(isSelected
-                                    ? Style.visitedSelectedFillOpacity
-                                    : Style.visitedFillOpacity)
+            return MapPalette.Globe.visitedFill.opacity(isSelected
+                                                            ? Style.visitedSelectedFillOpacity
+                                                            : Style.visitedFillOpacity)
         case .wishlist:
-            return .orange.opacity(isSelected
-                                    ? Style.wishlistSelectedFillOpacity
-                                    : Style.wishlistFillOpacity)
+            return MapPalette.Globe.wishlistFill.opacity(isSelected
+                                                            ? Style.wishlistSelectedFillOpacity
+                                                            : Style.wishlistFillOpacity)
         case .none:
-            return .white.opacity(isSelected
-                                    ? Style.neutralSelectedFillOpacity
-                                    : Style.neutralFillOpacity)
+            return MapPalette.Globe.neutralFill.opacity(isSelected
+                                                            ? Style.neutralSelectedFillOpacity
+                                                            : Style.neutralFillOpacity)
         }
+    }
+
+    /// Outline width for one country.
+    ///
+    /// - Parameter isSelected: Whether the country is the selected one.
+    /// - Returns: The stroke width in points, before the casing addition.
+    private func strokeWidth(isSelected: Bool) -> CGFloat {
+        isSelected ? Style.selectedStrokeWidth : Style.strokeWidth
     }
 
     /// Indicator shown while the globe geometry is still being built.

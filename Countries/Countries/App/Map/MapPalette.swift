@@ -8,7 +8,7 @@
 import SwiftUI
 import UIKit
 
-/// Every colour the flat map renderer draws with, in one place.
+/// Every colour the map draws with, in one place.
 ///
 /// The map is the only screen that paints large areas next to each other with no text or
 /// iconography to fall back on, so each colour here is documented with the contrast ratio it
@@ -147,6 +147,34 @@ enum MapPalette {
     /// - Note: Contrast against ``neutralLandFill`` is 6.55 in light and 6.67 in dark
     ///   appearance, so the names clear the 4.5:1 required for body text in both.
     static let labelText = Color(uiColor: .label).opacity(Opacity.label)
+
+    // MARK: - Globe
+
+    /// Colours of the overlays drawn on top of MapKit's imagery.
+    ///
+    /// The globe is a different problem from the flat map: there is no palette underneath, only
+    /// photography, and the same line crosses bright desert and dark ocean within one country.
+    /// Nothing measured against a known background applies here, so the outline is built as a
+    /// casing instead — a dark line underneath a light one, which is how a line is made legible
+    /// over an image it cannot predict.
+    enum Globe {
+
+        /// The light half of the outline, drawn on top.
+        static let outline = Color.white
+
+        /// The dark half, drawn underneath and slightly wider, so that the light line always
+        /// has something dark behind it no matter what the imagery does.
+        static let outlineCasing = Color.black
+
+        /// A country the user has visited.
+        static let visitedFill = Color.blue
+
+        /// A country on the user's wishlist.
+        static let wishlistFill = Color.orange
+
+        /// A country that carries no status but is selected or otherwise overlaid.
+        static let neutralFill = Color.white
+    }
 
     // MARK: - Blending
 
