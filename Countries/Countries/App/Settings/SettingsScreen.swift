@@ -7,38 +7,28 @@
 
 import SwiftUI
 
+/// App settings, pushed from the main screen's toolbar.
+///
+/// - Note: The stored flags are read straight from `@AppStorage` by the screens that need
+///   them, so this screen holds no view model of its own.
 struct SettingsScreen: View {
-    
-    @AppStorage("selectedMockUser") private var selectedMockUser: Int = 0
+
+    // MARK: - Properties
+
+    /// Restricts the country list, the statistics and the map preview to UN member states.
+    /// Defaults to `false`.
     @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
-    
-    @Environment(\.modelContext) private var modelContext
+
+    // MARK: - Body
 
     var body: some View {
         List {
             Section("General") {
                 Toggle("Only show UN countries", isOn: $showOnlyUNMembers)
-                Picker("Mock profile", selection: $selectedMockUser) {
-                    Text("User 1").tag(0)
-                    Text("User 2").tag(1)
-                    Text("User 3").tag(2)
-                }
-                .pickerStyle(.menu)
-                .onChange(of: selectedMockUser) { _, _ in
-                    do {
-                        try MockProfileService.applySelectedMockProfile(in: modelContext)
-                    } catch {
-                        // Optionally handle error (e.g., show alert). For now, just log.
-                        print("Failed to apply mock profile: \(error)")
-                    }
-                }
             }
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            _ = selectedMockUser
-        }
     }
 }
 
@@ -47,4 +37,3 @@ struct SettingsScreen: View {
         SettingsScreen()
     }
 }
-

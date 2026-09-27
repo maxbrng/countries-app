@@ -9,23 +9,134 @@ import SwiftUI
 import SwiftData
 import CoreGraphics
 
+/// Draws the flat world map into a single `Canvas`: one fill and stroke per country,
+/// plus collision-free labels on top.
+///
+/// The type is `Animatable` on zoom and center, so SwiftUI drives camera animations by
+/// rebuilding and redrawing this view per frame. Everything in the draw pass therefore
+/// has to stay cheap: the geometry arrives pre-built as ``RenderCountryShape`` values and
+/// the label sizes come from the shared ``LabelMetricsCache``.
 struct FlatMapRenderer: View, Animatable {
 
+    // MARK: - Content
+
+    /// Pre-built country geometry in normalized world space (0...1 on both axes).
     let shapes: [RenderCountryShape]
+
+    /// Countries eligible for status-based colouring, keyed by lowercased ISO2 code.
+    /// A shape without an entry here is drawn in the neutral fill.
     let countriesByISO2: [String: Country]
+
+    /// Lowercased ISO2 code of the selected country, or `nil` when nothing is selected.
     let selectedISO2: String?
 
+    // MARK: - Layout
+
+    /// Full drawing area of the canvas.
     let viewport: CGRect
+
+    /// The projected world rectangle inside ``viewport``.
     let worldRect: CGRect
+
+    /// Scale that fits ``worldRect`` into ``viewport``; multiplied by ``userZoom``.
     let fitScale: CGFloat
 
+    // MARK: - Camera (animatable)
+
+    /// User zoom factor on top of ``fitScale``.
     var userZoom: CGFloat
+
+    /// Camera center in normalized world space (0...1 on both axes).
     var userCenter: CGPoint
 
+    // MARK: - Feature flags
+
+    /// Whether the camera transform is applied at all. A preview draws unscaled.
     let interactiveEnabled: Bool
+
+    /// Whether country labels are drawn.
     let labelsEnabled: Bool
+
+    /// Whether the selected country is highlighted.
     let selectionEnabled: Bool
 
+    // MARK: - Label metrics
+
+    /// Reference type on purpose: the renderer struct is rebuilt every frame, the
+    /// measured label sizes must outlive it.
+    let labelMetrics: LabelMetricsCache
+
+    // MARK: - Constants
+
+    /// Fills, borders and label colouring.
+    private enum Style {
+
+        /// Fill opacity of a visited country.
+        static let visitedFillOpacity: Double = 0.55
+        /// Fill opacity of a wishlisted country.
+        static let wishlistFillOpacity: Double = 0.75
+        /// Fill opacity of a known country without a status.
+        static let neutralFillOpacity: Double = 0.22
+
+        /// Opacity of the border between unselected countries.
+        static let borderOpacity: Double = 0.75
+        /// Opacity of the label text.
+        static let labelOpacity: Double = 0.70
+
+        /// Border width of the selected country, in points before the camera scale.
+        static let selectedLineWidth: CGFloat = 1.2
+        /// Border width of every other country, in points before the camera scale.
+        static let lineWidth: CGFloat = 0.4
+    }
+
+    /// Thresholds and paddings of the label placement pass. All values are tuned
+    /// against the real country set; changing one changes how many labels survive.
+    private enum LabelLayout {
+
+        /// Labels stay alive slightly outside the viewport so they do not pop in at
+        /// the edge while panning.
+        static let viewportOverscan: CGFloat = 80
+
+        /// Label font size before the zoom compensation is applied.
+        static let baseFontSize: CGFloat = 10
+        /// Lower bound of the zoom-compensated font size.
+        static let minimumFontSize: CGFloat = 8
+        /// Upper bound of the zoom-compensated font size.
+        static let maximumFontSize: CGFloat = 14
+        /// Guards the font scale against dividing by a near-zero camera scale.
+        static let minimumScaleDivisor: CGFloat = 0.0001
+
+        /// Horizontal slack a country's box needs on top of the text width.
+        static let textFitPaddingWidth: CGFloat = 10
+        /// Vertical slack a country's box needs on top of the text height.
+        static let textFitPaddingHeight: CGFloat = 8
+
+        /// Absolute floor for the width a country's box must have to take a label.
+        static let minimumBoxWidthFloor: CGFloat = 26
+        /// Absolute floor for the height a country's box must have to take a label.
+        static let minimumBoxHeightFloor: CGFloat = 16
+        /// Absolute floor for the area a country's box must have to take a label.
+        static let minimumBoxAreaFloor: CGFloat = 200
+        /// How many times the text area a country's box must cover.
+        static let boxToTextAreaFactor: CGFloat = 2.4
+
+        /// Padding added around a label rect before the collision test.
+        static let collisionPadding: CGFloat = 6
+        /// Side length of one collision-grid cell, in points.
+        static let cellSize: CGFloat = 120
+
+        /// Smallest extent a projected rect may collapse to, so it stays testable.
+        static let minimumProjectedExtent: CGFloat = 0.1
+
+        /// Reserved capacity of the per-frame candidate list.
+        static let candidateReserveCapacity = 256
+        /// Reserved capacity of the per-frame collision grid.
+        static let gridReserveCapacity = 256
+    }
+
+    // MARK: - Animatable
+
+    /// Zoom and center, packed so SwiftUI can interpolate the camera.
     var animatableData: AnimatablePair<CGFloat, AnimatablePair<CGFloat, CGFloat>> {
         get { AnimatablePair(userZoom, AnimatablePair(userCenter.x, userCenter.y)) }
         set {
@@ -34,6 +145,22 @@ struct FlatMapRenderer: View, Animatable {
         }
     }
 
+    // MARK: - Init
+
+    /// Creates a renderer for one frame of the flat map.
+    /// - Parameters:
+    ///   - shapes: Pre-built geometry in normalized world space.
+    ///   - countriesByISO2: Countries eligible for status colouring, keyed by lowercased ISO2.
+    ///   - selectedISO2: Lowercased ISO2 code of the selected country, or `nil`.
+    ///   - viewport: Full drawing area.
+    ///   - worldRect: Projected world rectangle inside the viewport.
+    ///   - fitScale: Scale that fits the world into the viewport.
+    ///   - userZoom: User zoom factor on top of `fitScale`.
+    ///   - userCenter: Camera center in normalized world space.
+    ///   - interactiveEnabled: Whether the camera transform is applied.
+    ///   - labelsEnabled: Whether labels are drawn.
+    ///   - selectionEnabled: Whether the selection is highlighted.
+    ///   - labelMetrics: Cache that outlives the per-frame struct rebuild.
     init(
         shapes: [RenderCountryShape],
         countriesByISO2: [String: Country],
@@ -45,7 +172,8 @@ struct FlatMapRenderer: View, Animatable {
         userCenter: CGPoint,
         interactiveEnabled: Bool,
         labelsEnabled: Bool,
-        selectionEnabled: Bool
+        selectionEnabled: Bool,
+        labelMetrics: LabelMetricsCache
     ) {
         self.shapes = shapes
         self.countriesByISO2 = countriesByISO2
@@ -58,12 +186,16 @@ struct FlatMapRenderer: View, Animatable {
         self.interactiveEnabled = interactiveEnabled
         self.labelsEnabled = labelsEnabled
         self.selectionEnabled = selectionEnabled
+        self.labelMetrics = labelMetrics
     }
 
+    // MARK: - Body
+
+    /// Applies the camera transform, draws every country, then the labels on top.
     var body: some View {
-        
+
         Canvas { context, _ in
-            
+
             guard viewport.width > 0, viewport.height > 0 else { return }
 
             let currentScale = fitScale * userZoom
@@ -88,8 +220,14 @@ struct FlatMapRenderer: View, Animatable {
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
 
                 let fillColor = fill(for: shape.iso2, isSelected: isSelected)
-                let strokeColor = isSelected ? Color(uiColor: .label) : Color(uiColor: .systemBackground).opacity(0.75)
-                let lineWidth = (isSelected ? 1.2 : 0.4) / (interactiveEnabled ? currentScale : 1)
+                let strokeColor = isSelected
+                    ? Color(uiColor: .label)
+                    : Color(uiColor: .systemBackground).opacity(Style.borderOpacity)
+
+                // Divided by the camera scale so the border keeps a constant
+                // on-screen width at every zoom level.
+                let baseLineWidth = isSelected ? Style.selectedLineWidth : Style.lineWidth
+                let lineWidth = baseLineWidth / (interactiveEnabled ? currentScale : 1)
 
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
                 drawContext.stroke(path, with: .color(strokeColor), lineWidth: lineWidth)
@@ -109,71 +247,98 @@ struct FlatMapRenderer: View, Animatable {
 
     // MARK: - Fill
 
+    /// Resolves the fill colour of one country from its tracking status.
+    /// - Parameters:
+    ///   - iso2: Lowercased ISO2 code of the shape being drawn.
+    ///   - isSelected: Whether this country is the selected one.
+    /// - Returns: The status colour, or the neutral system fill when the country is
+    ///   not part of ``countriesByISO2`` (unknown, or filtered out).
     private func fill(for iso2: String, isSelected: Bool) -> Color {
-        
-        if let country = countriesByISO2[iso2] {
-            
-            switch country.status {
-            case .visited:
-                return Color(uiColor: .label).opacity(0.55)
-            case .wishlist:
-                return .orange.opacity(0.75)
-            default:
-                return Color(uiColor: .label).opacity(0.22)
-            }
+
+        guard let country = countriesByISO2[iso2] else { return Color(uiColor: .systemFill) }
+
+        switch country.status {
+        case .visited:
+            return Color(uiColor: .label).opacity(Style.visitedFillOpacity)
+        case .wishlist:
+            return .orange.opacity(Style.wishlistFillOpacity)
+        default:
+            return Color(uiColor: .label).opacity(Style.neutralFillOpacity)
         }
-        return Color(uiColor: .systemFill)
     }
 
     // MARK: - Labels (collision-free)
 
+    /// Draws one label per country that both fits its shape and does not collide with
+    /// an already placed label.
+    ///
+    /// Three passes: collect candidates that pass the fit test, sort them by on-screen
+    /// area so the largest country wins a contested spot, then place them against a
+    /// uniform grid of buckets that keeps the collision test local instead of comparing
+    /// every rect against every other one.
+    ///
+    /// - Parameters:
+    ///   - context: The unscaled canvas context. Labels are positioned in screen space
+    ///     by hand so they keep their font size regardless of the camera scale.
+    ///   - cameraCenter: Center of the viewport, the fixed point of the camera transform.
+    ///   - currentScale: `fitScale` times `userZoom`.
+    ///   - offsetX: Horizontal camera offset in points.
+    ///   - offsetY: Vertical camera offset in points.
     private func drawLabels(in context: GraphicsContext,
                             cameraCenter: CGPoint,
                             currentScale: CGFloat,
                             offsetX: CGFloat,
                             offsetY: CGFloat) {
-        
+
+        /// One label that passed the fit test and is waiting for the collision pass.
         struct Candidate {
             let iso2: String
+            let name: String
+            let fontSize: CGFloat
             let screenPoint: CGPoint
-            let resolved: GraphicsContext.ResolvedText
             let textSize: CGSize
             let score: CGFloat
             let rect: CGRect
         }
 
-        func worldToScreen(_ p: CGPoint) -> CGPoint {
-            
-            let transformedX = (p.x - cameraCenter.x) * currentScale + cameraCenter.x + offsetX
-            let transformedY = (p.y - cameraCenter.y) * currentScale + cameraCenter.y + offsetY
-            
-            return interactiveEnabled ? CGPoint(x: transformedX, y: transformedY) : p
+        /// Applies the camera transform by hand; a preview draws in world space already.
+        func worldToScreen(_ worldPoint: CGPoint) -> CGPoint {
+
+            let transformedX = (worldPoint.x - cameraCenter.x) * currentScale + cameraCenter.x + offsetX
+            let transformedY = (worldPoint.y - cameraCenter.y) * currentScale + cameraCenter.y + offsetY
+
+            return interactiveEnabled ? CGPoint(x: transformedX, y: transformedY) : worldPoint
         }
 
-        func worldRectToScreenRect(_ r: CGRect) -> CGRect {
-            
-            let p1 = worldToScreen(CGPoint(x: r.minX, y: r.minY))
-            let p2 = worldToScreen(CGPoint(x: r.maxX, y: r.minY))
-            let p3 = worldToScreen(CGPoint(x: r.minX, y: r.maxY))
-            let p4 = worldToScreen(CGPoint(x: r.maxX, y: r.maxY))
+        /// Projects all four corners, since the transform may flip or offset the rect.
+        func worldRectToScreenRect(_ rect: CGRect) -> CGRect {
 
-            let minX = min(p1.x, p2.x, p3.x, p4.x)
-            let maxX = max(p1.x, p2.x, p3.x, p4.x)
-            let minY = min(p1.y, p2.y, p3.y, p4.y)
-            let maxY = max(p1.y, p2.y, p3.y, p4.y)
+            let topLeft = worldToScreen(CGPoint(x: rect.minX, y: rect.minY))
+            let topRight = worldToScreen(CGPoint(x: rect.maxX, y: rect.minY))
+            let bottomLeft = worldToScreen(CGPoint(x: rect.minX, y: rect.maxY))
+            let bottomRight = worldToScreen(CGPoint(x: rect.maxX, y: rect.maxY))
 
-            return CGRect(x: minX, y: minY, width: max(0.1, maxX - minX), height: max(0.1, maxY - minY))
+            let minX = min(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x)
+            let maxX = max(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x)
+            let minY = min(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y)
+            let maxY = max(topLeft.y, topRight.y, bottomLeft.y, bottomRight.y)
+
+            return CGRect(x: minX,
+                          y: minY,
+                          width: max(LabelLayout.minimumProjectedExtent, maxX - minX),
+                          height: max(LabelLayout.minimumProjectedExtent, maxY - minY))
         }
 
-        let viewportExpanded = viewport.insetBy(dx: -80, dy: -80)
+        let viewportExpanded = viewport.insetBy(dx: -LabelLayout.viewportOverscan,
+                                                dy: -LabelLayout.viewportOverscan)
 
         var candidates: [Candidate] = []
-        candidates.reserveCapacity(256)
+        candidates.reserveCapacity(LabelLayout.candidateReserveCapacity)
 
         for shape in shapes {
-            
+
             guard let country = countriesByISO2[shape.iso2] else { continue }
-            
+
             let name = country.nameEnglish
             guard !name.isEmpty else { continue }
 
@@ -184,7 +349,7 @@ struct FlatMapRenderer: View, Animatable {
             let anchorScreen = worldToScreen(anchorWorld)
 
             let focus = shape.focusBoundingBoxNormalized
-            
+
             let focusWorld = CGRect(
                 x: worldRect.minX + focus.minX * worldRect.width,
                 y: worldRect.minY + focus.minY * worldRect.height,
@@ -195,32 +360,32 @@ struct FlatMapRenderer: View, Animatable {
 
             guard focusScreenRect.intersects(viewportExpanded) else { continue }
 
-            let baseFontSize: CGFloat = 10
-            let fontScale = min(1.0, 1.0 / max(currentScale, 0.0001))
-            let fontSize = (baseFontSize * fontScale).clamped(8, 14)
+            let fontScale = min(1.0, 1.0 / max(currentScale, LabelLayout.minimumScaleDivisor))
+            // Rounded so the metrics cache hits instead of missing on every frame.
+            let fontSize = (LabelLayout.baseFontSize * fontScale)
+                .clamped(LabelLayout.minimumFontSize, LabelLayout.maximumFontSize)
+                .rounded()
 
-            let text = Text(name)
-                .font(.system(size: fontSize, weight: .semibold))
-                .foregroundStyle(Color(uiColor: .label).opacity(0.70))
+            // Measured through UIKit and cached across frames. The SwiftUI Text is
+            // resolved further down, only for labels that actually get drawn.
+            let textSize = labelMetrics.size(for: name, fontSize: fontSize)
 
-            let resolved = context.resolve(text)
-            let textSize = resolved.measure(in: CGSize(width: CGFloat.infinity, height: CGFloat.infinity))
-
-            let paddingWidth: CGFloat = 10
-            let paddingHeight: CGFloat = 8
-
-            let minimumBoxWidth: CGFloat = max(26, textSize.width + paddingWidth)
-            let minimumBoxHeight: CGFloat = max(16, textSize.height + paddingHeight)
-            let minimumArea: CGFloat = max(200, (textSize.width * textSize.height) * 2.4)
+            let minimumBoxWidth: CGFloat = max(LabelLayout.minimumBoxWidthFloor,
+                                               textSize.width + LabelLayout.textFitPaddingWidth)
+            let minimumBoxHeight: CGFloat = max(LabelLayout.minimumBoxHeightFloor,
+                                                textSize.height + LabelLayout.textFitPaddingHeight)
+            let textArea = textSize.width * textSize.height
+            let minimumArea: CGFloat = max(LabelLayout.minimumBoxAreaFloor,
+                                           textArea * LabelLayout.boxToTextAreaFactor)
 
             let bboxArea = focusScreenRect.width * focusScreenRect.height
-            
+
             guard focusScreenRect.width >= minimumBoxWidth,
                   focusScreenRect.height >= minimumBoxHeight,
                   bboxArea >= minimumArea
             else { continue }
 
-            let collisionPadding: CGFloat = 6
+            let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
                 x: anchorScreen.x - textSize.width * 0.5 - collisionPadding,
                 y: anchorScreen.y - textSize.height * 0.5 - collisionPadding,
@@ -231,64 +396,75 @@ struct FlatMapRenderer: View, Animatable {
 
             candidates.append(.init(
                 iso2: shape.iso2,
+                name: name,
+                fontSize: fontSize,
                 screenPoint: anchorScreen,
-                resolved: resolved,
                 textSize: textSize,
                 score: bboxArea,
                 rect: labelRect
             ))
         }
 
+        // Largest country first, so it keeps its label when two labels overlap.
         candidates.sort { $0.score > $1.score }
 
+        /// Bucket coordinate in the uniform collision grid.
         struct CellKey: Hashable { let x: Int; let y: Int }
-        let cellSize: CGFloat = 120
+        let cellSize = LabelLayout.cellSize
         var grid: [CellKey: [CGRect]] = [:]
-        grid.reserveCapacity(256)
+        grid.reserveCapacity(LabelLayout.gridReserveCapacity)
 
+        /// Buckets a rect covers, as (minX, maxX, minY, maxY) cell indices.
         func cellRange(for rect: CGRect) -> (Int, Int, Int, Int) {
-            let x0 = Int(floor(rect.minX / cellSize))
-            let x1 = Int(floor(rect.maxX / cellSize))
-            let y0 = Int(floor(rect.minY / cellSize))
-            let y1 = Int(floor(rect.maxY / cellSize))
-            return (x0, x1, y0, y1)
+            let minCellX = Int(floor(rect.minX / cellSize))
+            let maxCellX = Int(floor(rect.maxX / cellSize))
+            let minCellY = Int(floor(rect.minY / cellSize))
+            let maxCellY = Int(floor(rect.maxY / cellSize))
+            return (minCellX, maxCellX, minCellY, maxCellY)
         }
 
+        /// Whether the rect overlaps a label that was already placed.
         func intersectsPlaced(_ rect: CGRect) -> Bool {
-            let (x0, x1, y0, y1) = cellRange(for: rect)
-            for yy in y0...y1 {
-                for xx in x0...x1 {
-                    let key = CellKey(x: xx, y: yy)
-                    if let rects = grid[key] {
-                        for r in rects where r.intersects(rect) {
-                            return true
-                        }
+            let (minCellX, maxCellX, minCellY, maxCellY) = cellRange(for: rect)
+            for cellY in minCellY...maxCellY {
+                for cellX in minCellX...maxCellX {
+                    let key = CellKey(x: cellX, y: cellY)
+                    guard let placedRects = grid[key] else { continue }
+                    for placedRect in placedRects where placedRect.intersects(rect) {
+                        return true
                     }
                 }
             }
             return false
         }
 
+        /// Registers a placed label in every bucket it touches.
         func insertPlaced(_ rect: CGRect) {
-            
-            let (x0, x1, y0, y1) = cellRange(for: rect)
-            
-            for yy in y0...y1 {
-                
-                for xx in x0...x1 {
-                    let key = CellKey(x: xx, y: yy)
+
+            let (minCellX, maxCellX, minCellY, maxCellY) = cellRange(for: rect)
+
+            for cellY in minCellY...maxCellY {
+
+                for cellX in minCellX...maxCellX {
+                    let key = CellKey(x: cellX, y: cellY)
                     grid[key, default: []].append(rect)
                 }
             }
         }
 
         for candidate in candidates {
-            
+
             if intersectsPlaced(candidate.rect) { continue }
-            
+
             insertPlaced(candidate.rect)
-            
-            context.draw(candidate.resolved,
+
+            // Resolved here rather than during the scan: only labels that survive
+            // the fit and collision checks are worth the text layout.
+            let text = Text(candidate.name)
+                .font(.system(size: candidate.fontSize, weight: .semibold))
+                .foregroundStyle(Color(uiColor: .label).opacity(Style.labelOpacity))
+
+            context.draw(context.resolve(text),
                          at: candidate.screenPoint,
                          anchor: .center)
         }
@@ -296,11 +472,16 @@ struct FlatMapRenderer: View, Animatable {
 
     // MARK: - Path scaling
 
+    /// Scales a normalized path into the given rectangle.
+    /// - Parameters:
+    ///   - cgPath: Path in normalized world space (0...1 on both axes).
+    ///   - rect: Target rectangle, usually ``worldRect``.
+    /// - Returns: The transformed path, or the untransformed one if the copy fails.
     private func scaledPath(_ cgPath: CGPath, into rect: CGRect) -> Path {
-        
+
         var transform = CGAffineTransform(translationX: rect.minX, y: rect.minY)
             .scaledBy(x: rect.width, y: rect.height)
-        
+
         return Path(cgPath.copy(using: &transform) ?? cgPath)
     }
 }

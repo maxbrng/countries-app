@@ -7,30 +7,52 @@
 
 import SwiftUI
 import SwiftData
+import os
 
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Countries",
+                            category: "AlgoSettings")
+
+/// Sheet that lets the user edit the recommendation preferences by hand.
+///
+/// Edits are collected in a ``PreferencesDraft`` and only written back to ``UserPreferences`` when
+/// the user confirms, so a cancelled sheet leaves the store untouched. Saving sets
+/// ``UserPreferences/userDidCustomize``, which stops ``PreferencesService`` from re-deriving the
+/// preferences from the travel history; the "Auto-update preferences" toggle is the inverse of that
+/// flag.
 struct AlgoSettingsSheetView: View {
 
     // MARK: - Environment
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
 
-    @AppStorage("selectedMockUser") private var selectedMockUser: Int = 0
-
-    // MARK: - SwiftData
-    @Query private var allPreferences: [UserPreferences]
-
     // MARK: - Draft State (editable copy)
+
     @State private var prefs: UserPreferences?
     @State private var original: PreferencesDraft?
     @State private var draft: PreferencesDraft = .empty
 
     @State private var showDiscardAlert = false
 
+    // MARK: - Constants
+
+    /// Spacing inside the toggle label stack.
+    private static let toggleLabelSpacing: CGFloat = 4
+
     // MARK: - Dirty state
+
     private var hasUnsavedChanges: Bool {
         guard let original else { return false }
         return draft != original
     }
+
+    /// True while a record is loaded and the draft differs from it, which is when the sheet offers
+    /// the save and cancel actions instead of a plain close button.
+    private var canCommitChanges: Bool {
+        prefs != nil && hasUnsavedChanges
+    }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
@@ -50,12 +72,12 @@ struct AlgoSettingsSheetView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if prefs != nil && hasUnsavedChanges {
+                    if canCommitChanges {
                         Button("Cancel") { cancelTapped() }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if prefs != nil && hasUnsavedChanges {
+                    if canCommitChanges {
                         Button {
                             doneTapped()
                         } label: {
@@ -82,8 +104,8 @@ struct AlgoSettingsSheetView: View {
             } message: {
                 Text("You have unsaved changes. Do you want to discard them?")
             }
-            .task(id: selectedMockUser) {
-                loadOrCreatePreferencesAndPrepareDraft()
+            .task {
+                loadPreferencesAndPrepareDraft()
             }
         }
     }
@@ -97,17 +119,12 @@ struct AlgoSettingsSheetView: View {
                 get: { draft.autoUpdateEnabled },
                 set: { draft.autoUpdateEnabled = $0 }
             )) {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Self.toggleLabelSpacing) {
                     Text("Auto-update preferences")
                     Text("When enabled, preferences adapt based on visited countries and trips.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-            }
-
-            LabeledContent("Profile") {
-                Text("Mock User \(selectedMockUser + 1)")
-                    .foregroundStyle(.secondary)
             }
 
             if let prefs {
@@ -151,15 +168,15 @@ struct AlgoSettingsSheetView: View {
 
             Picker("Max Cost Level", selection: $draft.maxCostLevel) {
                 Text("No limit").tag(CostLevel?.none)
-                ForEach(CostLevel.allCases, id: \.self) { lvl in
-                    Text("\(lvl.rawValue)").tag(Optional(lvl))
+                ForEach(CostLevel.allCases, id: \.self) { level in
+                    Text(verbatim: "\(level.rawValue)").tag(Optional(level))
                 }
             }
 
             Picker("Minimum Safety", selection: $draft.minSafety) {
                 Text("No filter").tag(SafetyLevel?.none)
-                ForEach(SafetyLevel.allCases, id: \.self) { lvl in
-                    Text("\(lvl.rawValue)").tag(Optional(lvl))
+                ForEach(SafetyLevel.allCases, id: \.self) { level in
+                    Text(verbatim: "\(level.rawValue)").tag(Optional(level))
                 }
             }
         }
@@ -170,8 +187,8 @@ struct AlgoSettingsSheetView: View {
 
             Picker("Preferred Duration", selection: $draft.preferredDuration) {
                 Text("No preference").tag(TravelDuration?.none)
-                ForEach(TravelDuration.allCases, id: \.self) { d in
-                    Text(durationLabel(d)).tag(Optional(d))
+                ForEach(TravelDuration.allCases, id: \.self) { duration in
+                    Text(durationLabel(duration)).tag(Optional(duration))
                 }
             }
 
@@ -187,6 +204,10 @@ struct AlgoSettingsSheetView: View {
 
     // MARK: - Toggle bindings (Set-backed, reliable)
 
+    /// Binding that adds or removes `tag` in the draft's desired travel tags.
+    ///
+    /// - Parameter tag: The tag the toggle stands for.
+    /// - Returns: A binding that reads and writes membership in the draft.
     private func bindingForTravelTag(_ tag: TravelTag) -> Binding<Bool> {
         Binding(
             get: { draft.desiredTags.contains(tag) },
@@ -197,6 +218,10 @@ struct AlgoSettingsSheetView: View {
         )
     }
 
+    /// Binding that adds or removes `tag` in the draft's preferred climates.
+    ///
+    /// - Parameter tag: The tag the toggle stands for.
+    /// - Returns: A binding that reads and writes membership in the draft.
     private func bindingForClimateTag(_ tag: ClimateTag) -> Binding<Bool> {
         Binding(
             get: { draft.preferredClimate.contains(tag) },
@@ -209,30 +234,34 @@ struct AlgoSettingsSheetView: View {
 
     // MARK: - Actions
 
+    /// Closes the sheet, asking first when the draft carries unsaved edits.
     private func cancelTapped() {
-        if hasUnsavedChanges {
-            showDiscardAlert = true
-        } else {
+        guard hasUnsavedChanges else {
             dismiss()
+            return
         }
+        showDiscardAlert = true
     }
 
+    /// Writes the draft into the model, saves and closes the sheet.
+    ///
+    /// On a failed save the sheet stays open with the draft intact, so the edits are not lost.
     private func doneTapped() {
         guard let prefs else { return }
         applyDraftToModel(draft, prefs: prefs)
         do {
             try context.save()
-        
+
             original = PreferencesDraft(from: prefs)
             draft = original ?? .empty
-            
+
             dismiss()
         } catch {
-            // optional: you could show another alert here
-            print("Save failed:", error)
+            logger.error("Failed to save preferences: \((error as NSError).localizedDescription, privacy: .public)")
         }
     }
 
+    /// Restores the draft from the loaded snapshot and closes the sheet.
     private func discardAndClose() {
         // reset draft back to original
         if let original {
@@ -243,32 +272,30 @@ struct AlgoSettingsSheetView: View {
 
     // MARK: - Loading
 
-    private func loadOrCreatePreferencesAndPrepareDraft() {
-        // Find existing record for selectedMockUser
-        print("selectedMockUser", selectedMockUser)
-        if let existing = allPreferences.first(where: { $0.profileKey == selectedMockUser }) {
-            prefs = existing
-            let snap = PreferencesDraft(from: existing)
-            original = snap
-            draft = snap
-            return
-        }
-
-        print("Error loadOrCreatePreferencesAndPrepareDraft")
+    /// Loads the preferences record and seeds both the draft and the snapshot it is compared against.
+    private func loadPreferencesAndPrepareDraft() {
         do {
-            let prefs = try context.fetch(FetchDescriptor<UserPreferences>())
-            print("Prefs count:", prefs.count)
-            for p in prefs {
-                print("profileKey:", p.profileKey, "tags:", p.desiredTags)
-            }
-        } catch {
-            print("Failed to fetch UserPreferences:", error)
-        }
+            let preferences = try PreferencesService.loadOrCreate(in: context)
+            let snapshot = PreferencesDraft(from: preferences)
 
+            prefs = preferences
+            original = snapshot
+            draft = snapshot
+        } catch {
+            logger.error("Failed to load preferences: \((error as NSError).localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - Helpers
 
+    /// Copies the draft into the model record.
+    ///
+    /// Tag sets are stored sorted by raw value so the persisted order stays stable across saves.
+    /// The toggle is inverted on purpose: auto-update on means the user did not customise.
+    ///
+    /// - Parameters:
+    ///   - draft: The edited values.
+    ///   - prefs: The record to write into.
     private func applyDraftToModel(_ draft: PreferencesDraft, prefs: UserPreferences) {
         prefs.userDidCustomize = !draft.autoUpdateEnabled
         prefs.desiredTags = Array(draft.desiredTags).sorted(by: { $0.rawValue < $1.rawValue })
@@ -281,8 +308,12 @@ struct AlgoSettingsSheetView: View {
         prefs.updatedAt = .now
     }
 
-    private func durationLabel(_ d: TravelDuration) -> String {
-        switch d {
+    /// The picker label for a trip duration, including the day range the case stands for.
+    ///
+    /// - Parameter duration: The duration to describe.
+    /// - Returns: The label shown in the duration picker.
+    private func durationLabel(_ duration: TravelDuration) -> String {
+        switch duration {
         case .weekend: return "Weekend (1–3 days)"
         case .short: return "Short (4–7 days)"
         case .medium: return "Medium (8–14 days)"
@@ -294,12 +325,41 @@ struct AlgoSettingsSheetView: View {
 
 // MARK: - Draft Model
 
+/// Editable copy of the preference values the sheet offers.
+///
+/// Tags are held as sets so the toggles can insert and remove without caring about order, and the
+/// type is `Equatable` so the sheet can tell an edited draft from the loaded snapshot.
 private struct PreferencesDraft: Equatable {
+
+    /// Inverse of ``UserPreferences/userDidCustomize``: while `true`, the preferences keep adapting
+    /// to the travel history.
     var autoUpdateEnabled: Bool
 
     var desiredTags: Set<TravelTag>
     var preferredClimate: Set<ClimateTag>
-    
+
+    var maxCostLevel: CostLevel?
+    var minSafety: SafetyLevel?
+
+    var preferredDuration: TravelDuration?
+    var preferredSeason: Season?
+
+    var recommendationMode: RecommendationMode
+
+    /// The draft used before a record has been loaded: no filters, no tags, balanced mode.
+    static var empty: PreferencesDraft {
+        PreferencesDraft(
+            autoUpdateEnabled: true,
+            desiredTags: [],
+            preferredClimate: [],
+            maxCostLevel: nil,
+            minSafety: nil,
+            preferredDuration: nil,
+            preferredSeason: nil,
+            recommendationMode: .balanced
+        )
+    }
+
     init(
         autoUpdateEnabled: Bool,
         desiredTags: Set<TravelTag>,
@@ -320,27 +380,9 @@ private struct PreferencesDraft: Equatable {
         self.recommendationMode = recommendationMode
     }
 
-    var maxCostLevel: CostLevel?
-    var minSafety: SafetyLevel?
-
-    var preferredDuration: TravelDuration?
-    var preferredSeason: Season?
-
-    var recommendationMode: RecommendationMode
-
-    static var empty: PreferencesDraft {
-        PreferencesDraft(
-            autoUpdateEnabled: true,
-            desiredTags: [],
-            preferredClimate: [],
-            maxCostLevel: nil,
-            minSafety: nil,
-            preferredDuration: nil,
-            preferredSeason: nil,
-            recommendationMode: .balanced
-        )
-    }
-
+    /// Snapshots the stored record.
+    ///
+    /// - Parameter prefs: The record to copy.
     init(from prefs: UserPreferences) {
         self.autoUpdateEnabled = (prefs.userDidCustomize == false)
         self.desiredTags = Set(prefs.desiredTags)
@@ -352,5 +394,3 @@ private struct PreferencesDraft: Equatable {
         self.recommendationMode = prefs.recommendationMode
     }
 }
-
-

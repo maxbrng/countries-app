@@ -6,62 +6,78 @@
 //
 
 import SwiftUI
-import MapKit
-import Foundation
 
-// Conforms to Hashable so it can be used with NavigationPath and navigationDestination.
+/// Destinations pushed onto the shared navigation path of the first tab.
 enum AppRoute: Hashable {
-    //    case countryDetail(country: Country)
+    /// The full country list, pushed from the main screen's country card.
     case fullCountryList
+    /// The interactive map screen.
     case mapScreen
+    /// The settings screen.
     case settings
 }
 
+/// Root of the app: Countries, Discover, and the country list in the search role.
+///
+/// - Note: Only the first tab owns a ``NavigationPath``; ``AppRoute`` is resolved there.
 struct RootTabView: View {
-    
+
+    // MARK: - Properties
+
+    /// Shared navigation path of the first tab, handed to ``MainScreen`` and to the map.
     @State private var path = NavigationPath()
-    
-    @State private var search = ""
-    
-    @State private var toolbarVisibility = Visibility.visible
-    
+
+    /// Owned here so the field belongs to the tab bar. Inside ``CountriesList`` it jumped.
+    @State private var countrySearch = ""
+
+    /// Search text of the pushed full list, kept apart from the search tab's.
+    @State private var fullListSearch = ""
+
+    // MARK: - Body
+
     var body: some View {
-        
+
         TabView {
             Tab("Countries", systemImage: "globe.europe.africa.fill") {
                 NavigationStack(path: $path) {
                     MainScreen(path: $path)
-                        .navigationDestination(for: AppRoute.self) { (route: AppRoute) in
+                        .navigationDestination(for: AppRoute.self) { route in
                             destination(for: route)
-                                .onAppear { toolbarVisibility = .hidden }
                         }
-                        .onAppear { toolbarVisibility = .visible }
                 }
-                .toolbar(toolbarVisibility, for: .tabBar)
+                // From the path, not from `onAppear`, which fires after the transition.
+                .toolbar(path.isEmpty ? .visible : .hidden, for: .tabBar)
             }
-            
+
             Tab("Discover", systemImage: "binoculars.fill") {
                 NavigationStack {
-                    DiscoverScreen(path: $path)
-                        .onAppear { toolbarVisibility = .visible }
+                    DiscoverScreen()
                 }
             }
-            
+
             Tab("All Countries", systemImage: "magnifyingglass", role: .search) {
                 NavigationStack {
-                    CountriesList(path: $path)
-                        .searchable(text: $search, placement: .automatic, prompt: "Search countries")
-                        .onAppear { toolbarVisibility = .visible }
+                    // Inside the stack, so the field belongs to the tab bar.
+                    CountriesList(searchText: $countrySearch)
+                        .searchable(text: $countrySearch)
                 }
             }
         }
+        // Without this, iOS 27 folds the search tab into the pill and its field to the top.
+        .tabViewSearchActivation(.searchTabSelection)
     }
-    
+
+    // MARK: - Destinations
+
+    /// Resolves an ``AppRoute`` to its screen.
+    ///
+    /// - Parameter route: The route that was appended to ``path``.
     @ViewBuilder
-    func destination(for route: AppRoute) -> some View {
+    private func destination(for route: AppRoute) -> some View {
         switch route {
         case .fullCountryList:
-            CountriesList(path: $path)
+            CountriesList(searchText: $fullListSearch)
+                .searchable(text: $fullListSearch)
         case .mapScreen:
             MapControllerRepresentable(path: $path)
                 .ignoresSafeArea()

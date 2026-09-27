@@ -1,51 +1,49 @@
 //
-//  MapScreen.swift
+//  MapView.swift
 //  Countries
 //
 //  Created by Max Breuning on 31.12.25.
 //
 
 import SwiftUI
-import MapKit
-import SwiftData
 
-enum MapAppearance {
-    case twoD
-    case threeD
-}
-
+/// Root SwiftUI content of the map screen. Built once by ``MapViewController``
+/// and driven entirely by ``MapScreenModel``.
 struct MapView: View {
-    
-    @Binding var path: NavigationPath
-    @Binding var selectedCountry: Country?
-    @Binding var showAppearancePanel: Bool
-    @Binding var appearance: MapAppearance
-    @Binding var filter: CountryStatusFilter
-    
+
+    /// Shared map state. Both renderers and the toolbar read and write it.
+    @Bindable var model: MapScreenModel
+
+    /// Invoked by the close button; the controller pops the navigation stack.
+    let onClose: () -> Void
+
+    /// Zoom the interactive flat map opens at. Slightly above the fit scale, so the
+    /// map starts filling the screen rather than sitting inside it.
+    private static let initialFlatMapZoom: CGFloat = 1.5
+
     var body: some View {
-        ZStack(alignment: .center) {
-            
-            switch appearance {
+
+        ZStack {
+            switch model.appearance {
             case .twoD:
                 FlatMapView(interactiveEnabled: true,
-                            initialStartZoom: 1.5,
-                            selectedCountry: $selectedCountry,
-                            filter: $filter)
+                            projectionMode: ShapeRequest.interactiveMap.projection,
+                            initialStartZoom: Self.initialFlatMapZoom,
+                            selectedCountry: $model.selectedCountry,
+                            filter: $model.filter)
             case .threeD:
-                GlobeMapView(selectedCountry: $selectedCountry)
+                GlobeMapView(selectedCountry: $model.selectedCountry)
             }
         }
         .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Close", systemImage: "chevron.left") {
-                    path.removeLast()
-                }
+                Button("Close", systemImage: "chevron.left", action: onClose)
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Appearance", systemImage: "globe") {
-                    showAppearancePanel = true
+                    model.showAppearancePanel = true
                 }
             }
         }

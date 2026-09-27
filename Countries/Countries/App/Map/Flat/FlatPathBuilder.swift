@@ -12,10 +12,27 @@ nonisolated enum FlatPathBuilder {
     // MARK: - Variant
 
     enum Variant: Sendable {
-        /// Interactive / detail mode (uses hybrid centroid + polylabel).
+        /// Interactive / detail mode: full geometry, hybrid centroid + polylabel.
         case full
-        /// Preview / lightweight mode (no polylabel).
+        /// Preview mode: simplified geometry, tiny islands dropped, no polylabel.
         case light
+
+        /// Max deviation in normalized world units (0...1 across the whole map).
+        /// At preview size 0.0006 is well under a pixel.
+        var simplificationTolerance: CGFloat {
+            switch self {
+            case .full: return 0
+            case .light: return 0.0006
+            }
+        }
+
+        /// Rings below this area (normalized units²) are skipped in preview mode.
+        var minimumRingArea: CGFloat {
+            switch self {
+            case .full: return 0
+            case .light: return 0.000004
+            }
+        }
     }
     
     // CGPath is not formally Sendable. We only pass results within the same task.
@@ -45,30 +62,66 @@ nonisolated enum FlatPathBuilder {
         let mutablePath = CGMutablePath()
         var candidates: [Candidate] = []
         
-        func addRingToPath(_ ring: [[Double]]) {
-            
-            guard ring.count >= 2 else { return }
-            
-            let first = ring[0]
-            let start = FlatMapProjection.projectLongitudeLatitude(longitude: first[0],
-                                                                   latitude: first[1],
-                                                                   mode: projectionMode)
+        func projectRing(_ ring: [[Double]]) -> [CGPoint] {
+            ring.compactMap { coordinate in
+                guard coordinate.count >= 2 else { return nil }
+                return FlatMapProjection.projectLongitudeLatitude(longitude: coordinate[0],
+                                                                  latitude: coordinate[1],
+                                                                  mode: projectionMode)
+            }
+        }
+
+        /// - Returns: true when the ring was actually added to the path.
+        @discardableResult
+        func addRingToPath(_ ring: [[Double]]) -> Bool {
+
+            guard ring.count >= 2 else { return false }
+
+            var points = projectRing(ring)
+
+            if variant.minimumRingArea > 0,
+               PolylineSimplifier.ringArea(points) < variant.minimumRingArea {
+                return false
+            }
+
+            if variant.simplificationTolerance > 0 {
+                points = PolylineSimplifier.simplify(points,
+                                                     tolerance: variant.simplificationTolerance)
+            }
+
+            guard let start = points.first, points.count >= 3 else { return false }
+
             mutablePath.move(to: start)
-            
-            for coordinate in ring.dropFirst() {
-                let point = FlatMapProjection.projectLongitudeLatitude(longitude: coordinate[0],
-                                                                       latitude: coordinate[1],
-                                                                       mode: projectionMode)
+            for point in points.dropFirst() {
+                mutablePath.addLine(to: point)
+            }
+            mutablePath.closeSubpath()
+
+            return true
+        }
+        
+        /// Adds a ring regardless of the variant's area filter.
+        func addUnfilteredRingToPath(_ ring: [[Double]]) {
+
+            var points = projectRing(ring)
+
+            if variant.simplificationTolerance > 0 {
+                points = PolylineSimplifier.simplify(points,
+                                                     tolerance: variant.simplificationTolerance)
+            }
+
+            guard let start = points.first, points.count >= 3 else { return }
+
+            mutablePath.move(to: start)
+            for point in points.dropFirst() {
                 mutablePath.addLine(to: point)
             }
             mutablePath.closeSubpath()
         }
-        
+
         func considerOuterRing(_ ring: [[Double]]) {
-            
-            let points = ring.map { FlatMapProjection.projectLongitudeLatitude(longitude: $0[0],
-                                                                               latitude: $0[1],
-                                                                               mode: projectionMode) }
+
+            let points = projectRing(ring)
             let (signedArea, centroid) = polygonAreaAndCentroid(points)
             let area = abs(signedArea)
             guard area > 0, centroid.x.isFinite, centroid.y.isFinite else { return }
@@ -86,20 +139,37 @@ nonisolated enum FlatPathBuilder {
                                     compactness: compactness))
         }
         
+        // Collected so preview mode can guarantee at least one ring survives the
+        // area filter, otherwise small countries would vanish from the preview.
+        var allRings: [[[Double]]] = []
+        var didAddAnyRing = false
+
         switch geometry {
         case .polygon(let rings):
+            allRings = rings
             for (ringIndex, ring) in rings.enumerated() {
-                addRingToPath(ring)
-                if ringIndex == 0 { considerOuterRing(ring) }
+                let added = addRingToPath(ring)
+                didAddAnyRing = didAddAnyRing || added
+                if ringIndex == 0, added { considerOuterRing(ring) }
             }
-            
+
         case .multiPolygon(let polygons):
             for polygon in polygons {
+                if let outer = polygon.first { allRings.append(outer) }
                 for (ringIndex, ring) in polygon.enumerated() {
-                    addRingToPath(ring)
-                    if ringIndex == 0 { considerOuterRing(ring) }
+                    let added = addRingToPath(ring)
+                    didAddAnyRing = didAddAnyRing || added
+                    if ringIndex == 0, added { considerOuterRing(ring) }
                 }
             }
+        }
+
+        // Every ring was filtered out: fall back to the largest one, unfiltered.
+        if !didAddAnyRing,
+           let largest = allRings.max(by: { PolylineSimplifier.ringArea(projectRing($0))
+                                          < PolylineSimplifier.ringArea(projectRing($1)) }) {
+            addUnfilteredRingToPath(largest)
+            considerOuterRing(largest)
         }
         
         let best = candidates.max(by: { $0.area < $1.area })
@@ -183,11 +253,22 @@ nonisolated enum FlatPathBuilder {
     }
     
     // MARK: - Focus bounding box
-    
+
+    /// Focus rect used when a country has no usable ring: a small square at the centre
+    /// of the normalized world. Never rendered for real data, only a defined fallback.
+    private static let fallbackFocusBoundingBox = CGRect(x: 0.45, y: 0.45, width: 0.1, height: 0.1)
+
+    /// Picks the ring whose bounding box the camera should frame when focusing a country.
+    ///
+    /// - Parameters:
+    ///   - candidates: All rings built for the country, in normalized world units.
+    ///   - iso2: Lowercased ISO2 code, used for the per-country special cases.
+    /// - Returns: The chosen ring's bounding box, slightly inset and clamped to 0...1,
+    ///   or ``fallbackFocusBoundingBox`` when there is nothing to frame.
     private static func chooseFocusBoundingBox(candidates: [Candidate], iso2: String) -> CGRect {
-        
+
         guard !candidates.isEmpty else {
-            return CGRect(x: 0.45, y: 0.45, width: 0.1, height: 0.1)
+            return fallbackFocusBoundingBox
         }
         
         let maxArea = candidates.map(\.area).max() ?? 0
@@ -201,7 +282,13 @@ nonisolated enum FlatPathBuilder {
             if !lower48.isEmpty { filteredCandidates = lower48 }
         }
         
-        let chosen = filteredCandidates.max(by: { $0.area < $1.area }) ?? candidates.max(by: { $0.area < $1.area })!
+        // `candidates` is non-empty (guarded above), so one of the two lookups always
+        // succeeds. The fallback only covers a future change to that guard.
+        guard let chosen = filteredCandidates.max(by: { $0.area < $1.area })
+            ?? candidates.max(by: { $0.area < $1.area })
+        else {
+            return fallbackFocusBoundingBox
+        }
         
         return chosen.boundingBox.insetBy(dx: -0.01, dy: -0.01).clampedToUnit()
     }

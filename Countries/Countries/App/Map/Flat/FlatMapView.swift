@@ -24,20 +24,39 @@ struct FlatMapView: View {
 
     // MARK: - Configuration
 
+    /// Whether taps select a country and hit-testing runs at all.
     let selectionEnabled: Bool
+
+    /// Whether pan, pinch and double-tap gestures are attached.
     let interactiveEnabled: Bool
+
+    /// Whether country labels are drawn. Effective only together with interaction
+    /// and selection, see ``renderSubtree(viewport:worldRect:fitScale:)``.
     let labelsEnabled: Bool
+
+    /// How the projected world is sized inside the viewport.
     let renderMode: FlatMapRenderMode
+
+    /// Projection the shapes are built in.
     let projectionMode: FlatMapProjectionMode
+
+    /// Whether ``FlatMapRenderMode/aspectFit`` starts at a fit-to-world zoom.
     let aspectFitStartsZoomed: Bool
+
+    /// User zoom applied the first time the camera is initialized for a projection.
     let initialStartZoom: CGFloat
 
+    /// Whether panning wraps around the antimeridian.
     let wrapsHorizontally: Bool
-    let doubleTapZoomFactor: CGFloat
-    let focusOnTap: Bool
-    let focusPadding: CGFloat
 
-    let hardReloadOnRotation: Bool
+    /// Zoom multiplier applied per double-tap.
+    let doubleTapZoomFactor: CGFloat
+
+    /// Whether tapping a country frames it with the camera.
+    let focusOnTap: Bool
+
+    /// Inset kept free around a country when the camera frames it, in points.
+    let focusPadding: CGFloat
 
     // MARK: - Data
 
@@ -49,6 +68,8 @@ struct FlatMapView: View {
 
     // MARK: - Selection
 
+    /// Lowercased ISO2 code of the selection, mirrored from ``selectedCountry`` for
+    /// the renderer and kept in sync in both directions.
     @State private var selectedISO2: String?
 
     // MARK: - Camera
@@ -57,36 +78,83 @@ struct FlatMapView: View {
 
     // MARK: - Deceleration
 
-    @State private var decelerationTask: Task<Void, Never>?
+    @State private var decelerator = MapDecelerator()
 
-    // MARK: - Reload
+    // MARK: - Label metrics (survives the per-frame renderer rebuild)
 
-    @State private var renderTreeReloadToken: Int = 0
+    @State private var labelMetrics = LabelMetricsCache()
+
+    // MARK: - Layout tracking
+
+    /// Last viewport size seen, used to tell a rotation apart from the first layout.
     @State private var lastViewportSize: CGSize = .zero
+
+    // MARK: - Constants
+
+    /// Camera animation timings.
+    private enum MapAnimation {
+
+        /// Frames a newly selected country.
+        static let focus: Animation = .spring(response: 0.5, dampingFraction: 0.85)
+
+        /// Fades out the highlight when the selection is cleared.
+        static let deselect: Animation = .easeInOut(duration: 0.2)
+
+        /// Settles the camera back inside its bounds after a pinch or a fling.
+        static let settle: Animation = .spring(response: 0.30, dampingFraction: 0.9)
+
+        /// Runs the double-tap zoom step.
+        static let doubleTapZoom: Animation = .spring(response: 0.35, dampingFraction: 0.85)
+    }
+
+    /// Layout and camera constants.
+    private enum Layout {
+
+        /// Center of the world in normalized coordinates; the camera's reset position.
+        static let worldCenter = CGPoint(x: 0.5, y: 0.5)
+
+        /// Guards divisions against a near-zero scale.
+        static let minimumScaleDivisor: CGFloat = 0.0001
+
+        /// Exponent applied to the raw pinch delta. Below 1 it dampens the zoom step,
+        /// so a fast pinch does not overshoot.
+        static let pinchSmoothingExponent: CGFloat = 0.85
+    }
 
     // MARK: - Shape variant (preview vs. full)
 
+    /// Level of detail requested from ``FlatMapShapeCache``.
+    ///
+    /// - Note: The light variant is what keeps the preview on the main screen cheap.
     private var shapeVariant: FlatMapShapeCache.Variant {
         // Preview: no interaction, no selection, no labels.
         if !interactiveEnabled && !selectionEnabled && !labelsEnabled { return .light }
         return .full
     }
 
+    // MARK: - Init
+
     /// Creates a FlatMapView.
     /// - Parameters:
-    ///   - selectionEnabled: Enable/disable selection + hit-testing.
-    ///   - interactiveEnabled: Enable/disable gestures.
-    ///   - labelsEnabled: Show labels (effective only if interaction + selection are enabled).
+    ///   - selectionEnabled: Enable/disable selection + hit-testing. Defaults to `true`.
+    ///   - interactiveEnabled: Enable/disable gestures. Defaults to `false`.
+    ///   - labelsEnabled: Show labels (effective only if interaction + selection are
+    ///     enabled). Defaults to `true`.
     ///   - renderMode: How the world is sized inside the viewport (e.g. aspectFit).
-    ///   - projectionMode: Map projection used to prepare shapes.
+    ///     Defaults to `.aspectFit`.
+    ///   - projectionMode: Map projection used to prepare shapes. Defaults to `.webMercator`.
     ///   - aspectFitStartsZoomed: If true, starts with a fit-to-world zoom for aspectFit.
+    ///     Defaults to `true`.
     ///   - wrapsHorizontally: If true, allows panning to wrap around horizontally.
+    ///     Defaults to `false`.
     ///   - initialStartZoom: Initial user zoom applied on first camera initialization.
-    ///   - doubleTapZoomFactor: Zoom multiplier on double-tap.
-    ///   - focusOnTap: If true, tapping a country focuses the camera on it.
-    ///   - focusPadding: Padding used when focusing a country.
-    ///   - hardReloadOnRotation: Force subtree reload on size changes (e.g. rotation).
+    ///     Defaults to `1.0`.
+    ///   - doubleTapZoomFactor: Zoom multiplier on double-tap. Defaults to `2.0`.
+    ///   - focusOnTap: If true, tapping a country focuses the camera on it. Defaults to `true`.
+    ///   - focusPadding: Padding used when focusing a country. Defaults to `24`.
     ///   - selectedCountry: External binding to the selected country.
+    ///   - filter: External binding to the status filter that decides which countries
+    ///     are coloured by status.
     init(
         selectionEnabled: Bool = true,
         interactiveEnabled: Bool = false,
@@ -99,7 +167,6 @@ struct FlatMapView: View {
         doubleTapZoomFactor: CGFloat = 2.0,
         focusOnTap: Bool = true,
         focusPadding: CGFloat = 24,
-        hardReloadOnRotation: Bool = true,
         selectedCountry: Binding<Country?>,
         filter: Binding<CountryStatusFilter>
     ) {
@@ -114,12 +181,13 @@ struct FlatMapView: View {
         self.doubleTapZoomFactor = doubleTapZoomFactor
         self.focusOnTap = focusOnTap
         self.focusPadding = focusPadding
-        self.hardReloadOnRotation = hardReloadOnRotation
         self._selectedCountry = selectedCountry
         self._filter = filter
 
         _countries = Query()
     }
+
+    // MARK: - Body
 
     /// Lays out the map, computes worldRect/fitScale, and wires up updates/lifecycle.
     var body: some View {
@@ -135,17 +203,11 @@ struct FlatMapView: View {
             let shouldApplyZoom = renderMode == .aspectFit && aspectFitStartsZoomed && worldRect.height > 0
             let fitScale: CGFloat = shouldApplyZoom ? (viewport.height / worldRect.height) : 1.0
 
-            let minUserZoom = camera.minimumUserZoom(viewport: viewport,
-                                                     worldRect: worldRect,
-                                                     fitScale: fitScale)
-
             renderSubtree(
                 viewport: viewport,
                 worldRect: worldRect,
-                fitScale: fitScale,
-                minUserZoom: minUserZoom
+                fitScale: fitScale
             )
-            .id(renderTreeReloadToken)
             .onAppear {
                 if lastViewportSize == .zero {
                     lastViewportSize = geometryProxy.size
@@ -164,10 +226,9 @@ struct FlatMapView: View {
                              worldRect: worldRect,
                              fitScale: fitScale)
 
-                guard hardReloadOnRotation else { return }
                 guard oldSize != .zero, oldSize != newSize else { return }
                 stopDeceleration()
-                
+
                 // If a country is selected during rotation, maintain focus
                 if let selectedISO2 {
                     focusCountry(iso2: selectedISO2,
@@ -175,85 +236,77 @@ struct FlatMapView: View {
                                  worldRect: worldRect,
                                  fitScale: fitScale)
                 }
-                renderTreeReloadToken &+= 1
             }
-            .task(id: projectionMode) {
+            // One task for both keys: two separate .task modifiers meant reloadData()
+            // ran twice on every appearance.
+            .task(id: ShapeRequest(projection: projectionMode, variant: shapeVariant)) {
                 viewModel.resetCameraInitialization()
-                await reloadData()
-            }
-            .task(id: shapeVariant) {
                 await reloadData()
             }
             .onChange(of: selectionEnabled) { _, enabled in
                 if !enabled { selectedISO2 = nil }
             }
             .onChange(of: interactiveEnabled) { _, enabled in
-                if !enabled {
-                    stopDeceleration()
-                    withAnimation(.easeInOut) {
-                        camera.userZoom = 1
-                        camera.normalizedCenter = CGPoint(x: 0.5, y: 0.5)
-                    }
-                } else if hardReloadOnRotation {
-                    renderTreeReloadToken &+= 1
+                guard !enabled else { return }
+                stopDeceleration()
+                withAnimation(.easeInOut) {
+                    camera.userZoom = 1
+                    camera.normalizedCenter = Layout.worldCenter
                 }
             }
-            .onChange(of: countries) { _, _ in
-                // Country status changes should NOT re-build shapes.
-                // Only update the lookup tables and refresh the render tree.
-                viewModel.updateCountryIndex(countries: countries)
-                renderTreeReloadToken &+= 1
+            .onChange(of: countries) { _, newCountries in
+                // Status changes only affect colouring: never rebuild the shapes.
+                viewModel.updateCountryIndex(countries: newCountries)
             }
-            .onChange(of: filter) { _, _ in
-                renderTreeReloadToken &+= 1
-            }
-            // MARK: - Selection changes
+            // Selection changes: frame the new selection, or fade the highlight out.
             .onChange(of: selectedCountry) { _, newCountry in
-                if let newCountry {
-                    // Resolve iso2
-                    let iso2 = viewModel.countryIndex.countriesByISO2.first(where: { $0.value == newCountry })?.key ?? ""
-                    guard !iso2.isEmpty else { return }
-
-                    selectedISO2 = iso2
-
-                    stopDeceleration()
-
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                        focusCountry(iso2: iso2,
-                                     viewport: viewport,
-                                     worldRect: worldRect,
-                                     fitScale: fitScale)
-                    }
-                } else {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                guard let newCountry else {
+                    withAnimation(MapAnimation.deselect) {
                         selectedISO2 = nil
                     }
+                    return
+                }
+
+                // Resolve iso2
+                let iso2 = viewModel.countryIndex.countriesByISO2
+                    .first(where: { $0.value == newCountry })?.key ?? ""
+                guard !iso2.isEmpty else { return }
+
+                selectedISO2 = iso2
+
+                stopDeceleration()
+
+                withAnimation(MapAnimation.focus) {
+                    focusCountry(iso2: iso2,
+                                 viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
                 }
             }
         }
     }
+
+    // MARK: - Render subtree
 
     /// Builds the render subtree and, if enabled, attaches the gesture overlay.
     /// - Parameters:
     ///   - viewport: The full drawing area for the map.
     ///   - worldRect: The projected world rectangle within the viewport.
     ///   - fitScale: Scale that fits worldRect into the viewport.
-    ///   - minUserZoom: Minimum allowed user zoom for the current layout.
     /// - Returns: A view that renders the map and handles gestures when interactive.
     @ViewBuilder
     private func renderSubtree(viewport: CGRect,
                                worldRect: CGRect,
-                               fitScale: CGFloat,
-                               minUserZoom: CGFloat) -> some View {
-        
-        let clampedZoom = camera.userZoom.clamped(minUserZoom, camera.maxUserZoom)
-        let totalScale = fitScale * clampedZoom
-        let clampedCenter = camera.clampCenter(camera.normalizedCenter,
-                                               viewport: viewport,
-                                               worldRect: worldRect,
-                                               totalScale: totalScale)
+                               fitScale: CGFloat) -> some View {
 
-        // Only adjust marking: keep rendering all shapes, but filter which countries are considered for status-based styling
+        // Rendered exactly as the camera stands. Every mutation already clamps, so
+        // clamping again here would only risk drawing something the hit test does
+        // not agree with.
+        let renderZoom = camera.userZoom
+        let renderCenter = camera.normalizedCenter
+
+        // Only adjust marking: keep rendering all shapes, but filter which countries
+        // are considered for status-based styling
         let countriesByISO2ForMarking: [String: Country] = {
             switch filter {
             case .all:
@@ -274,16 +327,18 @@ struct FlatMapView: View {
             viewport: viewport,
             worldRect: worldRect,
             fitScale: fitScale,
-            userZoom: clampedZoom,
-            userCenter: clampedCenter,
+            userZoom: renderZoom,
+            userCenter: renderCenter,
             interactiveEnabled: interactiveEnabled,
             labelsEnabled: labelsEnabled && interactiveEnabled && selectionEnabled,
-            selectionEnabled: selectionEnabled
+            selectionEnabled: selectionEnabled,
+            labelMetrics: labelMetrics
         )
         .contentShape(Rectangle())
         .overlay {
             if interactiveEnabled {
                 MapGestureOverlay(
+                    onTouchDown: stopDeceleration,
                     onPanBegan: stopDeceleration,
                     onPanChanged: { panDelta in
                         applyPan(delta: panDelta,
@@ -296,11 +351,6 @@ struct FlatMapView: View {
                                           viewport: viewport,
                                           worldRect: worldRect,
                                           fitScale: fitScale)
-                        withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) {
-                            camera.clamp(viewport: viewport,
-                                         worldRect: worldRect,
-                                         fitScale: fitScale)
-                        }
                     },
                     onPinchBegan: stopDeceleration,
                     onPinchChanged: { scaleDelta, center in
@@ -311,14 +361,14 @@ struct FlatMapView: View {
                                    fitScale: fitScale)
                     },
                     onPinchEnded: {
-                        withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) {
+                        withAnimation(MapAnimation.settle) {
                             camera.clamp(viewport: viewport,
                                          worldRect: worldRect,
                                          fitScale: fitScale)
                         }
                     },
                     onDoubleTap: { point in
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                        withAnimation(MapAnimation.doubleTapZoom) {
                             applyDoubleTap(at: point,
                                            viewport: viewport,
                                            worldRect: worldRect,
@@ -339,28 +389,30 @@ struct FlatMapView: View {
         }
     }
 
-    /// Refreshes shapes/indices for the active projection, stops deceleration, and
-    /// initializes the camera once per projection. Triggers a subtree reload if requested.
+    // MARK: - Data loading
+
+    /// Refreshes shapes/indices for the active projection, stops deceleration and
+    /// initializes the camera once per projection.
+    ///
+    /// - Note: Called from a `.task(id:)` keyed on projection and variant, so it runs
+    ///   once per geometry set rather than once per appearance.
     @MainActor
     private func reloadData() async {
-        
+
         viewModel.updateCountryIndex(countries: countries)
-        
+
         await viewModel.loadShapesIfNeeded(projectionMode: projectionMode, variant: shapeVariant)
 
         stopDeceleration()
 
         if !viewModel.didInitializeCameraForProjection {
-            
             viewModel.markCameraInitializedForProjection()
             camera.userZoom = initialStartZoom
-            camera.normalizedCenter = CGPoint(x: 0.5, y: 0.5)
-        }
-
-        if hardReloadOnRotation {
-            renderTreeReloadToken &+= 1
+            camera.normalizedCenter = Layout.worldCenter
         }
     }
+
+    // MARK: - Interaction
 
     /// Handles tap selection by hit-testing in world space and optionally focusing the camera.
     /// - Parameters:
@@ -375,22 +427,16 @@ struct FlatMapView: View {
         
         guard selectionEnabled else { return }
 
-        let minUser = camera.minimumUserZoom(viewport: viewport,
-                                             worldRect: worldRect,
-                                             fitScale: fitScale)
-        
-        let z = camera.userZoom.clamped(minUser, camera.maxUserZoom)
-        let totalScale = fitScale * z
-        let clampedCenter = camera.clampCenter(camera.normalizedCenter,
-                                               viewport: viewport,
-                                               worldRect: worldRect,
-                                               totalScale: totalScale)
+        // Must use the exact transform the renderer used, otherwise a tap while the
+        // map sits in rubber-band overshoot resolves to the wrong country.
+        let totalScale = fitScale * camera.userZoom
 
-        let offset = camera.offsetFromCenter(clampedCenter,
+        let offset = camera.offsetFromCenter(camera.normalizedCenter,
                                              viewport: viewport,
                                              worldRect: worldRect,
                                              totalScale: totalScale)
-        
+
+
         let worldPoint = camera.untransform(screenPoint: screenPoint,
                                             viewport: viewport,
                                             totalScale: totalScale,
@@ -403,6 +449,8 @@ struct FlatMapView: View {
 
         selectedCountry = viewModel.countryIndex.countriesByISO2[iso2]
     }
+
+    // MARK: - Camera framing
 
     /// Frames the given country by computing a target zoom/center with padding and clamping.
     /// - Parameters:
@@ -428,11 +476,11 @@ struct FlatMapView: View {
         let widthScale = paddedViewport.width / (focus.width * worldRect.width)
         let heightScale = paddedViewport.height / (focus.height * worldRect.height)
         let targetCameraScale = min(widthScale, heightScale)
-        let targetUserZoom = targetCameraScale / max(fitScale, 0.0001)
+        let targetUserZoom = targetCameraScale / max(fitScale, Layout.minimumScaleDivisor)
 
         camera.userZoom = targetUserZoom.clamped(camera.minimumUserZoom(viewport: viewport,
-                                                                        worldRect: worldRect,
-                                                                        fitScale: fitScale),
+                                                                       worldRect: worldRect,
+                                                                       fitScale: fitScale),
                                                  camera.maxUserZoom)
 
         let totalScale = fitScale * camera.userZoom
@@ -459,23 +507,21 @@ struct FlatMapView: View {
     }
 
     /// Applies a pan delta to update the camera center while respecting clamping/wrapping.
+    /// - Parameters:
+    ///   - delta: Translation of this gesture step, in points.
+    ///   - viewport: The map's drawing area.
+    ///   - worldRect: The projected world rectangle.
+    ///   - fitScale: Base fit scale for the current layout.
     private func applyPan(delta: CGSize,
                           viewport: CGRect,
                           worldRect: CGRect,
                           fitScale: CGFloat) {
         
-        let minUser = camera.minimumUserZoom(viewport: viewport,
-                                             worldRect: worldRect,
-                                             fitScale: fitScale)
-        camera.userZoom = camera.userZoom.clamped(minUser, camera.maxUserZoom)
-
         let totalScale = fitScale * camera.userZoom
-        let clampedCenter = camera.clampCenter(camera.normalizedCenter,
-                                               viewport: viewport,
-                                               worldRect: worldRect,
-                                               totalScale: totalScale)
 
-        let currentOffset = camera.offsetFromCenter(clampedCenter,
+        // The camera is kept inside the bounds at all times, so the current centre
+        // needs no clamping here, only the result does.
+        let currentOffset = camera.offsetFromCenter(camera.normalizedCenter,
                                                     viewport: viewport,
                                                     worldRect: worldRect,
                                                     totalScale: totalScale)
@@ -485,7 +531,7 @@ struct FlatMapView: View {
                                                 viewport: viewport,
                                                 worldRect: worldRect,
                                                 totalScale: totalScale)
-        
+
         camera.normalizedCenter = camera.clampCenter(rawCenter,
                                                      viewport: viewport,
                                                      worldRect: worldRect,
@@ -493,6 +539,12 @@ struct FlatMapView: View {
     }
 
     /// Applies a pinch delta around a pinch center, keeping that point visually anchored.
+    /// - Parameters:
+    ///   - scaleDelta: Relative scale change of this gesture step.
+    ///   - pinchCenter: Gesture center in view coordinates, held visually fixed.
+    ///   - viewport: The map's drawing area.
+    ///   - worldRect: The projected world rectangle.
+    ///   - fitScale: Base fit scale for the current layout.
     private func applyPinch(scaleDelta: CGFloat,
                             pinchCenter: CGPoint,
                             viewport: CGRect,
@@ -504,17 +556,12 @@ struct FlatMapView: View {
                                              fitScale: fitScale)
 
         let oldTotalScale = fitScale * camera.userZoom
-        let smoothDelta = pow(scaleDelta, 0.85)
+        let smoothDelta = pow(scaleDelta, Layout.pinchSmoothingExponent)
 
         let newUserZoom = (camera.userZoom * smoothDelta).clamped(minUser, camera.maxUserZoom)
         let newTotalScale = fitScale * newUserZoom
 
-        let clampedCenter = camera.clampCenter(camera.normalizedCenter,
-                                               viewport: viewport,
-                                               worldRect: worldRect,
-                                               totalScale: oldTotalScale)
-        
-        let currentOffset = camera.offsetFromCenter(clampedCenter,
+        let currentOffset = camera.offsetFromCenter(camera.normalizedCenter,
                                                     viewport: viewport,
                                                     worldRect: worldRect,
                                                     totalScale: oldTotalScale)
@@ -533,7 +580,7 @@ struct FlatMapView: View {
                                                 viewport: viewport,
                                                 worldRect: worldRect,
                                                 totalScale: newTotalScale)
-        
+
         camera.normalizedCenter = camera.clampCenter(rawCenter,
                                                      viewport: viewport,
                                                      worldRect: worldRect,
@@ -541,6 +588,11 @@ struct FlatMapView: View {
     }
 
     /// Zooms in around the tapped point using the configured doubleTapZoomFactor.
+    /// - Parameters:
+    ///   - screenPoint: Tap location in view coordinates, held visually fixed.
+    ///   - viewport: The map's drawing area.
+    ///   - worldRect: The projected world rectangle.
+    ///   - fitScale: Base fit scale for the current layout.
     private func applyDoubleTap(at screenPoint: CGPoint,
                                 viewport: CGRect,
                                 worldRect: CGRect,
@@ -585,13 +637,15 @@ struct FlatMapView: View {
                                                      totalScale: newTotalScale)
     }
 
+    // MARK: - Deceleration
+
     /// Cancels any ongoing inertial scroll.
     private func stopDeceleration() {
-        decelerationTask?.cancel()
-        decelerationTask = nil
+        decelerator.stop()
     }
 
-    /// Starts inertial scrolling after a pan ends, decaying velocity over time and clamping at rest.
+    /// Starts inertial scrolling after a pan ends, then springs back inside the
+    /// bounds if the fling ended past them.
     /// - Parameters:
     ///   - velocity: Ending pan velocity in points/second.
     ///   - viewport: The map's drawing area.
@@ -601,76 +655,88 @@ struct FlatMapView: View {
                                    viewport: CGRect,
                                    worldRect: CGRect,
                                    fitScale: CGFloat) {
-        
-        stopDeceleration()
 
-        decelerationTask = Task { @MainActor in
-            var currentVelocity = velocity
-
-            while !Task.isCancelled {
-                let dt: CGFloat = 1.0 / 60.0
-                let delta = CGSize(width: currentVelocity.x * dt, height: currentVelocity.y * dt)
-                
+        decelerator.start(
+            velocity: velocity,
+            onStep: { delta in
                 applyPan(delta: delta,
                          viewport: viewport,
                          worldRect: worldRect,
                          fitScale: fitScale)
-
-                currentVelocity = CGPoint(x: currentVelocity.x * 0.92, y: currentVelocity.y * 0.92)
-                if abs(currentVelocity.x) < 5 && abs(currentVelocity.y) < 5 { break }
-
-                try? await Task.sleep(nanoseconds: 16_000_000)
+            },
+            onFinish: {
+                withAnimation(MapAnimation.settle) {
+                    camera.clamp(viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
+                }
             }
-
-            withAnimation(.spring(response: 0.30, dampingFraction: 0.9)) {
-                camera.clamp(viewport: viewport,
-                             worldRect: worldRect,
-                             fitScale: fitScale)
-            }
-        }
+        )
     }
+
+    // MARK: - Layout
 
     /// Computes the world rectangle within the viewport. For .stretch, returns the viewport;
     /// for aspect-preserving modes, centers letterboxed content using the projection's aspect.
+    /// - Parameters:
+    ///   - viewport: The full drawing area for the map.
+    ///   - mode: How the world is sized inside the viewport.
+    ///   - projection: Projection whose ``FlatMapProjectionMode/worldAspect`` is honoured.
+    /// - Returns: The rectangle the projected world occupies inside the viewport.
     private func computeWorldRect(viewport: CGRect,
                                   mode: FlatMapRenderMode,
                                   projection: FlatMapProjectionMode) -> CGRect {
-        
+
         if mode == .stretch { return viewport }
 
         let aspect = projection.worldAspect
         let size = viewport.size
         let viewAspect = size.width / size.height
 
+        // Wider than the world: letterbox left and right, otherwise top and bottom.
         if viewAspect > aspect {
-            
-            let w = size.height * aspect
-            
-            return CGRect(x: (size.width - w) / 2,
-                          y: 0, width: w, height: size.height)
-        } else {
-            
-            let h = size.width / aspect
-            
-            return CGRect(x: 0,
-                          y: (size.height - h) / 2,
-                          width: size.width,
-                          height: h)
+
+            let worldWidth = size.height * aspect
+
+            return CGRect(x: (size.width - worldWidth) / 2,
+                          y: 0, width: worldWidth, height: size.height)
         }
+
+        let worldHeight = size.width / aspect
+
+        return CGRect(x: 0,
+                      y: (size.height - worldHeight) / 2,
+                      width: size.width,
+                      height: worldHeight)
     }
 
-    /// Point-in-polygon hit test in world coordinates (topmost-first). Returns the hit ISO2 code.
+    // MARK: - Hit testing
+
+    /// Point-in-polygon hit test (topmost-first). Returns the hit ISO2 code.
+    ///
+    /// The paths live in normalized 0...1 space, so instead of transforming every
+    /// path into world space, which copied up to 236 CGPaths per tap, the tapped
+    /// point is transformed once into that space, and each shape's bounds reject
+    /// the vast majority before the expensive containment test runs.
+    ///
+    /// - Parameters:
+    ///   - worldPoint: Tap location in world coordinates.
+    ///   - worldRect: The projected world rectangle the shapes are drawn into.
+    /// - Returns: The lowercased ISO2 code of the topmost shape containing the point,
+    ///   or `nil` when the tap hits no country.
     private func hitTest(worldPoint: CGPoint,
                          in worldRect: CGRect) -> String? {
-        
-        for shape in viewModel.shapes.reversed() {
-            
-            var transform = CGAffineTransform(translationX: worldRect.minX,
-                                              y: worldRect.minY)
-                .scaledBy(x: worldRect.width,
-                          y: worldRect.height)
 
-            if shape.path.copy(using: &transform)?.contains(worldPoint, using: .evenOdd) == true {
+        guard worldRect.width > 0, worldRect.height > 0 else { return nil }
+
+        let normalizedPoint = CGPoint(
+            x: (worldPoint.x - worldRect.minX) / worldRect.width,
+            y: (worldPoint.y - worldRect.minY) / worldRect.height
+        )
+
+        for shape in viewModel.shapes.reversed() {
+            guard shape.boundsNormalized.contains(normalizedPoint) else { continue }
+            if shape.path.contains(normalizedPoint, using: .evenOdd) {
                 return shape.iso2
             }
         }
