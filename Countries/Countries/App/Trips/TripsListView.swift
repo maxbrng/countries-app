@@ -22,9 +22,9 @@ struct TripsListView: View {
 
     /// The trip the editor sheet is open for, or `nil` while it is closed.
     ///
-    /// ``TripEditorView/Subject`` distinguishes a new trip from an existing one, which a plain
+    /// ``TripEditorSubject`` distinguishes a new trip from an existing one, which a plain
     /// `Trip?` could not: `nil` already means "sheet closed".
-    @State private var editorSubject: TripEditorView.Subject?
+    @State private var editorSubject: TripEditorSubject?
 
     // MARK: - Body
 

@@ -10,98 +10,14 @@ import SwiftData
 
 /// Creates a new trip or edits an existing one, presented as a sheet from ``TripsListView``.
 ///
-/// All edits are collected in a ``Draft`` and only written to the store on save, so a new trip
-/// that is cancelled never reaches SwiftData.
+/// All edits are collected in a ``TripDraft`` and only written to the store on save, so a new
+/// trip that is cancelled never reaches SwiftData.
 struct TripEditorView: View {
-
-    // MARK: - Nested types
-
-    /// What the editor was opened for.
-    ///
-    /// - Note: A plain `Trip?` could not express this, because `.sheet(item:)` already reads
-    ///   `nil` as "no sheet".
-    enum Subject: Identifiable {
-
-        /// A trip that does not exist yet.
-        case new
-
-        /// An existing trip, to be edited in place.
-        case existing(Trip)
-
-        var id: PersistentIdentifier? {
-            switch self {
-            case .new: nil
-            case .existing(let trip): trip.persistentModelID
-            }
-        }
-    }
-
-    /// The editable state of a trip.
-    ///
-    /// `Equatable`, which is what lets cancel tell "nothing changed" from "changed".
-    struct Draft: Equatable {
-
-        /// Title as typed, trimmed only when it is written back.
-        var title: String
-
-        /// Whether the trip carries a date range at all.
-        var hasDates: Bool
-
-        /// First day; only meaningful while ``hasDates`` is `true`.
-        var startDate: Date
-
-        /// Last day, inclusive; only meaningful while ``hasDates`` is `true`.
-        var endDate: Date
-
-        /// ISO2 codes of the assigned countries, uppercase as stored on ``Country``.
-        var countryCodes: Set<String>
-
-        /// Free-form notes as typed.
-        var notes: String
-
-        /// Builds the draft an editor starts from.
-        ///
-        /// - Parameter subject: What the editor was opened for.
-        init(subject: Subject) {
-
-            switch subject {
-            case .new:
-                let today = Date.now
-                self.init(title: "", hasDates: false, startDate: today, endDate: today,
-                          countryCodes: [], notes: "")
-
-            case .existing(let trip):
-                let today = Date.now
-                self.init(title: trip.title ?? "",
-                          hasDates: trip.startDate != nil || trip.endDate != nil,
-                          startDate: trip.startDate ?? trip.endDate ?? today,
-                          endDate: trip.endDate ?? trip.startDate ?? today,
-                          countryCodes: Set(trip.countries.map(\.iso2)),
-                          notes: trip.notes ?? "")
-            }
-        }
-
-        /// Memberwise initialiser, used by ``init(subject:)``.
-        private init(title: String,
-                     hasDates: Bool,
-                     startDate: Date,
-                     endDate: Date,
-                     countryCodes: Set<String>,
-                     notes: String) {
-
-            self.title = title
-            self.hasDates = hasDates
-            self.startDate = startDate
-            self.endDate = endDate
-            self.countryCodes = countryCodes
-            self.notes = notes
-        }
-    }
 
     // MARK: - Properties
 
     /// What this editor was opened for.
-    let subject: Subject
+    let subject: TripEditorSubject
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -109,10 +25,10 @@ struct TripEditorView: View {
     @Query(sort: \Country.nameEnglish) private var allCountries: [Country]
 
     /// The state being edited.
-    @State private var draft: Draft
+    @State private var draft: TripDraft
 
     /// Snapshot taken when the editor opened, compared against ``draft`` on cancel.
-    @State private var originalDraft: Draft
+    @State private var originalDraft: TripDraft
 
     /// Drives the confirmation shown when cancelling with unsaved changes.
     @State private var showsDiscardConfirmation = false
@@ -121,11 +37,11 @@ struct TripEditorView: View {
 
     /// Creates the editor.
     ///
-    /// - Parameter subject: The trip to edit, or ``Subject/new`` to create one.
-    init(subject: Subject) {
+    /// - Parameter subject: The trip to edit, or ``TripEditorSubject/new`` to create one.
+    init(subject: TripEditorSubject) {
 
         self.subject = subject
-        let draft = Draft(subject: subject)
+        let draft = TripDraft(subject: subject)
         self._draft = State(initialValue: draft)
         self._originalDraft = State(initialValue: draft)
     }
@@ -227,7 +143,7 @@ struct TripEditorView: View {
 
     // MARK: - Helpers
 
-    /// The selected countries, resolved from ``Draft/countryCodes``.
+    /// The selected countries, resolved from ``TripDraft/countryCodes``.
     private var selectedCountries: [Country] {
         allCountries.filter { draft.countryCodes.contains($0.iso2) }
     }

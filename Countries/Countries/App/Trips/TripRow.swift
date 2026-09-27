@@ -7,25 +7,26 @@
 
 import SwiftUI
 
-/// One row of ``TripsListView``: title, date range and the flags of the countries on the trip.
-struct TripRow: View {
+/// Sizes, spacings and radii of ``TripRow``.
+private enum TripRowLayout {
 
-    // MARK: - Layout
+    /// Vertical spacing between title, dates and the flag strip.
+    static let contentSpacing: CGFloat = 6
 
-    /// Sizes, spacings and radii used by the row.
-    private enum Layout {
-        /// Vertical spacing between title, dates and the flag strip.
-        static let contentSpacing: CGFloat = 6
-        /// Horizontal spacing between two flags of the strip.
-        static let flagSpacing: CGFloat = 4
-        static let flagCornerRadius: CGFloat = 2
-        static let flagBorderWidth: CGFloat = 1
-        static let flagMaxWidth: CGFloat = 22
-        static let flagMaxHeight: CGFloat = 15
-    }
+    /// Horizontal spacing between two flags of the strip.
+    static let flagSpacing: CGFloat = 4
+
+    static let flagCornerRadius: CGFloat = 2
+    static let flagBorderWidth: CGFloat = 1
+    static let flagMaxWidth: CGFloat = 22
+    static let flagMaxHeight: CGFloat = 15
 
     /// Number of flags shown before the row falls back to a plain country count.
-    private static let flagLimit = 6
+    static let flagLimit = 6
+}
+
+/// One row of ``TripsListView``: title, date range and the flags of the countries on the trip.
+struct TripRow: View {
 
     // MARK: - Properties
 
@@ -36,7 +37,7 @@ struct TripRow: View {
 
     var body: some View {
 
-        VStack(alignment: .leading, spacing: Layout.contentSpacing) {
+        VStack(alignment: .leading, spacing: TripRowLayout.contentSpacing) {
 
             Text(TripFormatting.displayTitle(for: trip))
                 .font(.headline)
@@ -50,7 +51,7 @@ struct TripRow: View {
 
             flagStrip
         }
-        .padding(.vertical, Layout.contentSpacing)
+        .padding(.vertical, TripRowLayout.contentSpacing)
     }
 
     // MARK: - Flags
@@ -60,7 +61,7 @@ struct TripRow: View {
     private var flagStrip: some View {
 
         let countries = trip.countries.sorted { $0.nameEnglish < $1.nameEnglish }
-        let remainingCount = max(0, countries.count - Self.flagLimit)
+        let remainingCount = max(0, countries.count - TripRowLayout.flagLimit)
 
         // A ViewBuilder cannot return early, so this branch stays an if/else.
         if countries.isEmpty {
@@ -68,20 +69,21 @@ struct TripRow: View {
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         } else {
-            HStack(spacing: Layout.flagSpacing) {
+            HStack(spacing: TripRowLayout.flagSpacing) {
 
-                ForEach(countries.prefix(Self.flagLimit), id: \.iso2) { country in
+                ForEach(countries.prefix(TripRowLayout.flagLimit), id: \.iso2) { country in
                     Image(country.iso2.lowercased())
                         .resizable()
                         .scaledToFit()
-                        .clipShape(RoundedRectangle(cornerRadius: Layout.flagCornerRadius,
+                        .clipShape(RoundedRectangle(cornerRadius: TripRowLayout.flagCornerRadius,
                                                     style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: Layout.flagCornerRadius,
+                            RoundedRectangle(cornerRadius: TripRowLayout.flagCornerRadius,
                                              style: .continuous)
-                                .stroke(.quaternary, lineWidth: Layout.flagBorderWidth)
+                                .stroke(.quaternary, lineWidth: TripRowLayout.flagBorderWidth)
                         )
-                        .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
+                        .frame(maxWidth: TripRowLayout.flagMaxWidth,
+                               maxHeight: TripRowLayout.flagMaxHeight)
                 }
 
                 if remainingCount > 0 {

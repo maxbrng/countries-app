@@ -58,12 +58,6 @@ struct MainScreen: View {
     /// resolved by ``RootTabView``.
     @Binding var path: NavigationPath
 
-    /// Switches to the trips tab.
-    ///
-    /// A closure rather than an ``AppRoute``, because the trips list lives in its own tab and
-    /// pushing it here would put a second copy of it on this tab's stack.
-    let onOpenTrips: () -> Void
-
     @StateObject private var viewModel = MainScreenViewModel()
     @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
 
@@ -256,9 +250,13 @@ struct MainScreen: View {
     // MARK: - TripsCard
 
     /// Card showing how many trips are recorded; pushes the trips list.
+    ///
+    /// Pushes ``AppRoute/tripsList`` rather than selecting the trips tab: the dashboard is a
+    /// summary, and drilling into one of its cards must stay undoable with the back gesture,
+    /// exactly as the map and country cards behave.
     private var tripsCard: some View {
 
-        Button(action: onOpenTrips) {
+        NavigationLink(value: AppRoute.tripsList) {
 
             VStack(alignment: .leading, spacing: Layout.cardContentSpacing) {
 
@@ -312,6 +310,6 @@ struct MainScreen: View {
 
 #Preview {
     NavigationStack {
-        MainScreen(path: .constant(NavigationPath()), onOpenTrips: {})
+        MainScreen(path: .constant(NavigationPath()))
     }
 }
