@@ -27,7 +27,13 @@ struct CountriesApp: App {
                 Country.self,
                 Trip.self
             ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // `.none` on purpose, not by omission: the entitlement lists CloudKit, so the default
+        // `.automatic` would start syncing the moment a container identifier is filled in. The
+        // privacy section claims the data stays on the device, and this is what makes that true.
+        // Turning sync on means changing this line and that text together.
+        let modelConfiguration = ModelConfiguration(schema: schema,
+                                                    isStoredInMemoryOnly: false,
+                                                    cloudKitDatabase: .none)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
