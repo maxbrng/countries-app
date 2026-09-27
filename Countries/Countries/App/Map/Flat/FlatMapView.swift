@@ -335,6 +335,7 @@ struct FlatMapView: View {
             interactiveEnabled: interactiveEnabled,
             labelsEnabled: labelsEnabled && interactiveEnabled && selectionEnabled,
             selectionEnabled: selectionEnabled,
+            hatchingEnabled: shapeVariant == .full,
             labelMetrics: labelMetrics,
             scaledPaths: scaledPaths
         )
