@@ -61,12 +61,13 @@ struct CountriesList: View {
         let groups = viewModel.groups(from: filtered)
 
         List {
-            if searchText.isEmpty {
+            if filtered.isEmpty {
+                // Without a search term an empty result is the filter's doing, not a typo,
+                // so it gets its own message instead of asking about the spelling.
+                emptyState(isSearching: !searchText.isEmpty,
+                           storeIsEmpty: allCountries.isEmpty)
+            } else if searchText.isEmpty {
                 groupedList(groups: groups)
-            } else if filtered.isEmpty {
-                ContentUnavailableView("No country found.",
-                                       systemImage: "magnifyingglass",
-                                       description: Text("Check the spelling or try a new search"))
             } else {
                 ungroupedList(countries: filtered)
             }
@@ -75,6 +76,43 @@ struct CountriesList: View {
         .navigationTitle("All countries")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .top) { listHeaderWithSegmentedPicker }
+    }
+
+    // MARK: - Empty state
+
+    /// Shown whenever the list has nothing to display.
+    ///
+    /// The three cases are told apart on purpose: only a search makes "check the spelling"
+    /// useful, and offering to turn the filter off is wrong when there is nothing to show
+    /// in the first place.
+    ///
+    /// - Parameters:
+    ///   - isSearching: Whether a search term is entered.
+    ///   - storeIsEmpty: Whether the store holds no countries at all, which means the seed
+    ///     did not run rather than that a filter is hiding them.
+    @ViewBuilder
+    private func emptyState(isSearching: Bool, storeIsEmpty: Bool) -> some View {
+
+        if isSearching {
+            ContentUnavailableView("No country found.",
+                                   systemImage: "magnifyingglass",
+                                   description: Text("Check the spelling or try a new search"))
+        } else if storeIsEmpty {
+            ContentUnavailableView {
+                Label("No countries", systemImage: "globe")
+            } description: {
+                Text("The country data could not be loaded. Restarting the app rebuilds it.")
+            }
+        } else {
+            ContentUnavailableView {
+                Label("No countries", systemImage: "globe")
+            } description: {
+                Text("The UN filter is hiding every country.")
+            } actions: {
+                Button("Show all countries") { showOnlyUNMembers = false }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
     }
 
     // MARK: - Toolbar
