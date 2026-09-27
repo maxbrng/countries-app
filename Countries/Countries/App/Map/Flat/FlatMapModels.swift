@@ -173,7 +173,12 @@ nonisolated enum FlatMapProjection {
 
             let latitudeRadians = clampedLatitude * .pi / 180.0
             let mercator = log(tan(.pi / 4.0 + latitudeRadians / 2.0))
-            let normalizedY = (1.0 - (mercator / .pi)) / 2.0
+
+            // Clamped, not merely computed: at the cut-off latitude `mercator / .pi` comes
+            // out as 1.0000000000124551, which puts the north pole at y = -6.2e-12 and the
+            // south pole just past 1. Small enough to be invisible, large enough to make a
+            // `contains` test on the unit square answer false at the edges of the world.
+            let normalizedY = ((1.0 - (mercator / .pi)) / 2.0).clamped(0, 1)
             return CGPoint(x: normalizedX, y: normalizedY)
         }
     }

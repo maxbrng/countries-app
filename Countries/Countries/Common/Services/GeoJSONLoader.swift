@@ -110,7 +110,9 @@ nonisolated enum GeoJSONLoader {
     ///   that meant Taiwan was silently absent from the map. Five of 242 features stay
     ///   unresolved after this, all of them correctly: Northern Cyprus, Siachen Glacier,
     ///   Indian Ocean Territories, Somaliland and Ashmore and Cartier Islands are not seeded.
-    private static func resolveISO2(rawISO: String?, rawName: String?, resolver: ResolverIndex) -> String? {
+    /// - Note: Internal rather than private because this is the seam the resolution tests
+    ///   cover. Every other entry point needs the bundled file and a seeded store.
+    static func resolveISO2(rawISO: String?, rawName: String?, resolver: ResolverIndex) -> String? {
 
         guard let rawISO, rawISO != "-99" else {
             return nameLookup(rawName: rawName, resolver: resolver)
