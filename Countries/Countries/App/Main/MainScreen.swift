@@ -103,6 +103,10 @@ struct MainScreen: View {
             }
             .padding(.horizontal, Layout.screenHorizontalPadding)
         }
+        // The tab bar's own inset is already in the scroll view; this is the gap on top of
+        // it, so the last card ends clear of the bar instead of flush against it. It is the
+        // stack's own rhythm rather than a guess at the bar's height.
+        .contentMargins(.bottom, Layout.stackSpacing, for: .scrollContent)
         .navigationTitle("Your Countries")
         .toolbarTitleDisplayMode(.inlineLarge)
         .toolbar {
