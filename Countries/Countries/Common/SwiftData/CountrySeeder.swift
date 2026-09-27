@@ -21,6 +21,12 @@ struct CountryJSON: Decodable {
     let isUN: Bool
 
     let translations: [String: String]
+    
+    let travelTags: [String]?
+    let climateTags: [String]?
+    let costLevel: Int?
+    let safetyLevel: Int?
+    let optimalTravelSeasons: [Int]?
 
     struct Meta: Decodable {
         let name: String
@@ -33,6 +39,35 @@ struct CountryJSON: Decodable {
     }
 }
 
+private extension TravelTag {
+    static func from(_ raw: String) -> TravelTag? {
+        TravelTag(rawValue: raw.lowercased())
+    }
+}
+
+private extension ClimateTag {
+    static func from(_ raw: String) -> ClimateTag? {
+        ClimateTag(rawValue: raw.lowercased())
+    }
+}
+
+private extension CostLevel {
+    static func from(_ raw: Int) -> CostLevel? {
+        CostLevel(rawValue: raw)
+    }
+}
+
+private extension SafetyLevel {
+    static func from(_ raw: Int) -> SafetyLevel? {
+        SafetyLevel(rawValue: raw)
+    }
+}
+
+private extension Season {
+    static func from(_ raw: Int) -> Season? {
+        Season(rawValue: raw)
+    }
+}
 
 @MainActor
 struct CountrySeeder {
@@ -41,8 +76,8 @@ struct CountrySeeder {
 
         let existing = try context.fetchCount(FetchDescriptor<Country>())
         guard existing == 0 else { return }
-
-        guard let url = Bundle.main.url(forResource: "countries.translations", withExtension: "json") else {
+        
+        guard let url = Bundle.main.url(forResource: "countries.enriched", withExtension: "json") else {
             throw CocoaError(.fileNoSuchFile)
         }
 
@@ -51,6 +86,18 @@ struct CountrySeeder {
 
         for item in decoded {
 
+            let travelTags = (item.travelTags ?? [])
+                .compactMap { TravelTag.from($0) }
+            
+            let climateTags = (item.climateTags ?? [])
+                .compactMap { ClimateTag.from($0) }
+            
+            let costLevel = CostLevel.from(item.costLevel ?? CostLevel.medium.rawValue) ?? .medium
+            let safetyLevel = SafetyLevel.from(item.safetyLevel ?? SafetyLevel.mixed.rawValue) ?? .mixed
+            
+//            let optimalSeasons = (item.optimalTravelSeasons ?? [])
+//                .compactMap { Season.from($0) }
+            
             context.insert(
                 Country(
                     iso2: item.alpha2.uppercased(),
@@ -62,8 +109,13 @@ struct CountrySeeder {
                     phoneCodes: item.meta.phone ?? [],
                     currencies: item.meta.currency ?? [],
                     languages: item.meta.languages ?? [],
+                    status: .none,
                     isUNMember: item.isUN,
                     dataHasSourceTranslation: item.hasSourceTranslations,
+                    travelTags: travelTags,
+                    climateTags: climateTags,
+                    costLevel: costLevel,
+                    safetyLevel: safetyLevel,
                     translations: item.translations
                 )
             )
@@ -72,3 +124,4 @@ struct CountrySeeder {
         try context.save()
     }
 }
+

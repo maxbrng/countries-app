@@ -10,7 +10,9 @@ import SwiftData
 
 /// Small value object that creates fast lookup tables from SwiftData `Country` records.
 /// Keeps naming/logic identical between Flat + Globe maps.
-struct CountryIndex: Sendable {
+// NOTE (Swift 6): `Country` (SwiftData model) is not Sendable.
+// Therefore `CountryIndex` must not conform to `Sendable`.
+struct CountryIndex {
     
     let countriesByISO2: [String: Country]
     let iso3ToIso2: [String: String]
@@ -43,5 +45,12 @@ struct CountryIndex: Sendable {
             
             return (key, country.iso2.lowercased())
         })
+    }
+}
+
+extension CountryIndex {
+    /// A Sendable snapshot that can safely be used in background tasks.
+    var resolverIndex: GeoJSONLoader.ResolverIndex {
+        .init(iso3ToIso2: iso3ToIso2, nameToIso2: nameToIso2)
     }
 }

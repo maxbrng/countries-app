@@ -58,7 +58,25 @@
       "uk": "Андорра",
       "zh": "安道尔",
       "zh-tw": "安道爾"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "adventure"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ae",
@@ -119,7 +137,24 @@
       "uk": "ОАЕ",
       "zh": "阿联酋",
       "zh-tw": "阿聯"
-    }
+    },
+    "travelTags": [
+      "citytrip",
+      "culture",
+      "food",
+      "nightlife",
+      "relax",
+      "adventure"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      4,
+      1
+    ]
   },
   {
     "alpha2": "af",
@@ -183,7 +218,23 @@
       "uk": "Афганістан",
       "zh": "阿富汗",
       "zh-tw": "阿富汗"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ag",
@@ -244,7 +295,25 @@
       "uk": "Антигуа і Барбуда",
       "zh": "安提瓜和巴布达",
       "zh-tw": "安地卡及巴布達"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "al",
@@ -305,7 +374,22 @@
       "uk": "Албанія",
       "zh": "阿尔巴尼亚",
       "zh-tw": "阿爾巴尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "am",
@@ -367,7 +451,27 @@
       "uk": "Вірменія",
       "zh": "亚美尼亚",
       "zh-tw": "亞美尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "mild"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ao",
@@ -428,7 +532,25 @@
       "uk": "Ангола",
       "zh": "安哥拉",
       "zh-tw": "安哥拉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ar",
@@ -490,7 +612,26 @@
       "uk": "Аргентина",
       "zh": "阿根廷",
       "zh-tw": "阿根廷"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "adventure",
+      "culture",
+      "food",
+      "citytrip",
+      "skiing"
+    ],
+    "climateTags": [
+      "mixed",
+      "cold"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "at",
@@ -551,7 +692,24 @@
       "uk": "Австрія",
       "zh": "奥地利",
       "zh-tw": "奧地利"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "skiing",
+      "culture",
+      "citytrip"
+    ],
+    "climateTags": [
+      "cold",
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      4
+    ]
   },
   {
     "alpha2": "au",
@@ -612,7 +770,27 @@
       "uk": "Австралія",
       "zh": "澳大利亚",
       "zh-tw": "澳洲"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "nature",
+      "hiking",
+      "adventure",
+      "citytrip",
+      "food",
+      "culture",
+      "relax"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "az",
@@ -677,7 +855,23 @@
       "uk": "Азербайджан",
       "zh": "阿塞拜疆",
       "zh-tw": "亞塞拜然"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ba",
@@ -740,7 +934,22 @@
       "uk": "Боснія і Герцеговина",
       "zh": "波黑",
       "zh-tw": "波赫"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "bb",
@@ -801,7 +1010,27 @@
       "uk": "Барбадос",
       "zh": "巴巴多斯",
       "zh-tw": "巴貝多"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "bd",
@@ -862,7 +1091,23 @@
       "uk": "Бангладеш",
       "zh": "孟加拉国",
       "zh-tw": "孟加拉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "be",
@@ -925,7 +1170,22 @@
       "uk": "Бельгія",
       "zh": "比利时",
       "zh-tw": "比利時"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "bf",
@@ -987,7 +1247,25 @@
       "uk": "Буркіна-Фасо",
       "zh": "布基纳法索",
       "zh-tw": "布吉納法索"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "bg",
@@ -1048,7 +1326,22 @@
       "uk": "Болгарія",
       "zh": "保加利亚",
       "zh-tw": "保加利亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "bh",
@@ -1109,7 +1402,25 @@
       "uk": "Бахрейн",
       "zh": "巴林",
       "zh-tw": "巴林"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "bi",
@@ -1171,7 +1482,25 @@
       "uk": "Бурунді",
       "zh": "布隆迪",
       "zh-tw": "蒲隆地"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "bj",
@@ -1232,7 +1561,25 @@
       "uk": "Бенін",
       "zh": "贝宁",
       "zh-tw": "貝南"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "bn",
@@ -1293,7 +1640,23 @@
       "uk": "Бруней",
       "zh": "文莱",
       "zh-tw": "汶萊"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "bo",
@@ -1357,7 +1720,27 @@
       "uk": "Болівія",
       "zh": "玻利维亚",
       "zh-tw": "玻利維亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "br",
@@ -1418,7 +1801,29 @@
       "uk": "Бразилія",
       "zh": "巴西",
       "zh-tw": "巴西"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "nature",
+      "adventure",
+      "culture",
+      "food",
+      "nightlife",
+      "citytrip",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "tropical",
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "bs",
@@ -1479,7 +1884,27 @@
       "uk": "Багамські Острови",
       "zh": "巴哈马",
       "zh-tw": "巴哈馬"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "bt",
@@ -1541,7 +1966,27 @@
       "uk": "Бутан",
       "zh": "不丹",
       "zh-tw": "不丹"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "mild"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "bw",
@@ -1603,7 +2048,25 @@
       "uk": "Ботсвана",
       "zh": "博茨瓦纳",
       "zh-tw": "波札那"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "by",
@@ -1665,7 +2128,22 @@
       "uk": "Білорусь",
       "zh": "白俄罗斯",
       "zh-tw": "白俄羅斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "bz",
@@ -1727,7 +2205,25 @@
       "uk": "Беліз",
       "zh": "伯利兹",
       "zh-tw": "貝里斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ca",
@@ -1789,7 +2285,26 @@
       "uk": "Канада",
       "zh": "加拿大",
       "zh-tw": "加拿大"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "adventure",
+      "skiing",
+      "citytrip",
+      "culture"
+    ],
+    "climateTags": [
+      "cold",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4
+    ]
   },
   {
     "alpha2": "cd",
@@ -1854,7 +2369,25 @@
       "uk": "ДР Конго",
       "zh": "刚果民主共和国",
       "zh-tw": "剛果民主共和國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cf",
@@ -1916,7 +2449,25 @@
       "uk": "Центральноафриканська Республіка",
       "zh": "中非",
       "zh-tw": "中非"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cg",
@@ -1978,7 +2529,25 @@
       "uk": "Республіка Конго",
       "zh": "刚果共和国",
       "zh-tw": "剛果共和國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ch",
@@ -2043,7 +2612,27 @@
       "uk": "Швейцарія",
       "zh": "瑞士",
       "zh-tw": "瑞士"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "skiing",
+      "culture",
+      "food",
+      "citytrip",
+      "relax",
+      "adventure"
+    ],
+    "climateTags": [
+      "cold",
+      "mild"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      4
+    ]
   },
   {
     "alpha2": "ci",
@@ -2104,7 +2693,25 @@
       "uk": "Кот-д'Івуар",
       "zh": "科特迪瓦",
       "zh-tw": "象牙海岸"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cl",
@@ -2166,7 +2773,24 @@
       "uk": "Чилі",
       "zh": "智利",
       "zh-tw": "智利"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "adventure",
+      "skiing",
+      "culture"
+    ],
+    "climateTags": [
+      "mixed",
+      "cold"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "cm",
@@ -2228,7 +2852,25 @@
       "uk": "Камерун",
       "zh": "喀麦隆",
       "zh-tw": "喀麥隆"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cn",
@@ -2289,7 +2931,23 @@
       "uk": "Китайська Народна Республіка",
       "zh": "中国",
       "zh-tw": "中國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "co",
@@ -2350,7 +3008,27 @@
       "uk": "Колумбія",
       "zh": "哥伦比亚",
       "zh-tw": "哥倫比亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cr",
@@ -2411,7 +3089,25 @@
       "uk": "Коста-Рика",
       "zh": "哥斯达黎加",
       "zh-tw": "哥斯大黎加"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "cu",
@@ -2472,7 +3168,25 @@
       "uk": "Куба",
       "zh": "古巴",
       "zh-tw": "古巴"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "cv",
@@ -2533,7 +3247,25 @@
       "uk": "Кабо-Верде",
       "zh": "佛得角",
       "zh-tw": "維德角"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cy",
@@ -2596,7 +3328,22 @@
       "uk": "Кіпр",
       "zh": "塞浦路斯",
       "zh-tw": "賽普勒斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "cz",
@@ -2657,7 +3404,22 @@
       "uk": "Чехія",
       "zh": "捷克",
       "zh-tw": "捷克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "de",
@@ -2718,7 +3480,23 @@
       "uk": "Німеччина",
       "zh": "德国",
       "zh-tw": "德國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "dj",
@@ -2780,7 +3558,25 @@
       "uk": "Джибуті",
       "zh": "吉布提",
       "zh-tw": "吉布地"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "dk",
@@ -2845,7 +3641,22 @@
       "uk": "Данія",
       "zh": "丹麦",
       "zh-tw": "丹麥"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "dm",
@@ -2906,7 +3717,25 @@
       "uk": "Домініка",
       "zh": "多米尼克",
       "zh-tw": "多米尼克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "do",
@@ -2969,7 +3798,25 @@
       "uk": "Домініканська Республіка",
       "zh": "多米尼加",
       "zh-tw": "多明尼加"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "dz",
@@ -3030,7 +3877,25 @@
       "uk": "Алжир",
       "zh": "阿尔及利亚",
       "zh-tw": "阿爾及利亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ec",
@@ -3091,7 +3956,27 @@
       "uk": "Еквадор",
       "zh": "厄瓜多尔",
       "zh-tw": "厄瓜多"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ee",
@@ -3152,7 +4037,22 @@
       "uk": "Естонія",
       "zh": "爱沙尼亚",
       "zh-tw": "愛沙尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "eg",
@@ -3217,7 +4117,23 @@
       "uk": "Єгипет",
       "zh": "埃及",
       "zh-tw": "埃及"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "adventure",
+      "food",
+      "citytrip",
+      "relax"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      4,
+      1
+    ]
   },
   {
     "alpha2": "er",
@@ -3280,7 +4196,25 @@
       "uk": "Еритрея",
       "zh": "厄立特里亚",
       "zh-tw": "厄利垂亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "es",
@@ -3345,7 +4279,27 @@
       "uk": "Іспанія",
       "zh": "西班牙",
       "zh-tw": "西班牙"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "culture",
+      "food",
+      "nightlife",
+      "citytrip",
+      "nature",
+      "hiking",
+      "relax"
+    ],
+    "climateTags": [
+      "warm",
+      "mild"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "et",
@@ -3406,7 +4360,25 @@
       "uk": "Ефіопія",
       "zh": "埃塞俄比亚",
       "zh-tw": "衣索比亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "fi",
@@ -3468,7 +4440,23 @@
       "uk": "Фінляндія",
       "zh": "芬兰",
       "zh-tw": "芬蘭"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "skiing",
+      "adventure",
+      "relax"
+    ],
+    "climateTags": [
+      "cold"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      4,
+      2
+    ]
   },
   {
     "alpha2": "fj",
@@ -3532,7 +4520,25 @@
       "uk": "Фіджі",
       "zh": "斐济",
       "zh-tw": "斐濟"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "fm",
@@ -3593,7 +4599,25 @@
       "uk": "Федеративні Штати Мікронезії",
       "zh": "密克罗尼西亚联邦",
       "zh-tw": "密克羅尼西亞聯邦"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "fr",
@@ -3654,7 +4678,25 @@
       "uk": "Франція",
       "zh": "法国",
       "zh-tw": "法國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "skiing",
+      "nightlife"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "ga",
@@ -3715,7 +4757,25 @@
       "uk": "Габон",
       "zh": "加蓬",
       "zh-tw": "加彭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gb",
@@ -3776,7 +4836,22 @@
       "uk": "Велика Британія",
       "zh": "英国",
       "zh-tw": "英國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nightlife"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "gd",
@@ -3837,7 +4912,25 @@
       "uk": "Гренада",
       "zh": "格林纳达",
       "zh-tw": "格瑞那達"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ge",
@@ -3902,7 +4995,27 @@
       "uk": "Грузія",
       "zh": "格鲁吉亚",
       "zh-tw": "喬治亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "mild"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "gh",
@@ -3963,7 +5076,25 @@
       "uk": "Гана",
       "zh": "加纳",
       "zh-tw": "迦納"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gm",
@@ -4024,7 +5155,25 @@
       "uk": "Гамбія",
       "zh": "冈比亚",
       "zh-tw": "甘比亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gn",
@@ -4086,7 +5235,25 @@
       "uk": "Гвінея",
       "zh": "几内亚",
       "zh-tw": "幾內亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gq",
@@ -4148,7 +5315,25 @@
       "uk": "Екваторіальна Гвінея",
       "zh": "赤道几内亚",
       "zh-tw": "赤道幾內亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gr",
@@ -4209,7 +5394,25 @@
       "uk": "Греція",
       "zh": "希腊",
       "zh-tw": "希臘"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "culture",
+      "food",
+      "nature",
+      "relax",
+      "nightlife",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "gt",
@@ -4270,7 +5473,25 @@
       "uk": "Гватемала",
       "zh": "危地马拉",
       "zh-tw": "瓜地馬拉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "gw",
@@ -4331,7 +5552,25 @@
       "uk": "Гвінея-Бісау",
       "zh": "几内亚比绍",
       "zh-tw": "幾內亞比索"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gy",
@@ -4392,7 +5631,27 @@
       "uk": "Гаяна",
       "zh": "圭亚那",
       "zh-tw": "蓋亞那"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "hn",
@@ -4453,7 +5712,25 @@
       "uk": "Гондурас",
       "zh": "洪都拉斯",
       "zh-tw": "宏都拉斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "hr",
@@ -4514,7 +5791,22 @@
       "uk": "Хорватія",
       "zh": "克罗地亚",
       "zh-tw": "克羅埃西亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ht",
@@ -4577,7 +5869,25 @@
       "uk": "Гаїті",
       "zh": "海地",
       "zh-tw": "海地"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "hu",
@@ -4638,7 +5948,22 @@
       "uk": "Угорщина",
       "zh": "匈牙利",
       "zh-tw": "匈牙利"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "id",
@@ -4699,7 +6024,25 @@
       "uk": "Індонезія",
       "zh": "印度尼西亚",
       "zh-tw": "印度尼西亞"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "nature",
+      "adventure",
+      "relax",
+      "culture",
+      "food",
+      "hiking"
+    ],
+    "climateTags": [
+      "tropical"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "ie",
@@ -4761,7 +6104,22 @@
       "uk": "Ірландія",
       "zh": "爱尔兰",
       "zh-tw": "愛爾蘭"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "culture",
+      "relax"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "il",
@@ -4823,7 +6181,23 @@
       "uk": "Ізраїль",
       "zh": "以色列",
       "zh-tw": "以色列"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "in",
@@ -4885,7 +6259,23 @@
       "uk": "Індія",
       "zh": "印度",
       "zh-tw": "印度"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "iq",
@@ -4947,7 +6337,23 @@
       "uk": "Ірак",
       "zh": "伊拉克",
       "zh-tw": "伊拉克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ir",
@@ -5008,7 +6414,23 @@
       "uk": "Іран",
       "zh": "伊朗",
       "zh-tw": "伊朗"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "is",
@@ -5069,7 +6491,22 @@
       "uk": "Ісландія",
       "zh": "冰岛",
       "zh-tw": "冰島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "adventure",
+      "relax"
+    ],
+    "climateTags": [
+      "cold"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      4
+    ]
   },
   {
     "alpha2": "it",
@@ -5130,7 +6567,27 @@
       "uk": "Італія",
       "zh": "意大利",
       "zh-tw": "義大利"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "beach",
+      "nature",
+      "hiking",
+      "nightlife",
+      "relax"
+    ],
+    "climateTags": [
+      "mild",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "jm",
@@ -5191,7 +6648,25 @@
       "uk": "Ямайка",
       "zh": "牙买加",
       "zh-tw": "牙買加"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "jo",
@@ -5252,7 +6727,25 @@
       "uk": "Йорданія",
       "zh": "约旦",
       "zh-tw": "約旦"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "jp",
@@ -5313,7 +6806,26 @@
       "uk": "Японія",
       "zh": "日本",
       "zh-tw": "日本"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "nightlife",
+      "skiing"
+    ],
+    "climateTags": [
+      "mixed",
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ke",
@@ -5375,7 +6887,25 @@
       "uk": "Кенія",
       "zh": "肯尼亚",
       "zh-tw": "肯亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "kg",
@@ -5437,7 +6967,23 @@
       "uk": "Киргизстан",
       "zh": "吉尔吉斯斯坦",
       "zh-tw": "吉爾吉斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "kh",
@@ -5498,7 +7044,23 @@
       "uk": "Камбоджа",
       "zh": "柬埔寨",
       "zh-tw": "柬埔寨"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ki",
@@ -5559,7 +7121,25 @@
       "uk": "Кірибаті",
       "zh": "基里巴斯",
       "zh-tw": "吉里巴斯"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "km",
@@ -5621,7 +7201,25 @@
       "uk": "Коморські Острови",
       "zh": "科摩罗",
       "zh-tw": "葛摩"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "kn",
@@ -5682,7 +7280,25 @@
       "uk": "Сент-Кіттс і Невіс",
       "zh": "圣基茨和尼维斯",
       "zh-tw": "聖克里斯多福及尼維斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "kp",
@@ -5743,7 +7359,23 @@
       "uk": "Північна Корея",
       "zh": "朝鲜",
       "zh-tw": "北韓"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "kr",
@@ -5804,7 +7436,24 @@
       "uk": "Південна Корея",
       "zh": "韩国",
       "zh-tw": "南韓"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nightlife",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      1,
+      4
+    ]
   },
   {
     "alpha2": "kw",
@@ -5865,7 +7514,25 @@
       "uk": "Кувейт",
       "zh": "科威特",
       "zh-tw": "科威特"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "kz",
@@ -5931,7 +7598,23 @@
       "uk": "Казахстан",
       "zh": "哈萨克斯坦",
       "zh-tw": "哈薩克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "la",
@@ -5992,7 +7675,23 @@
       "uk": "Лаос",
       "zh": "老挝",
       "zh-tw": "寮國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "lb",
@@ -6054,7 +7753,23 @@
       "uk": "Ліван",
       "zh": "黎巴嫩",
       "zh-tw": "黎巴嫩"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "lc",
@@ -6115,7 +7830,25 @@
       "uk": "Сент-Люсія",
       "zh": "圣卢西亚",
       "zh-tw": "聖露西亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "li",
@@ -6176,7 +7909,22 @@
       "uk": "Ліхтенштейн",
       "zh": "列支敦士登",
       "zh-tw": "列支敦斯登"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "lk",
@@ -6238,7 +7986,23 @@
       "uk": "Шрі-Ланка",
       "zh": "斯里兰卡",
       "zh-tw": "斯里蘭卡"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "lr",
@@ -6299,7 +8063,25 @@
       "uk": "Ліберія",
       "zh": "利比里亚",
       "zh-tw": "賴比瑞亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ls",
@@ -6362,7 +8144,25 @@
       "uk": "Лесото",
       "zh": "莱索托",
       "zh-tw": "賴索托"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "lt",
@@ -6423,7 +8223,22 @@
       "uk": "Литва",
       "zh": "立陶宛",
       "zh-tw": "立陶宛"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "lu",
@@ -6486,7 +8301,22 @@
       "uk": "Люксембург",
       "zh": "卢森堡",
       "zh-tw": "盧森堡"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "lv",
@@ -6547,7 +8377,22 @@
       "uk": "Латвія",
       "zh": "拉脱维亚",
       "zh-tw": "拉脫維亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ly",
@@ -6608,7 +8453,25 @@
       "uk": "Лівія",
       "zh": "利比亚",
       "zh-tw": "利比亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ma",
@@ -6669,7 +8532,25 @@
       "uk": "Марокко",
       "zh": "摩洛哥",
       "zh-tw": "摩洛哥"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "adventure",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm",
+      "mild"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      1,
+      4
+    ]
   },
   {
     "alpha2": "mc",
@@ -6730,7 +8611,22 @@
       "uk": "Монако",
       "zh": "摩纳哥",
       "zh-tw": "摩納哥"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "md",
@@ -6791,7 +8687,22 @@
       "uk": "Молдова",
       "zh": "摩尔多瓦",
       "zh-tw": "摩爾多瓦"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "me",
@@ -6855,7 +8766,22 @@
       "uk": "Чорногорія",
       "zh": "黑山",
       "zh-tw": "蒙特內哥羅"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "mg",
@@ -6917,7 +8843,25 @@
       "uk": "Мадагаскар",
       "zh": "马达加斯加",
       "zh-tw": "馬達加斯加"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mh",
@@ -6979,7 +8923,25 @@
       "uk": "Маршаллові Острови",
       "zh": "马绍尔群岛",
       "zh-tw": "馬紹爾群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mk",
@@ -7040,7 +9002,22 @@
       "uk": "Північна Македонія",
       "zh": "北马其顿",
       "zh-tw": "北馬其頓"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ml",
@@ -7101,7 +9078,25 @@
       "uk": "Малі",
       "zh": "马里",
       "zh-tw": "馬利"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mm",
@@ -7162,7 +9157,23 @@
       "uk": "М'янма",
       "zh": "缅甸",
       "zh-tw": "緬甸"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "mn",
@@ -7223,7 +9234,23 @@
       "uk": "Монголія",
       "zh": "蒙古国",
       "zh-tw": "蒙古國"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "mr",
@@ -7284,7 +9311,25 @@
       "uk": "Мавританія",
       "zh": "毛里塔尼亚",
       "zh-tw": "茅利塔尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mt",
@@ -7346,7 +9391,22 @@
       "uk": "Мальта",
       "zh": "马耳他",
       "zh-tw": "馬爾他"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "mu",
@@ -7407,7 +9467,27 @@
       "uk": "Маврикій",
       "zh": "毛里求斯",
       "zh-tw": "模里西斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "beach",
+      "relax",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mv",
@@ -7468,7 +9548,27 @@
       "uk": "Мальдіви",
       "zh": "马尔代夫",
       "zh-tw": "馬爾地夫"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "beach",
+      "relax",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mw",
@@ -7530,7 +9630,25 @@
       "uk": "Малаві",
       "zh": "马拉维",
       "zh-tw": "馬拉威"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mx",
@@ -7591,7 +9709,28 @@
       "uk": "Мексика",
       "zh": "墨西哥",
       "zh-tw": "墨西哥"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "food",
+      "culture",
+      "nature",
+      "adventure",
+      "citytrip",
+      "nightlife",
+      "relax"
+    ],
+    "climateTags": [
+      "warm",
+      "tropical",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      4,
+      1
+    ]
   },
   {
     "alpha2": "my",
@@ -7652,7 +9791,23 @@
       "uk": "Малайзія",
       "zh": "马来西亚",
       "zh-tw": "馬來西亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "mz",
@@ -7713,7 +9868,25 @@
       "uk": "Мозамбік",
       "zh": "莫桑比克",
       "zh-tw": "莫三比克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "na",
@@ -7776,7 +9949,25 @@
       "uk": "Намібія",
       "zh": "纳米比亚",
       "zh-tw": "納米比亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ne",
@@ -7837,7 +10028,25 @@
       "uk": "Нігер",
       "zh": "尼日尔",
       "zh-tw": "尼日"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ng",
@@ -7898,7 +10107,25 @@
       "uk": "Нігерія",
       "zh": "尼日利亚",
       "zh-tw": "奈及利亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ni",
@@ -7959,7 +10186,25 @@
       "uk": "Нікарагуа",
       "zh": "尼加拉瓜",
       "zh-tw": "尼加拉瓜"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "nl",
@@ -8020,7 +10265,22 @@
       "uk": "Нідерланди",
       "zh": "荷兰",
       "zh-tw": "荷蘭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "no",
@@ -8083,7 +10343,24 @@
       "uk": "Норвегія",
       "zh": "挪威",
       "zh-tw": "挪威"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "adventure",
+      "culture",
+      "citytrip",
+      "skiing"
+    ],
+    "climateTags": [
+      "cold"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "np",
@@ -8144,7 +10421,27 @@
       "uk": "Непал",
       "zh": "尼泊尔",
       "zh-tw": "尼泊爾"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "mild"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "nr",
@@ -8206,7 +10503,26 @@
       "uk": "Науру",
       "zh": "瑙鲁",
       "zh-tw": "諾魯"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "nz",
@@ -8268,7 +10584,24 @@
       "uk": "Нова Зеландія",
       "zh": "新西兰",
       "zh-tw": "紐西蘭"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "adventure",
+      "relax",
+      "culture"
+    ],
+    "climateTags": [
+      "mild",
+      "cold"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "om",
@@ -8329,7 +10662,25 @@
       "uk": "Оман",
       "zh": "阿曼",
       "zh-tw": "阿曼"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "pa",
@@ -8391,7 +10742,25 @@
       "uk": "Панама",
       "zh": "巴拿马",
       "zh-tw": "巴拿馬"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "pe",
@@ -8452,7 +10821,27 @@
       "uk": "Перу",
       "zh": "秘鲁",
       "zh-tw": "秘魯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "pg",
@@ -8513,7 +10902,26 @@
       "uk": "Папуа Нова Гвінея",
       "zh": "巴布亚新几内亚",
       "zh-tw": "巴布亞紐幾內亞"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ph",
@@ -8575,7 +10983,23 @@
       "uk": "Філіппіни",
       "zh": "菲律宾",
       "zh-tw": "菲律賓"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "pk",
@@ -8637,7 +11061,23 @@
       "uk": "Пакистан",
       "zh": "巴基斯坦",
       "zh-tw": "巴基斯坦"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "pl",
@@ -8698,7 +11138,22 @@
       "uk": "Польща",
       "zh": "波兰",
       "zh-tw": "波蘭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "pt",
@@ -8759,7 +11214,27 @@
       "uk": "Португалія",
       "zh": "葡萄牙",
       "zh-tw": "葡萄牙"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "relax",
+      "nightlife"
+    ],
+    "climateTags": [
+      "mild",
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "pw",
@@ -8820,7 +11295,25 @@
       "uk": "Палау",
       "zh": "帕劳",
       "zh-tw": "帛琉"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "py",
@@ -8882,7 +11375,27 @@
       "uk": "Парагвай",
       "zh": "巴拉圭",
       "zh-tw": "巴拉圭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "qa",
@@ -8943,7 +11456,25 @@
       "uk": "Катар",
       "zh": "卡塔尔",
       "zh-tw": "卡達"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ro",
@@ -9004,7 +11535,22 @@
       "uk": "Румунія",
       "zh": "罗马尼亚",
       "zh-tw": "羅馬尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "rs",
@@ -9065,7 +11611,22 @@
       "uk": "Сербія",
       "zh": "塞尔维亚",
       "zh-tw": "塞爾維亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ru",
@@ -9130,7 +11691,23 @@
       "uk": "Росія",
       "zh": "俄罗斯",
       "zh-tw": "俄羅斯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "rw",
@@ -9193,7 +11770,25 @@
       "uk": "Руанда",
       "zh": "卢旺达",
       "zh-tw": "盧安達"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sa",
@@ -9254,7 +11849,25 @@
       "uk": "Саудівська Аравія",
       "zh": "沙特阿拉伯",
       "zh-tw": "沙烏地阿拉伯"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "adventure"
+    ],
+    "climateTags": [
+      "mixed",
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "sb",
@@ -9315,7 +11928,25 @@
       "uk": "Соломонові Острови",
       "zh": "所罗门群岛",
       "zh-tw": "索羅門群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sc",
@@ -9377,7 +12008,27 @@
       "uk": "Сейшельські Острови",
       "zh": "塞舌尔",
       "zh-tw": "塞席爾"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "beach",
+      "relax",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sd",
@@ -9439,7 +12090,25 @@
       "uk": "Судан",
       "zh": "苏丹",
       "zh-tw": "蘇丹"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "se",
@@ -9500,7 +12169,23 @@
       "uk": "Швеція",
       "zh": "瑞典",
       "zh-tw": "瑞典"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "hiking",
+      "culture",
+      "citytrip"
+    ],
+    "climateTags": [
+      "cold",
+      "mild"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "sg",
@@ -9564,7 +12249,24 @@
       "uk": "Сінгапур",
       "zh": "新加坡",
       "zh-tw": "新加坡"
-    }
+    },
+    "travelTags": [
+      "citytrip",
+      "food",
+      "culture",
+      "nightlife"
+    ],
+    "climateTags": [
+      "tropical"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 1,
+    "optimalTravelSeasons": [
+      1,
+      2,
+      3,
+      4
+    ]
   },
   {
     "alpha2": "si",
@@ -9625,7 +12327,22 @@
       "uk": "Словенія",
       "zh": "斯洛文尼亚",
       "zh-tw": "斯洛維尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "sk",
@@ -9686,7 +12403,22 @@
       "uk": "Словаччина",
       "zh": "斯洛伐克",
       "zh-tw": "斯洛伐克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "sl",
@@ -9747,7 +12479,25 @@
       "uk": "Сьєрра-Леоне",
       "zh": "塞拉利昂",
       "zh-tw": "獅子山"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sm",
@@ -9808,7 +12558,22 @@
       "uk": "Сан-Марино",
       "zh": "圣马力诺",
       "zh-tw": "聖馬利諾"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "sn",
@@ -9869,7 +12634,25 @@
       "uk": "Сенегал",
       "zh": "塞内加尔",
       "zh-tw": "塞內加爾"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "so",
@@ -9931,7 +12714,25 @@
       "uk": "Сомалі",
       "zh": "索马里",
       "zh-tw": "索馬利亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sr",
@@ -9992,7 +12793,27 @@
       "uk": "Суринам",
       "zh": "苏里南",
       "zh-tw": "蘇利南"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ss",
@@ -10053,7 +12874,25 @@
       "uk": "Південний Судан",
       "zh": "南苏丹",
       "zh-tw": "南蘇丹"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "st",
@@ -10114,7 +12953,25 @@
       "uk": "Сан-Томе і Принсіпі",
       "zh": "圣多美和普林西比",
       "zh-tw": "聖多美普林西比"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sv",
@@ -10176,7 +13033,25 @@
       "uk": "Сальвадор",
       "zh": "萨尔瓦多",
       "zh-tw": "薩爾瓦多"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "sy",
@@ -10237,7 +13112,23 @@
       "uk": "Сирія",
       "zh": "叙利亚",
       "zh-tw": "敘利亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "sz",
@@ -10299,7 +13190,25 @@
       "uk": "Есватіні",
       "zh": "斯威士兰",
       "zh-tw": "史瓦帝尼"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "td",
@@ -10361,7 +13270,25 @@
       "uk": "Чад",
       "zh": "乍得",
       "zh-tw": "查德"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tg",
@@ -10422,7 +13349,25 @@
       "uk": "Того",
       "zh": "多哥",
       "zh-tw": "多哥"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "th",
@@ -10483,7 +13428,27 @@
       "uk": "Таїланд",
       "zh": "泰国",
       "zh-tw": "泰國"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "food",
+      "culture",
+      "nightlife",
+      "relax",
+      "adventure",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "tropical",
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tj",
@@ -10545,7 +13510,23 @@
       "uk": "Таджикистан",
       "zh": "塔吉克斯坦",
       "zh-tw": "塔吉克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "tl",
@@ -10606,7 +13587,26 @@
       "uk": "Східний Тимор",
       "zh": "东帝汶",
       "zh-tw": "東帝汶"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tm",
@@ -10668,7 +13668,23 @@
       "uk": "Туркменістан",
       "zh": "土库曼斯坦",
       "zh-tw": "土庫曼"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "tn",
@@ -10729,7 +13745,25 @@
       "uk": "Туніс",
       "zh": "突尼斯",
       "zh-tw": "突尼西亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "to",
@@ -10791,7 +13825,25 @@
       "uk": "Тонга",
       "zh": "汤加",
       "zh-tw": "東加"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tr",
@@ -10856,7 +13908,27 @@
       "uk": "Туреччина",
       "zh": "土耳其",
       "zh-tw": "土耳其"
-    }
+    },
+    "travelTags": [
+      "beach",
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking",
+      "nightlife",
+      "relax"
+    ],
+    "climateTags": [
+      "mild",
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "tt",
@@ -10917,7 +13989,25 @@
       "uk": "Тринідад і Тобаго",
       "zh": "特立尼达和多巴哥",
       "zh-tw": "千里達及托巴哥"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "tv",
@@ -10978,7 +14068,25 @@
       "uk": "Тувалу",
       "zh": "图瓦卢",
       "zh-tw": "吐瓦魯"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tz",
@@ -11040,7 +14148,25 @@
       "uk": "Танзанія",
       "zh": "坦桑尼亚",
       "zh-tw": "坦尚尼亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ua",
@@ -11101,7 +14227,22 @@
       "uk": "Україна",
       "zh": "乌克兰",
       "zh-tw": "烏克蘭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ug",
@@ -11163,7 +14304,25 @@
       "uk": "Уганда",
       "zh": "乌干达",
       "zh-tw": "烏干達"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "us",
@@ -11226,7 +14385,30 @@
       "uk": "США",
       "zh": "美国",
       "zh-tw": "美國"
-    }
+    },
+    "travelTags": [
+      "citytrip",
+      "nature",
+      "hiking",
+      "adventure",
+      "food",
+      "culture",
+      "nightlife",
+      "beach",
+      "skiing",
+      "relax"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "uy",
@@ -11288,7 +14470,27 @@
       "uk": "Уругвай",
       "zh": "乌拉圭",
       "zh-tw": "烏拉圭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "uz",
@@ -11350,7 +14552,23 @@
       "uk": "Узбекистан",
       "zh": "乌兹别克斯坦",
       "zh-tw": "烏茲別克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "vc",
@@ -11411,7 +14629,25 @@
       "uk": "Сент-Вінсент і Гренадини",
       "zh": "圣文森特和格林纳丁斯",
       "zh-tw": "聖文森及格瑞那丁"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ve",
@@ -11472,7 +14708,27 @@
       "uk": "Венесуела",
       "zh": "委内瑞拉",
       "zh-tw": "委內瑞拉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "vn",
@@ -11533,7 +14789,26 @@
       "uk": "В'єтнам",
       "zh": "越南",
       "zh-tw": "越南"
-    }
+    },
+    "travelTags": [
+      "food",
+      "culture",
+      "nature",
+      "hiking",
+      "beach",
+      "adventure",
+      "citytrip"
+    ],
+    "climateTags": [
+      "tropical",
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      4,
+      1
+    ]
   },
   {
     "alpha2": "vu",
@@ -11596,7 +14871,25 @@
       "uk": "Вануату",
       "zh": "瓦努阿图",
       "zh-tw": "萬那杜"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ws",
@@ -11658,7 +14951,25 @@
       "uk": "Самоа",
       "zh": "萨摩亚",
       "zh-tw": "薩摩亞"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ye",
@@ -11719,7 +15030,23 @@
       "uk": "Ємен",
       "zh": "也门",
       "zh-tw": "葉門"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "za",
@@ -11789,7 +15116,26 @@
       "uk": "ПАР",
       "zh": "南非",
       "zh-tw": "南非"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "adventure",
+      "hiking",
+      "beach",
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3
+    ]
   },
   {
     "alpha2": "zm",
@@ -11850,7 +15196,25 @@
       "uk": "Замбія",
       "zh": "赞比亚",
       "zh-tw": "尚比亞"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "zw",
@@ -11920,7 +15284,25 @@
       "uk": "Зімбабве",
       "zh": "津巴布韦",
       "zh-tw": "辛巴威"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ai",
@@ -11982,7 +15364,25 @@
       "uk": "Ангілья",
       "zh": "安圭拉",
       "zh-tw": "安奎拉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "aq",
@@ -12040,7 +15440,22 @@
       "uk": "Антарктика",
       "zh": "南极洲",
       "zh-tw": "南極洲"
-    }
+    },
+    "travelTags": [
+      "adventure",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "cold"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4
+    ]
   },
   {
     "alpha2": "as",
@@ -12103,7 +15518,25 @@
       "uk": "Американське Самоа",
       "zh": "美属萨摩亚",
       "zh-tw": "美屬薩摩亞"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "aw",
@@ -12166,7 +15599,25 @@
       "uk": "Аруба",
       "zh": "阿鲁巴",
       "zh-tw": "荷屬阿魯巴"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ax",
@@ -12229,7 +15680,22 @@
       "uk": "Аландські Острови",
       "zh": "奥兰群岛",
       "zh-tw": "奧蘭群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "bl",
@@ -12291,7 +15757,25 @@
       "uk": "Сен-Бартелемі",
       "zh": "圣巴泰勒米",
       "zh-tw": "聖巴瑟米"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "bm",
@@ -12353,7 +15837,25 @@
       "uk": "Бермудські Острови",
       "zh": "百慕大",
       "zh-tw": "百慕達"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "bq",
@@ -12415,7 +15917,25 @@
       "uk": "Карибські Нідерланди",
       "zh": "荷属加勒比区",
       "zh-tw": "荷蘭加勒比區"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "bv",
@@ -12479,7 +15999,25 @@
       "uk": "Острів Буве",
       "zh": "布韦岛",
       "zh-tw": "布威島"
-    }
+    },
+    "travelTags": [
+      "adventure",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cc",
@@ -12541,7 +16079,27 @@
       "uk": "Кокосові (Кілінг) Острови",
       "zh": "科科斯（基林）群岛",
       "zh-tw": "科克斯（基靈）群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "beach",
+      "relax",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "ck",
@@ -12603,7 +16161,25 @@
       "uk": "Острови Кука",
       "zh": "库克群岛",
       "zh-tw": "庫克群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "cw",
@@ -12667,7 +16243,25 @@
       "uk": "Кюрасао",
       "zh": "库拉索",
       "zh-tw": "庫拉索"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "cx",
@@ -12729,7 +16323,27 @@
       "uk": "Острів Різдва",
       "zh": "圣诞岛",
       "zh-tw": "聖誕島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "beach",
+      "relax",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "eh",
@@ -12793,7 +16407,25 @@
       "uk": "Західна Сахара",
       "zh": "西撒哈拉",
       "zh-tw": "西撒哈拉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "fk",
@@ -12855,7 +16487,28 @@
       "uk": "Фолклендські Острови",
       "zh": "福克兰群岛",
       "zh-tw": "福克蘭群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "beach",
+      "relax",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "fo",
@@ -12917,7 +16570,26 @@
       "uk": "Фарерські Острови",
       "zh": "法罗群岛",
       "zh-tw": "法羅群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "beach",
+      "relax",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "gf",
@@ -12979,7 +16651,27 @@
       "uk": "Французька Гвіана",
       "zh": "法属圭亚那",
       "zh-tw": "法屬圭亞那"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gg",
@@ -13042,7 +16734,22 @@
       "uk": "Гернсі",
       "zh": "根西岛",
       "zh-tw": "根息"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "gi",
@@ -13104,7 +16811,22 @@
       "uk": "Гібралтар",
       "zh": "直布罗陀",
       "zh-tw": "直布羅陀"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "gl",
@@ -13166,7 +16888,25 @@
       "uk": "Гренландія",
       "zh": "格陵兰",
       "zh-tw": "格陵蘭"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "gp",
@@ -13228,7 +16968,25 @@
       "uk": "Гваделупа",
       "zh": "瓜德罗普",
       "zh-tw": "瓜地洛普"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "gs",
@@ -13290,7 +17048,26 @@
       "uk": "Південна Джорджія та Південні Сандвічеві Острови",
       "zh": "南乔治亚和南桑威奇群岛",
       "zh-tw": "南喬治亞與南三明治群島"
-    }
+    },
+    "travelTags": [
+      "adventure",
+      "nature",
+      "beach",
+      "relax",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "gu",
@@ -13354,7 +17131,26 @@
       "uk": "Гуам",
       "zh": "关岛",
       "zh-tw": "關島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "hk",
@@ -13417,7 +17213,23 @@
       "uk": "Гонконг, ОАР Китаю",
       "zh": "中国香港特别行政区",
       "zh-tw": "中國香港特別行政區"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "hm",
@@ -13479,7 +17291,25 @@
       "uk": "Острови Герд і Макдоналд",
       "zh": "赫德岛和麦克唐纳群岛",
       "zh-tw": "赫德島及麥唐納群島"
-    }
+    },
+    "travelTags": [
+      "adventure",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "im",
@@ -13542,7 +17372,22 @@
       "uk": "Острів Мен",
       "zh": "马恩岛",
       "zh-tw": "曼島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "io",
@@ -13604,7 +17449,23 @@
       "uk": "Британська територія в Індійському океані",
       "zh": "英属印度洋领地",
       "zh-tw": "英屬印度洋領地"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "je",
@@ -13667,7 +17528,22 @@
       "uk": "Джерсі",
       "zh": "泽西岛",
       "zh-tw": "澤西島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "ky",
@@ -13729,7 +17605,27 @@
       "uk": "Кайманові Острови",
       "zh": "开曼群岛",
       "zh-tw": "開曼群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mf",
@@ -13793,7 +17689,25 @@
       "uk": "Сен-Мартен",
       "zh": "法属圣马丁",
       "zh-tw": "法屬聖馬丁"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "mo",
@@ -13856,7 +17770,23 @@
       "uk": "Макао, ОАР Китаю",
       "zh": "中国澳门特别行政区",
       "zh-tw": "中國澳門特別行政區"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "mp",
@@ -13919,7 +17849,25 @@
       "uk": "Північні Маріанські Острови",
       "zh": "北马里亚纳群岛",
       "zh-tw": "北馬利安納群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "mq",
@@ -13981,7 +17929,25 @@
       "uk": "Мартиніка",
       "zh": "马提尼克",
       "zh-tw": "馬丁尼克"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ms",
@@ -14043,7 +18009,25 @@
       "uk": "Монтсеррат",
       "zh": "蒙特塞拉特",
       "zh-tw": "蒙哲臘"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "nc",
@@ -14105,7 +18089,26 @@
       "uk": "Нова Каледонія",
       "zh": "新喀里多尼亚",
       "zh-tw": "新喀里多尼亞"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "nf",
@@ -14167,7 +18170,25 @@
       "uk": "Острів Норфолк",
       "zh": "诺福克岛",
       "zh-tw": "諾福克島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "nu",
@@ -14229,7 +18250,26 @@
       "uk": "Ніуе",
       "zh": "纽埃",
       "zh-tw": "紐埃島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "pf",
@@ -14291,7 +18331,26 @@
       "uk": "Французька Полінезія",
       "zh": "法属波利尼西亚",
       "zh-tw": "法屬玻里尼西亞"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "pm",
@@ -14353,7 +18412,25 @@
       "uk": "Сен-Пʼєр і Мікелон",
       "zh": "圣皮埃尔和密克隆群岛",
       "zh-tw": "聖皮埃與密克隆群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "pn",
@@ -14415,7 +18492,25 @@
       "uk": "Острови Піткерн",
       "zh": "皮特凯恩群岛",
       "zh-tw": "皮特肯群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "pr",
@@ -14479,7 +18574,25 @@
       "uk": "Пуерто-Рико",
       "zh": "波多黎各",
       "zh-tw": "波多黎各"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "ps",
@@ -14541,7 +18654,23 @@
       "uk": "Палестинські території",
       "zh": "巴勒斯坦领土",
       "zh-tw": "巴勒斯坦自治區"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "re",
@@ -14603,7 +18732,25 @@
       "uk": "Реюньйон",
       "zh": "留尼汪",
       "zh-tw": "留尼旺"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sh",
@@ -14665,7 +18812,25 @@
       "uk": "Острів Святої Єлени",
       "zh": "圣赫勒拿",
       "zh-tw": "聖赫勒拿島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "sj",
@@ -14727,7 +18892,22 @@
       "uk": "Шпіцберген та Ян-Маєн",
       "zh": "斯瓦尔巴和扬马延",
       "zh-tw": "挪威屬斯瓦巴及尖棉"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "sx",
@@ -14790,7 +18970,25 @@
       "uk": "Сінт-Мартен",
       "zh": "荷属圣马丁",
       "zh-tw": "荷屬聖馬丁"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "hiking"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "tc",
@@ -14852,7 +19050,27 @@
       "uk": "Острови Теркс і Кайкос",
       "zh": "特克斯和凯科斯群岛",
       "zh-tw": "土克斯及開科斯群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tf",
@@ -14914,7 +19132,23 @@
       "uk": "Французькі Південні Території",
       "zh": "法属南部领地",
       "zh-tw": "法屬南部屬地"
-    }
+    },
+    "travelTags": [
+      "adventure",
+      "nature",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "cold"
+    ],
+    "costLevel": 5,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4
+    ]
   },
   {
     "alpha2": "tk",
@@ -14976,7 +19210,26 @@
       "uk": "Токелау",
       "zh": "托克劳",
       "zh-tw": "托克勞群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "tw",
@@ -15038,7 +19291,23 @@
       "uk": "Тайвань",
       "zh": "台湾",
       "zh-tw": "台灣"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mixed"
+    ],
+    "costLevel": 3,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1,
+      4
+    ]
   },
   {
     "alpha2": "um",
@@ -15100,7 +19369,24 @@
       "uk": "Віддалені острови США",
       "zh": "美国本土外小岛屿",
       "zh-tw": "美國本土外小島嶼"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "va",
@@ -15163,7 +19449,22 @@
       "uk": "Ватикан",
       "zh": "梵蒂冈",
       "zh-tw": "梵蒂岡"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "vg",
@@ -15225,7 +19526,27 @@
       "uk": "Британські Віргінські острови",
       "zh": "英属维尔京群岛",
       "zh-tw": "英屬維京群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "vi",
@@ -15287,7 +19608,27 @@
       "uk": "Віргінські Острови (США)",
       "zh": "美属维尔京群岛",
       "zh-tw": "美屬維京群島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip",
+      "nature",
+      "beach",
+      "relax",
+      "hiking"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 3,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "wf",
@@ -15349,7 +19690,26 @@
       "uk": "Уолліс і Футуна",
       "zh": "瓦利斯和富图纳",
       "zh-tw": "瓦利斯群島和富圖那群島"
-    }
+    },
+    "travelTags": [
+      "nature",
+      "relax",
+      "beach",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm",
+      "mixed"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   },
   {
     "alpha2": "xk",
@@ -15416,7 +19776,22 @@
       "uk": "Косово",
       "zh": "科索沃",
       "zh-tw": "科索沃"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "food",
+      "citytrip"
+    ],
+    "climateTags": [
+      "mild"
+    ],
+    "costLevel": 4,
+    "safetyLevel": 2,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      1
+    ]
   },
   {
     "alpha2": "yt",
@@ -15478,6 +19853,24 @@
       "uk": "Майотта",
       "zh": "马约特",
       "zh-tw": "馬約特島"
-    }
+    },
+    "travelTags": [
+      "culture",
+      "nature",
+      "adventure",
+      "hiking",
+      "citytrip"
+    ],
+    "climateTags": [
+      "warm"
+    ],
+    "costLevel": 2,
+    "safetyLevel": 4,
+    "optimalTravelSeasons": [
+      2,
+      3,
+      4,
+      1
+    ]
   }
 ]

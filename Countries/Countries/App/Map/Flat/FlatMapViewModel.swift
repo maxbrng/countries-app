@@ -5,44 +5,48 @@
 //  Created by Max Breuning on 07.01.26.
 //
 
-import Foundation
 import Observation
 import SwiftData
 
 @Observable
 @MainActor
 final class FlatMapViewModel {
-    
+
     private(set) var shapes: [RenderCountryShape] = []
     private(set) var countryIndex: CountryIndex = .init(countries: [])
 
     private(set) var didInitializeCameraForProjection: Bool = false
 
+    private var lastLoadedProjection: FlatMapProjectionMode?
+    private var lastLoadedVariant: FlatMapShapeCache.Variant?
+
     func updateCountryIndex(countries: [Country]) {
         self.countryIndex = CountryIndex(countries: countries)
     }
 
-    func loadShapesIfNeeded(projectionMode: FlatMapProjectionMode) async {
-        
+    func loadShapesIfNeeded(
+        projectionMode: FlatMapProjectionMode,
+        variant: FlatMapShapeCache.Variant
+    ) async {
+
+        if lastLoadedProjection == projectionMode,
+           lastLoadedVariant == variant,
+           !shapes.isEmpty {
+            return
+        }
+
+        lastLoadedProjection = projectionMode
+        lastLoadedVariant = variant
+
         do {
-            let resolved = try await GeoJSONLoader.loadResolvedFeatures(index: countryIndex, keySet: .init())
-            
-            let builtShapes = resolved.compactMap { feature -> RenderCountryShape? in
-                
-                let built = FlatPathBuilder.build(from: feature.geometry, projectionMode: projectionMode, iso2: feature.iso2)
-                
-                return RenderCountryShape(
-                    id: feature.iso2,
-                    iso2: feature.iso2,
-                    path: built.path,
-                    labelAnchor: built.labelAnchor,
-                    focusBoundingBoxNormalized: built.focusBoundingBox
-                )
-            }
-            self.shapes = builtShapes
+            let resolver = countryIndex.resolverIndex
+            shapes = try await FlatMapShapeCache.shared.shapes(
+                projectionMode: projectionMode,
+                resolver: resolver,
+                variant: variant
+            )
         } catch {
-            // Keep behavior: fail silently but clear shapes.
-            self.shapes = []
+            shapes = []
         }
     }
 
