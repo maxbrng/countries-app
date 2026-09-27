@@ -101,6 +101,22 @@ struct FlatMapRenderer: View, Animatable {
         /// the edge while panning.
         static let viewportOverscan: CGFloat = 80
 
+        /// Fraction of the viewport a country's box must cover before it is allowed a label.
+        ///
+        /// This is what keeps the world view clean: at the minimum zoom even Russia covers
+        /// far less than this, so nothing is drawn, and names appear as the map is zoomed in
+        /// and countries grow on screen. Every native map behaves this way; the previous
+        /// version had only an absolute size floor, which the large countries passed at every
+        /// zoom level including the smallest.
+        static let minimumViewportCoverage: CGFloat = 0.025
+
+        /// How much larger than the viewport the whole world must be before any label is drawn.
+        ///
+        /// At the minimum zoom the world exactly fills the viewport, so this draws nothing at
+        /// all there - which is the ask: a world view carries no names. Mercator alone would
+        /// not give that, because it inflates Greenland enough to pass any area test.
+        static let minimumWorldToViewportScale: CGFloat = 1.5
+
         /// Size every label is drawn at, in screen points.
         ///
         /// - Note: Constant on purpose. Labels are drawn in screen space, so they never grow
@@ -338,6 +354,12 @@ struct FlatMapRenderer: View, Animatable {
                           height: max(LabelLayout.minimumProjectedExtent, maxY - minY))
         }
 
+        // Nothing at all while the map is at or near its minimum zoom.
+        let worldHeightOnScreen = worldRect.height * currentScale
+        guard viewport.height > 0,
+              worldHeightOnScreen / viewport.height >= LabelLayout.minimumWorldToViewportScale
+        else { return }
+
         let viewportExpanded = viewport.insetBy(dx: -LabelLayout.viewportOverscan,
                                                 dy: -LabelLayout.viewportOverscan)
 
@@ -351,9 +373,13 @@ struct FlatMapRenderer: View, Animatable {
             let name = country.nameEnglish
             guard !name.isEmpty else { continue }
 
-            // The cartographer's anchor where the data has one, the computed pole of
-            // inaccessibility otherwise.
-            let anchorNormalized = shape.labelInfo.anchor ?? shape.labelAnchor
+            // The pole of inaccessibility of the country's largest part - the point
+            // furthest from any edge of it.
+            //
+            // Natural Earth's own label_x/label_y was tried here and is worse: it is placed
+            // for a printed world map, so Russia's sits over the Urals rather than in the
+            // middle of Russia.
+            let anchorNormalized = shape.labelAnchor
 
             let anchorWorld = CGPoint(
                 x: worldRect.minX + anchorNormalized.x * worldRect.width,
@@ -378,6 +404,13 @@ struct FlatMapRenderer: View, Animatable {
             let fontSize = LabelLayout.fontSize
             let bboxArea = fitScreenRect.width * fitScreenRect.height
 
+            // Relative to the viewport, not absolute: this is the gate that empties the
+            // world view and fills in as the map is zoomed.
+            let viewportArea = viewport.width * viewport.height
+            guard viewportArea > 0,
+                  bboxArea / viewportArea >= LabelLayout.minimumViewportCoverage
+            else { continue }
+
             /// Whether a string fits the country's box at the drawing font size.
             ///
             /// Measured through UIKit and cached across frames. The SwiftUI Text is
@@ -401,21 +434,12 @@ struct FlatMapRenderer: View, Animatable {
                 return size
             }
 
-            // A name that does not fit falls back to the short form before the label is
-            // dropped: "D.R.C." where "Democratic Republic of the Congo" never fits.
-            let drawnText: String
-            let textSize: CGSize
-
-            if let size = fittingSize(of: name) {
-                drawnText = name
-                textSize = size
-            } else if let abbreviation = shape.labelInfo.abbreviation,
-                      let size = fittingSize(of: abbreviation) {
-                drawnText = abbreviation
-                textSize = size
-            } else {
-                continue
-            }
+            // A name that does not fit is not drawn. Zooming in is what reveals it.
+            //
+            // Natural Earth's `abbrev` was tried here and reads as noise: a world view full
+            // of "Fr.", "Ukr." and "S.Af." is worse than a world view with nothing on it.
+            guard let textSize = fittingSize(of: name) else { continue }
+            let drawnText = name
 
             let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
