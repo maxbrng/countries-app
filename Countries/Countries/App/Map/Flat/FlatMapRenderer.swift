@@ -303,7 +303,10 @@ struct FlatMapRenderer: View, Animatable {
             let fontSize: CGFloat
             let screenPoint: CGPoint
             let textSize: CGSize
-            let score: CGFloat
+            /// Natural Earth's importance, lower wins.
+            let rank: Int
+            /// Projected box area, the tie-breaker within one rank.
+            let area: CGFloat
             let rect: CGRect
         }
 
@@ -348,9 +351,13 @@ struct FlatMapRenderer: View, Animatable {
             let name = country.nameEnglish
             guard !name.isEmpty else { continue }
 
+            // The cartographer's anchor where the data has one, the computed pole of
+            // inaccessibility otherwise.
+            let anchorNormalized = shape.labelInfo.anchor ?? shape.labelAnchor
+
             let anchorWorld = CGPoint(
-                x: worldRect.minX + shape.labelAnchor.x * worldRect.width,
-                y: worldRect.minY + shape.labelAnchor.y * worldRect.height
+                x: worldRect.minX + anchorNormalized.x * worldRect.width,
+                y: worldRect.minY + anchorNormalized.y * worldRect.height
             )
             let anchorScreen = worldToScreen(anchorWorld)
 
@@ -369,25 +376,46 @@ struct FlatMapRenderer: View, Animatable {
             guard fitScreenRect.intersects(viewportExpanded) else { continue }
 
             let fontSize = LabelLayout.fontSize
-
-            // Measured through UIKit and cached across frames. The SwiftUI Text is
-            // resolved further down, only for labels that actually get drawn.
-            let textSize = labelMetrics.size(for: name, fontSize: fontSize)
-
-            let minimumBoxWidth: CGFloat = max(LabelLayout.minimumBoxWidthFloor,
-                                               textSize.width + LabelLayout.textFitPaddingWidth)
-            let minimumBoxHeight: CGFloat = max(LabelLayout.minimumBoxHeightFloor,
-                                                textSize.height + LabelLayout.textFitPaddingHeight)
-            let textArea = textSize.width * textSize.height
-            let minimumArea: CGFloat = max(LabelLayout.minimumBoxAreaFloor,
-                                           textArea * LabelLayout.boxToTextAreaFactor)
-
             let bboxArea = fitScreenRect.width * fitScreenRect.height
 
-            guard fitScreenRect.width >= minimumBoxWidth,
-                  fitScreenRect.height >= minimumBoxHeight,
-                  bboxArea >= minimumArea
-            else { continue }
+            /// Whether a string fits the country's box at the drawing font size.
+            ///
+            /// Measured through UIKit and cached across frames. The SwiftUI Text is
+            /// resolved further down, only for labels that actually get drawn.
+            func fittingSize(of candidateText: String) -> CGSize? {
+
+                let size = labelMetrics.size(for: candidateText, fontSize: fontSize)
+
+                let minimumWidth = max(LabelLayout.minimumBoxWidthFloor,
+                                       size.width + LabelLayout.textFitPaddingWidth)
+                let minimumHeight = max(LabelLayout.minimumBoxHeightFloor,
+                                        size.height + LabelLayout.textFitPaddingHeight)
+                let minimumArea = max(LabelLayout.minimumBoxAreaFloor,
+                                      size.width * size.height * LabelLayout.boxToTextAreaFactor)
+
+                guard fitScreenRect.width >= minimumWidth,
+                      fitScreenRect.height >= minimumHeight,
+                      bboxArea >= minimumArea
+                else { return nil }
+
+                return size
+            }
+
+            // A name that does not fit falls back to the short form before the label is
+            // dropped: "D.R.C." where "Democratic Republic of the Congo" never fits.
+            let drawnText: String
+            let textSize: CGSize
+
+            if let size = fittingSize(of: name) {
+                drawnText = name
+                textSize = size
+            } else if let abbreviation = shape.labelInfo.abbreviation,
+                      let size = fittingSize(of: abbreviation) {
+                drawnText = abbreviation
+                textSize = size
+            } else {
+                continue
+            }
 
             let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
@@ -400,17 +428,24 @@ struct FlatMapRenderer: View, Animatable {
 
             candidates.append(.init(
                 iso2: shape.iso2,
-                name: name,
+                name: drawnText,
                 fontSize: fontSize,
                 screenPoint: anchorScreen,
                 textSize: textSize,
-                score: bboxArea,
+                rank: shape.labelInfo.rank,
+                area: bboxArea,
                 rect: labelRect
             ))
         }
 
-        // Largest country first, so it keeps its label when two labels overlap.
-        candidates.sort { $0.score > $1.score }
+        // Most important country first, so it keeps its label when two labels overlap.
+        //
+        // This used to be projected box area alone, which let the projection decide what
+        // matters: in Web Mercator Niger outranks France. Natural Earth's own importance
+        // ranking decides now, and area only breaks ties within one rank.
+        candidates.sort {
+            $0.rank != $1.rank ? $0.rank < $1.rank : $0.area > $1.area
+        }
 
         /// Bucket coordinate in the uniform collision grid.
         struct CellKey: Hashable { let x: Int; let y: Int }

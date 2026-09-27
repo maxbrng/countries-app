@@ -79,6 +79,48 @@ nonisolated struct RenderCountryShape: Identifiable, @unchecked Sendable {
 
     /// Bounds of the *whole* path including outlying islands. Hit-test prefilter.
     let boundsNormalized: CGRect
+
+    /// What the label pass knows about this country beyond its geometry.
+    let labelInfo: LabelInfo
+}
+
+// MARK: - Label info
+
+/// The cartographic hints Natural Earth ships for a country's label.
+///
+/// These are a cartographer's judgement and the reason the map does not have to guess from
+/// geometry alone: a projected bounding box says Greenland matters more than France, which is
+/// a property of Mercator rather than of the world.
+nonisolated struct LabelInfo: Sendable {
+
+    /// Importance, lower is more important. Natural Earth's `labelrank`, 1...10.
+    let rank: Int
+
+    /// Short form of the name, drawn when the full name does not fit. `D.R.C.`, `U.K.`.
+    let abbreviation: String?
+
+    /// Where the cartographer placed the label, in normalized world space.
+    ///
+    /// `nil` when the data carries no anchor, or when the anchor falls outside the country's
+    /// own bounds - which happens for a few multi-part countries and would put the label in
+    /// the sea.
+    let anchor: CGPoint?
+
+    /// Lowest web-map zoom level at which the label should appear, if the data says.
+    let minimumZoomLevel: Double?
+
+    /// Highest web-map zoom level at which the label should appear, if the data says.
+    let maximumZoomLevel: Double?
+
+    /// Used when a feature carries no hints at all: least important, no short form.
+    static let unknown = LabelInfo(rank: Self.leastImportantRank,
+                                   abbreviation: nil,
+                                   anchor: nil,
+                                   minimumZoomLevel: nil,
+                                   maximumZoomLevel: nil)
+
+    /// Rank given to a country whose data has none. Natural Earth's scale ends at 10.
+    static let leastImportantRank = 11
 }
 
 // MARK: - Shape requests
