@@ -13,18 +13,30 @@ enum AppRoute: Hashable {
     case fullCountryList
     /// The interactive map screen.
     case mapScreen
-    /// The list of the user's trips, pushed from the main screen's trip card.
-    case tripsList
     /// The settings screen.
     case settings
 }
 
-/// Root of the app: Countries, and the country list in the search role.
+/// The tabs of the app, used as the ``TabView`` selection.
+enum AppTab: Hashable {
+    /// Dashboard and everything pushed from it.
+    case countries
+    /// The trips list.
+    case trips
+    /// The full country list in the search role.
+    case search
+}
+
+/// Root of the app: Countries, Trips, and the country list in the search role.
 ///
 /// - Note: Only the first tab owns a ``NavigationPath``; ``AppRoute`` is resolved there.
 struct RootTabView: View {
 
     // MARK: - Properties
+
+    /// The visible tab. Held here so the dashboard's trip card can switch to ``AppTab/trips``
+    /// instead of pushing a second copy of the list onto the first tab's stack.
+    @State private var selectedTab: AppTab = .countries
 
     /// Shared navigation path of the first tab, handed to ``MainScreen`` and to the map.
     @State private var path = NavigationPath()
@@ -39,10 +51,10 @@ struct RootTabView: View {
 
     var body: some View {
 
-        TabView {
-            Tab("Countries", systemImage: "globe.europe.africa.fill") {
+        TabView(selection: $selectedTab) {
+            Tab("Countries", systemImage: "globe.europe.africa.fill", value: AppTab.countries) {
                 NavigationStack(path: $path) {
-                    MainScreen(path: $path)
+                    MainScreen(path: $path, onOpenTrips: { selectedTab = .trips })
                         .navigationDestination(for: AppRoute.self) { route in
                             destination(for: route)
                         }
@@ -51,7 +63,13 @@ struct RootTabView: View {
                 .toolbar(path.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
-            Tab("All Countries", systemImage: "magnifyingglass", role: .search) {
+            Tab("Trips", systemImage: "suitcase.rolling.fill", value: AppTab.trips) {
+                NavigationStack {
+                    TripsListView()
+                }
+            }
+
+            Tab("All Countries", systemImage: "magnifyingglass", value: AppTab.search, role: .search) {
                 NavigationStack {
                     // Inside the stack, so the field belongs to the tab bar.
                     CountriesList(searchText: $countrySearch)
@@ -77,8 +95,6 @@ struct RootTabView: View {
         case .mapScreen:
             MapControllerRepresentable(path: $path)
                 .ignoresSafeArea()
-        case .tripsList:
-            TripsListView()
         case .settings:
             SettingsScreen()
         }
