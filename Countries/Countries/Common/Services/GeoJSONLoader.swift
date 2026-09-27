@@ -96,20 +96,46 @@ nonisolated enum GeoJSONLoader {
 
     // MARK: - Private
 
+    /// Resolves one feature to a seeded country.
+    ///
+    /// - Parameters:
+    ///   - rawISO: Lowercased value of the first ISO key the feature carries, if any.
+    ///   - rawName: Lowercased value of the first name key the feature carries, if any.
+    ///   - resolver: The lookup tables built from the seeded countries.
+    /// - Returns: The lowercased ISO2 code, or `nil` when the feature has no counterpart
+    ///   among the seeded countries.
+    /// - Note: A code of an unexpected length falls through to the name, it does not end the
+    ///   attempt. Natural Earth carries `iso_a2 = "CN-TW"` for Taiwan, and returning `nil` on
+    ///   that meant Taiwan was silently absent from the map. Five of 242 features stay
+    ///   unresolved after this, all of them correctly: Northern Cyprus, Siachen Glacier,
+    ///   Indian Ocean Territories, Somaliland and Ashmore and Cartier Islands are not seeded.
     private static func resolveISO2(rawISO: String?, rawName: String?, resolver: ResolverIndex) -> String? {
+
         guard let rawISO, rawISO != "-99" else {
-            if let rawName { return resolver.nameToIso2[rawName] }
-            return nil
+            return nameLookup(rawName: rawName, resolver: resolver)
         }
 
         switch rawISO.count {
         case 2:
             return rawISO
         case 3:
-            return resolver.iso3ToIso2[rawISO]
+            return resolver.iso3ToIso2[rawISO] ?? nameLookup(rawName: rawName, resolver: resolver)
         default:
-            return nil
+            return nameLookup(rawName: rawName, resolver: resolver)
         }
+    }
+
+    /// Looks a feature up by its name, the last resort of ``resolveISO2(rawISO:rawName:resolver:)``.
+    ///
+    /// - Parameters:
+    ///   - rawName: Lowercased value of the first name key the feature carries, if any.
+    ///   - resolver: The lookup tables built from the seeded countries.
+    /// - Returns: The lowercased ISO2 code, or `nil` when the name is missing or unknown.
+    private static func nameLookup(rawName: String?, resolver: ResolverIndex) -> String? {
+
+        guard let rawName else { return nil }
+
+        return resolver.nameToIso2[rawName]
     }
 }
 
