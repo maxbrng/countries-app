@@ -72,16 +72,6 @@ struct FlatMapRenderer: View, Animatable {
 
     // MARK: - Constants
 
-    /// Stroke widths of the draw pass. The colours live in ``MapPalette``, together with the
-    /// contrast ratio each of them reaches.
-    private enum Style {
-
-        /// Border width of the selected country, in points before the camera scale.
-        static let selectedLineWidth: CGFloat = 1.2
-        /// Border width of every other country, in points before the camera scale.
-        static let lineWidth: CGFloat = 0.4
-    }
-
     /// Thresholds and paddings of the label placement pass. All values are tuned
     /// against the real country set; changing one changes how many labels survive.
     private enum LabelLayout {
@@ -226,6 +216,18 @@ struct FlatMapRenderer: View, Animatable {
                 drawContext.translateBy(x: -cameraCenter.x, y: -cameraCenter.y)
             }
 
+            // Coastlines first, as a casing under the fills: along a shared border the two
+            // neighbouring fills cover the stroke again, so it survives only where land meets
+            // water. Drawing it after the fills instead would outline every country and turn
+            // the map into a net.
+            let coastlineWidth = coastlineLineWidth(currentScale: currentScale)
+
+            for shape in shapes {
+                drawContext.stroke(scaledPaths.path(for: shape.path, in: worldRect),
+                                   with: .color(MapPalette.coastline),
+                                   lineWidth: coastlineWidth)
+            }
+
             for shape in shapes {
                 let path = scaledPaths.path(for: shape.path, in: worldRect)
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
@@ -236,7 +238,8 @@ struct FlatMapRenderer: View, Animatable {
 
                 // Divided by the camera scale so the border keeps a constant
                 // on-screen width at every zoom level.
-                let baseLineWidth = isSelected ? Style.selectedLineWidth : Style.lineWidth
+                let baseLineWidth = isSelected ? MapStrokeMetrics.selectedBorderWidth
+                                               : MapStrokeMetrics.interiorBorderWidth
                 let lineWidth = baseLineWidth / (interactiveEnabled ? currentScale : 1)
 
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
@@ -253,6 +256,21 @@ struct FlatMapRenderer: View, Animatable {
                 )
             }
         }
+    }
+
+    // MARK: - Coastline
+
+    /// Width of the coastline casing in the coordinate space the canvas is drawing in.
+    ///
+    /// Divided by the camera scale for the same reason the borders are: the canvas is scaled,
+    /// the stroke should not be.
+    ///
+    /// - Parameter currentScale: Fit scale times user zoom, the factor the canvas is scaled by.
+    /// - Returns: The line width to hand to `stroke(_:with:lineWidth:)`.
+    private func coastlineLineWidth(currentScale: CGFloat) -> CGFloat {
+
+        let onScreen = MapStrokeMetrics.coastlineWidth(forUserZoom: userZoom)
+        return onScreen / (interactiveEnabled ? currentScale : 1)
     }
 
     // MARK: - Fill

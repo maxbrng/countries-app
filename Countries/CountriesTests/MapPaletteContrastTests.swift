@@ -147,6 +147,28 @@ struct MapPaletteContrastTests {
         #expect(abs(dark - 1.79) < Self.tolerance)
     }
 
+    @Test func test_coastline_clearsThreeToOneAgainstBothSidesOfTheShore() {
+
+        // Arrange / Act
+        let seaLight = ratio(of: MapPalette.coastline, against: MapPalette.ocean, in: .light)
+        let seaDark = ratio(of: MapPalette.coastline, against: MapPalette.ocean, in: .dark)
+        let landLight = ratio(of: MapPalette.coastline,
+                              against: MapPalette.neutralLandFill, in: .light)
+        let landDark = ratio(of: MapPalette.coastline,
+                             against: MapPalette.neutralLandFill, in: .dark)
+
+        // Assert: a line with sea on one side and land on the other has to hold against both.
+        #expect(seaLight > 3)
+        #expect(seaDark > 3)
+        #expect(landLight > 3)
+        #expect(landDark > 3)
+
+        #expect(abs(seaLight - 6.98) < Self.tolerance)
+        #expect(abs(seaDark - 8.60) < Self.tolerance)
+        #expect(abs(landLight - 4.13) < Self.tolerance)
+        #expect(abs(landDark - 4.80) < Self.tolerance)
+    }
+
     // MARK: - Status fills against each other
 
     @Test func test_visitedFill_againstNeutralLand_clearsThreeToOne() {
