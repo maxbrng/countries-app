@@ -72,9 +72,10 @@ struct SettingsScreen: View {
     private var privacySection: some View {
         Section("Privacy") {
             fact("Your countries, trips and settings are stored on this device only.")
-            fact("The app has no account and no server. Nothing you enter leaves the device.")
+            fact("The app has no account and no server of its own. Nothing you enter leaves the device.")
             fact("iCloud sync is switched off, so nothing is copied to your other devices.")
-            fact("Country outlines and country data are built into the app. Nothing is downloaded.")
+            fact("Country outlines and country data are built into the app.")
+            fact("The 3D globe is Apple Maps and loads map imagery from Apple while it is open. The flat map loads nothing.")
             fact("There is no analytics, no tracking and no advertising.")
         }
     }
