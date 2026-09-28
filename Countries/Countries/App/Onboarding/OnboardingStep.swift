@@ -16,6 +16,9 @@ nonisolated enum OnboardingStep: Int, CaseIterable, Identifiable {
     /// What the app is for, in one screen.
     case welcome
 
+    /// Which countries have already been visited.
+    case markVisited
+
     var id: Int { rawValue }
 
     /// The step after this one, or `nil` when this is the last.

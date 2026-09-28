@@ -5,7 +5,12 @@
 //  Created by Max Breuning on 28.09.26.
 //
 
+import os
+import SwiftData
 import SwiftUI
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Countries",
+                            category: "Onboarding")
 
 /// The first launch, once.
 ///
@@ -33,8 +38,16 @@ struct OnboardingFlowView: View {
     /// Survives a restart, which is what makes this run exactly once.
     @AppStorage(OnboardingState.storageKey) private var hasCompletedOnboarding = false
 
+    @Environment(\.modelContext) private var modelContext
+
     /// The step on screen.
     @State private var step: OnboardingStep = .welcome
+
+    /// Countries picked in ``OnboardingStep/markVisited``.
+    ///
+    /// Held by the flow rather than by the step, so it survives the step being rebuilt, and
+    /// so only the flow decides when a selection is written to the store.
+    @State private var visitedCodes: Set<String> = []
 
     // MARK: - Body
 
@@ -66,6 +79,8 @@ struct OnboardingFlowView: View {
         switch step {
         case .welcome:
             OnboardingWelcomeView()
+        case .markVisited:
+            OnboardingVisitedView(selectedCodes: $visitedCodes)
         }
     }
 
@@ -108,7 +123,12 @@ struct OnboardingFlowView: View {
     // MARK: - Actions
 
     /// Goes to the next step, or finishes.
+    ///
+    /// Applies the current step's work first: continuing is the act of confirming it, which is
+    /// also why ``finish()`` — the Skip path — applies nothing.
     private func advance() {
+
+        apply(step)
 
         guard let next = step.next else {
             finish()
@@ -116,6 +136,28 @@ struct OnboardingFlowView: View {
         }
 
         step = next
+    }
+
+    /// Writes what `step` collected.
+    ///
+    /// - Parameter step: The step being left by way of its own button.
+    private func apply(_ step: OnboardingStep) {
+
+        switch step {
+        case .welcome:
+            break
+        case .markVisited:
+            // An empty selection is a valid answer, and the service treats it as one.
+            do {
+                try CountryStatusService.setStatus(.visited,
+                                                   forCountriesWithISO2: visitedCodes,
+                                                   in: modelContext)
+            } catch {
+                logger.error(
+                    "Could not apply the first launch selection: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
     }
 
     /// Closes the flow for good.
