@@ -101,14 +101,13 @@ struct FlatMapRenderer: View, Animatable {
         /// the edge while panning.
         static let viewportOverscan: CGFloat = 80
 
-        /// Label font size before the zoom compensation is applied.
-        static let baseFontSize: CGFloat = 10
-        /// Lower bound of the zoom-compensated font size.
-        static let minimumFontSize: CGFloat = 8
-        /// Upper bound of the zoom-compensated font size.
-        static let maximumFontSize: CGFloat = 14
-        /// Guards the font scale against dividing by a near-zero camera scale.
-        static let minimumScaleDivisor: CGFloat = 0.0001
+        /// Size every label is drawn at, in screen points.
+        ///
+        /// - Note: Constant on purpose. Labels are drawn in screen space, so they never grow
+        ///   with the camera and never needed a compensation. The earlier `baseFontSize /
+        ///   currentScale` shrank them instead, and the 8 pt floor was reached at about 1.25x,
+        ///   which is why a zoomed-in map read worse than a zoomed-out one.
+        static let fontSize: CGFloat = 11
 
         /// Horizontal slack a country's box needs on top of the text width.
         static let textFitPaddingWidth: CGFloat = 10
@@ -304,7 +303,10 @@ struct FlatMapRenderer: View, Animatable {
             let fontSize: CGFloat
             let screenPoint: CGPoint
             let textSize: CGSize
-            let score: CGFloat
+            /// Natural Earth's importance, lower wins.
+            let rank: Int
+            /// Projected box area, the tie-breaker within one rank.
+            let area: CGFloat
             let rect: CGRect
         }
 
@@ -349,48 +351,71 @@ struct FlatMapRenderer: View, Animatable {
             let name = country.nameEnglish
             guard !name.isEmpty else { continue }
 
+            // The cartographer's anchor where the data has one, the computed pole of
+            // inaccessibility otherwise.
+            let anchorNormalized = shape.labelInfo.anchor ?? shape.labelAnchor
+
             let anchorWorld = CGPoint(
-                x: worldRect.minX + shape.labelAnchor.x * worldRect.width,
-                y: worldRect.minY + shape.labelAnchor.y * worldRect.height
+                x: worldRect.minX + anchorNormalized.x * worldRect.width,
+                y: worldRect.minY + anchorNormalized.y * worldRect.height
             )
             let anchorScreen = worldToScreen(anchorWorld)
 
-            let focus = shape.focusBoundingBoxNormalized
+            // The unpadded box: how much room the outline really offers, not what the
+            // camera would frame.
+            let fitBox = shape.labelFitBoundingBoxNormalized
 
-            let focusWorld = CGRect(
-                x: worldRect.minX + focus.minX * worldRect.width,
-                y: worldRect.minY + focus.minY * worldRect.height,
-                width: focus.width * worldRect.width,
-                height: focus.height * worldRect.height
+            let fitWorld = CGRect(
+                x: worldRect.minX + fitBox.minX * worldRect.width,
+                y: worldRect.minY + fitBox.minY * worldRect.height,
+                width: fitBox.width * worldRect.width,
+                height: fitBox.height * worldRect.height
             )
-            let focusScreenRect = worldRectToScreenRect(focusWorld)
+            let fitScreenRect = worldRectToScreenRect(fitWorld)
 
-            guard focusScreenRect.intersects(viewportExpanded) else { continue }
+            guard fitScreenRect.intersects(viewportExpanded) else { continue }
 
-            let fontScale = min(1.0, 1.0 / max(currentScale, LabelLayout.minimumScaleDivisor))
-            // Rounded so the metrics cache hits instead of missing on every frame.
-            let fontSize = (LabelLayout.baseFontSize * fontScale)
-                .clamped(LabelLayout.minimumFontSize, LabelLayout.maximumFontSize)
-                .rounded()
+            let fontSize = LabelLayout.fontSize
+            let bboxArea = fitScreenRect.width * fitScreenRect.height
 
-            // Measured through UIKit and cached across frames. The SwiftUI Text is
-            // resolved further down, only for labels that actually get drawn.
-            let textSize = labelMetrics.size(for: name, fontSize: fontSize)
+            /// Whether a string fits the country's box at the drawing font size.
+            ///
+            /// Measured through UIKit and cached across frames. The SwiftUI Text is
+            /// resolved further down, only for labels that actually get drawn.
+            func fittingSize(of candidateText: String) -> CGSize? {
 
-            let minimumBoxWidth: CGFloat = max(LabelLayout.minimumBoxWidthFloor,
-                                               textSize.width + LabelLayout.textFitPaddingWidth)
-            let minimumBoxHeight: CGFloat = max(LabelLayout.minimumBoxHeightFloor,
-                                                textSize.height + LabelLayout.textFitPaddingHeight)
-            let textArea = textSize.width * textSize.height
-            let minimumArea: CGFloat = max(LabelLayout.minimumBoxAreaFloor,
-                                           textArea * LabelLayout.boxToTextAreaFactor)
+                let size = labelMetrics.size(for: candidateText, fontSize: fontSize)
 
-            let bboxArea = focusScreenRect.width * focusScreenRect.height
+                let minimumWidth = max(LabelLayout.minimumBoxWidthFloor,
+                                       size.width + LabelLayout.textFitPaddingWidth)
+                let minimumHeight = max(LabelLayout.minimumBoxHeightFloor,
+                                        size.height + LabelLayout.textFitPaddingHeight)
+                let minimumArea = max(LabelLayout.minimumBoxAreaFloor,
+                                      size.width * size.height * LabelLayout.boxToTextAreaFactor)
 
-            guard focusScreenRect.width >= minimumBoxWidth,
-                  focusScreenRect.height >= minimumBoxHeight,
-                  bboxArea >= minimumArea
-            else { continue }
+                guard fitScreenRect.width >= minimumWidth,
+                      fitScreenRect.height >= minimumHeight,
+                      bboxArea >= minimumArea
+                else { return nil }
+
+                return size
+            }
+
+            // A name that does not fit falls back to the short form before the label is
+            // dropped: "D.R.C." where "Democratic Republic of the Congo" never fits.
+            let drawnText: String
+            let textSize: CGSize
+
+            if let size = fittingSize(of: name) {
+                drawnText = name
+                textSize = size
+            } else if let abbreviation = shape.labelInfo.abbreviation,
+                      let size = fittingSize(of: abbreviation) {
+                drawnText = abbreviation
+                textSize = size
+            } else {
+                continue
+            }
 
             let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
@@ -403,17 +428,24 @@ struct FlatMapRenderer: View, Animatable {
 
             candidates.append(.init(
                 iso2: shape.iso2,
-                name: name,
+                name: drawnText,
                 fontSize: fontSize,
                 screenPoint: anchorScreen,
                 textSize: textSize,
-                score: bboxArea,
+                rank: shape.labelInfo.rank,
+                area: bboxArea,
                 rect: labelRect
             ))
         }
 
-        // Largest country first, so it keeps its label when two labels overlap.
-        candidates.sort { $0.score > $1.score }
+        // Most important country first, so it keeps its label when two labels overlap.
+        //
+        // This used to be projected box area alone, which let the projection decide what
+        // matters: in Web Mercator Niger outranks France. Natural Earth's own importance
+        // ranking decides now, and area only breaks ties within one rank.
+        candidates.sort {
+            $0.rank != $1.rank ? $0.rank < $1.rank : $0.area > $1.area
+        }
 
         /// Bucket coordinate in the uniform collision grid.
         struct CellKey: Hashable { let x: Int; let y: Int }

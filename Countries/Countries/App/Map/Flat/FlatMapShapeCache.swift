@@ -114,7 +114,11 @@ actor FlatMapShapeCache {
                         path: result.path,
                         labelAnchor: result.labelAnchor,
                         focusBoundingBoxNormalized: result.focusBoundingBox,
-                        boundsNormalized: result.path.boundingBoxOfPath
+                        labelFitBoundingBoxNormalized: result.labelFitBoundingBox,
+                        boundsNormalized: result.path.boundingBoxOfPath,
+                        labelInfo: Self.labelInfo(from: feature.properties,
+                                                  projectionMode: projectionMode,
+                                                  fitBox: result.labelFitBoundingBox)
                     )
                 )
             }
@@ -138,4 +142,52 @@ actor FlatMapShapeCache {
         cache.removeAll()
         inFlight.removeAll()
     }
+
+    // MARK: - Label hints
+
+    /// Keys under which Natural Earth ships its label hints.
+    private enum LabelKeys {
+        static let rank = ["labelrank", "LABELRANK"]
+        static let abbreviation = ["abbrev", "ABBREV"]
+        static let anchorLongitude = ["label_x", "LABEL_X"]
+        static let anchorLatitude = ["label_y", "LABEL_Y"]
+        static let minimumZoom = ["min_label", "MIN_LABEL"]
+        static let maximumZoom = ["max_label", "MAX_LABEL"]
+    }
+
+    /// Reads one feature's label hints out of its properties.
+    ///
+    /// - Parameters:
+    ///   - properties: The feature's raw property bag.
+    ///   - projectionMode: Projection the shapes are built in, so the anchor lands in the
+    ///     same space as the geometry.
+    ///   - fitBox: The country's own bounds. An anchor outside them is discarded: a few
+    ///     multi-part countries carry one that sits in the sea next to the mainland.
+    /// - Returns: The hints that are present, with ``LabelInfo/unknown`` values for the rest.
+    private static func labelInfo(from properties: [String: JSONValue],
+                                  projectionMode: FlatMapProjectionMode,
+                                  fitBox: CGRect) -> LabelInfo {
+
+        let rank = properties.firstDouble(for: LabelKeys.rank)
+            .map { Int($0.rounded()) } ?? LabelInfo.leastImportantRank
+
+        let abbreviation = properties.firstString(for: LabelKeys.abbreviation)
+
+        var anchor: CGPoint?
+        if let longitude = properties.firstDouble(for: LabelKeys.anchorLongitude),
+           let latitude = properties.firstDouble(for: LabelKeys.anchorLatitude) {
+
+            let projected = FlatMapProjection.projectLongitudeLatitude(longitude: longitude,
+                                                                       latitude: latitude,
+                                                                       mode: projectionMode)
+            if fitBox.contains(projected) { anchor = projected }
+        }
+
+        return LabelInfo(rank: rank,
+                         abbreviation: abbreviation,
+                         anchor: anchor,
+                         minimumZoomLevel: properties.firstDouble(for: LabelKeys.minimumZoom),
+                         maximumZoomLevel: properties.firstDouble(for: LabelKeys.maximumZoom))
+    }
+
 }

@@ -285,11 +285,45 @@ nonisolated enum JSONValue: Decodable, Sendable {
             return nil
         }
     }
+
+    /// The value as a number, parsing a numeric string if that is how it was stored.
+    ///
+    /// Shapefile attribute tables keep everything as text, so a value that is a number in
+    /// meaning can arrive either way depending on how the GeoJSON was produced.
+    var doubleValue: Double? {
+        switch self {
+        case .number(let number):
+            return number
+        case .string(let string):
+            return Double(string.trimmingCharacters(in: .whitespaces))
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Property helpers
 
 extension Dictionary where Key == String, Value == JSONValue {
+
+    /// Returns the first numeric value for any of the keys, case-insensitive.
+    ///
+    /// - Parameter keys: Candidate keys, tried in order.
+    /// - Returns: The first value that reads as a number, or `nil`.
+    nonisolated func firstDouble(for keys: [String]) -> Double? {
+
+        for key in keys {
+            if let value = self[key]?.doubleValue { return value }
+        }
+
+        let lowerKeys = Set(keys.map { $0.lowercased() })
+        for (key, value) in self where lowerKeys.contains(key.lowercased()) {
+            if let number = value.doubleValue { return number }
+        }
+
+        return nil
+    }
+
     /// Returns the first non-empty string value for any of the keys, case-insensitive.
     nonisolated func firstString(for keys: [String]) -> String? {
         for key in keys {
