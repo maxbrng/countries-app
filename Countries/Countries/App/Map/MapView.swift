@@ -30,9 +30,11 @@ struct MapView: View {
                             projectionMode: ShapeRequest.interactiveMap.projection,
                             initialStartZoom: Self.initialFlatMapZoom,
                             selectedCountry: $model.selectedCountry,
-                            filter: $model.filter)
+                            filter: $model.filter,
+                            sharedFocus: $model.focus)
             case .threeD:
-                GlobeMapView(selectedCountry: $model.selectedCountry)
+                GlobeMapView(selectedCountry: $model.selectedCountry,
+                             sharedFocus: $model.focus)
             }
         }
         .ignoresSafeArea()

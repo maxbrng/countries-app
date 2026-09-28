@@ -70,6 +70,9 @@ struct FlatMapView: View {
     @Binding private var selectedCountry: Country?
     @Binding private var filter: CountryStatusFilter
 
+    /// Where the map is looking, shared with the globe so a switch between the two keeps it.
+    @Binding private var sharedFocus: MapFocus?
+
     @State private var viewModel = FlatMapViewModel()
 
     // MARK: - Selection
@@ -160,6 +163,9 @@ struct FlatMapView: View {
     ///   - selectedCountry: External binding to the selected country.
     ///   - filter: External binding to the status filter that decides which countries
     ///     are coloured by status.
+    ///   - sharedFocus: Where the map is looking, shared with the globe. Read once on appear
+    ///     and written as the camera moves. Defaults to a constant `nil`, which is what a
+    ///     preview wants: nothing to restore and nothing to report.
     init(
         detail: MapDetailRequest = .interactive,
         renderMode: FlatMapRenderMode = .aspectFit,
@@ -171,7 +177,8 @@ struct FlatMapView: View {
         focusesSelectedCountry: Bool = true,
         focusPadding: CGFloat = 24,
         selectedCountry: Binding<Country?>,
-        filter: Binding<CountryStatusFilter>
+        filter: Binding<CountryStatusFilter>,
+        sharedFocus: Binding<MapFocus?> = .constant(nil)
     ) {
         self.detail = detail
         self.renderMode = renderMode
@@ -184,6 +191,7 @@ struct FlatMapView: View {
         self.focusPadding = focusPadding
         self._selectedCountry = selectedCountry
         self._filter = filter
+        self._sharedFocus = sharedFocus
 
         _countries = Query()
     }
@@ -229,6 +237,10 @@ struct FlatMapView: View {
                 camera.clamp(viewport: viewport,
                              worldRect: worldRect,
                              fitScale: fitScale)
+                restoreSharedFocus(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
+            }
+            .onChange(of: camera) { _, _ in
+                publishSharedFocus(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
             }
             .onChange(of: geometryProxy.size) { _, newSize in
                 guard newSize != .zero else { return }
@@ -509,6 +521,51 @@ struct FlatMapView: View {
     ///   - viewport: The map's drawing area.
     ///   - worldRect: The projected world rectangle.
     ///   - fitScale: Base fit scale for current layout.
+    // MARK: - Shared focus
+
+    /// Moves the camera to where the other renderer left off, once, when the map appears.
+    ///
+    /// Only the interactive map restores: a preview has no camera the user can have moved, and
+    /// putting it somewhere other than the world view would be surprising.
+    ///
+    /// - Parameters:
+    ///   - viewport: The area the map is drawn into.
+    ///   - worldRect: The projected world's rect at zoom 1.
+    ///   - fitScale: Scale applied before the user zoom.
+    private func restoreSharedFocus(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat) {
+
+        guard interactiveEnabled,
+              let sharedFocus,
+              let restored = sharedFocus.flatCamera(viewport: viewport,
+                                                    worldRect: worldRect,
+                                                    fitScale: fitScale,
+                                                    projection: projectionMode)
+        else { return }
+
+        camera.userZoom = restored.userZoom
+        camera.normalizedCenter = restored.normalizedCenter
+        camera.clamp(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
+    }
+
+    /// Reports the camera into the shared focus so the globe can pick it up.
+    ///
+    /// - Parameters:
+    ///   - viewport: The area the map is drawn into.
+    ///   - worldRect: The projected world's rect at zoom 1.
+    ///   - fitScale: Scale applied before the user zoom.
+    private func publishSharedFocus(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat) {
+
+        guard interactiveEnabled,
+              let reported = MapFocus.fromFlatMap(camera: camera,
+                                                  viewport: viewport,
+                                                  worldRect: worldRect,
+                                                  fitScale: fitScale,
+                                                  projection: projectionMode)
+        else { return }
+
+        sharedFocus = reported
+    }
+
     private func focusCountry(iso2: String,
                               viewport: CGRect,
                               worldRect: CGRect,

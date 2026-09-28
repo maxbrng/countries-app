@@ -8,7 +8,7 @@
 import CoreGraphics
 
 /// Camera math isolated from the view (center/zoom clamping, transforms).
-struct FlatMapCamera: Sendable {
+struct FlatMapCamera: Equatable, Sendable {
     
     var normalizedCenter: CGPoint = CGPoint(x: 0.5, y: 0.5) // 0...1
     var userZoom: CGFloat = 1

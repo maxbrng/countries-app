@@ -182,4 +182,33 @@ nonisolated enum FlatMapProjection {
             return CGPoint(x: normalizedX, y: normalizedY)
         }
     }
+
+    /// Turns a point in normalized world space back into a geographic coordinate.
+    ///
+    /// The inverse of ``projectLongitudeLatitude(longitude:latitude:mode:)``, and exact for
+    /// both projections except where the forward direction clamps: a Web Mercator y outside
+    /// 0...1 comes back as the cut-off latitude rather than as a pole.
+    ///
+    /// - Parameters:
+    ///   - point: A point in 0...1 on both axes, with y growing downwards.
+    ///   - mode: Projection the point is expressed in.
+    /// - Returns: Longitude in -180...180 and latitude in -90...90.
+    nonisolated static func unprojectToLongitudeLatitude(
+        point: CGPoint,
+        mode: FlatMapProjectionMode
+    ) -> (longitude: Double, latitude: Double) {
+
+        let longitude = Double(point.x) * 360.0 - 180.0
+
+        switch mode {
+
+        case .plateCarree:
+            return (longitude, 90.0 - Double(point.y) * 180.0)
+
+        case .webMercator:
+            let mercator = (1.0 - 2.0 * Double(point.y)) * .pi
+            let latitudeRadians = 2.0 * atan(exp(mercator)) - .pi / 2.0
+            return (longitude, latitudeRadians * 180.0 / .pi)
+        }
+    }
 }
