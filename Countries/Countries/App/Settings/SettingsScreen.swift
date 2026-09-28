@@ -29,6 +29,9 @@ struct SettingsScreen: View {
 
     @Environment(\.modelContext) private var modelContext
 
+    /// Only used to name the home country; the row shows a name, not a code.
+    @Query private var allCountries: [Country]
+
     /// Counts shown in the reset warning, recomputed each time the first step is opened.
     @State private var resetSummary: DataResetService.Summary?
 
@@ -64,8 +67,32 @@ struct SettingsScreen: View {
 
     private var generalSection: some View {
         Section("General") {
+
             Toggle("Only show UN countries", isOn: $showOnlyUNMembers)
+
+            NavigationLink {
+                HomeCountryPickerView()
+            } label: {
+                LabeledContent("Home country") {
+                    Text(homeCountryName)
+                }
+            }
         }
+    }
+
+    /// Name of the home country, or a placeholder while none is picked.
+    ///
+    /// Read through the query rather than from the stored code alone, so the row shows the
+    /// same name as everywhere else — translated, not the English one.
+    private var homeCountryName: String {
+
+        guard let code = HomeCountry.iso2,
+              let country = allCountries.first(where: { $0.iso2 == code })
+        else {
+            return String(localized: "Not set")
+        }
+
+        return country.displayName
     }
 
     /// Facts about what the app stores and sends, not a statement of intent.

@@ -19,6 +19,9 @@ nonisolated enum OnboardingStep: Int, CaseIterable, Identifiable {
     /// Which countries have already been visited.
     case markVisited
 
+    /// Which country the user lives in.
+    case chooseHome
+
     var id: Int { rawValue }
 
     /// The step after this one, or `nil` when this is the last.

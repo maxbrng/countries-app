@@ -96,6 +96,7 @@ enum DataResetService {
         // leave a user who has just erased everything on an empty map with no way back to the
         // screen that offered to fill it.
         OnboardingState.reset()
+        HomeCountry.reset()
 
         try CountrySeeder.seedIfNeeded(in: context)
 
