@@ -35,6 +35,9 @@ struct RootTabView: View {
     /// Search text of the pushed full list, kept apart from the search tab's.
     @State private var fullListSearch = ""
 
+    /// Drives the first launch. Survives a restart, which is what makes it run once.
+    @AppStorage(OnboardingState.storageKey) private var hasCompletedOnboarding = false
+
     // MARK: - Body
 
     var body: some View {
@@ -73,6 +76,26 @@ struct RootTabView: View {
         }
         // Without this, iOS 27 folds the search tab into the pill and its field to the top.
         .tabViewSearchActivation(.searchTabSelection)
+        // Over the app rather than instead of it: the tabs are already built and seeded when
+        // the flow ends, so the first screen behind it is not a loading state.
+        .fullScreenCover(isPresented: onboardingBinding) {
+            OnboardingFlowView()
+        }
+    }
+
+    // MARK: - Onboarding
+
+    /// Presents the first launch, and records it as done when the cover closes.
+    ///
+    /// A real binding rather than a constant one: whatever closes the cover — the flow itself
+    /// or the system — has to leave the flag saying the same thing, or the flow comes back.
+    private var onboardingBinding: Binding<Bool> {
+        Binding(
+            get: { !hasCompletedOnboarding },
+            set: { isPresented in
+                if !isPresented { hasCompletedOnboarding = true }
+            }
+        )
     }
 
     // MARK: - Destinations
