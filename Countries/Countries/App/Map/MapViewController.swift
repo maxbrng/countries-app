@@ -348,6 +348,7 @@ final class MapViewController: UIViewController {
         withObservationTracking {
             _ = model.route
             _ = model.isSearchFieldFocused
+            _ = model.appearance
         } onChange: { [weak self] in
             // onChange fires *before* the value is written, so hop to the next turn.
             Task { @MainActor [weak self] in
@@ -357,8 +358,34 @@ final class MapViewController: UIViewController {
                 strong.startObservingModel()
                 strong.syncBaseSheetWithSearchFocus()
                 strong.syncSheetStack()
+                strong.applySheetInterfaceStyle()
             }
         }
+    }
+
+    // MARK: - Sheet appearance
+
+    /// Interface style the sheets take, given what is behind them.
+    ///
+    /// The globe is Apple's satellite imagery and is dark whatever the app's appearance is.
+    /// A light sheet over it reads as a white slab rather than as glass, so the sheets follow
+    /// the backdrop instead of the app: dark over the globe, the app's own style over the
+    /// flat map.
+    private var sheetInterfaceStyle: UIUserInterfaceStyle {
+        model.appearance == .threeD ? .dark : .unspecified
+    }
+
+    /// Applies ``sheetInterfaceStyle`` to every sheet currently on screen.
+    private func applySheetInterfaceStyle() {
+
+        let style = sheetInterfaceStyle
+
+        // Set on the presenting controller, not only on the sheets: a sheet's own chrome -
+        // the glass slab behind the content - is drawn by the presentation container, which
+        // follows the presenting trait collection rather than the presented view's override.
+        overrideUserInterfaceStyle = style
+        baseSheetViewController?.overrideUserInterfaceStyle = style
+        baseSheetViewController?.presentedViewController?.overrideUserInterfaceStyle = style
     }
 
     // MARK: - Map host
@@ -547,6 +574,7 @@ final class MapViewController: UIViewController {
 
         let sheetViewController = SheetViewController(rootView: content)
         sheetViewController.isModalInPresentation = true
+        sheetViewController.overrideUserInterfaceStyle = sheetInterfaceStyle
         sheetViewController.preferredContentSize = preferredSheetContentSize
         sheetViewController.containerViewDidInitialize = { [weak self] controller in
             self?.applyPreferredLayout(to: controller)
@@ -781,6 +809,7 @@ final class MapViewController: UIViewController {
         )
 
         let navigationController = SheetNavigationController(rootViewController: host)
+        navigationController.overrideUserInterfaceStyle = sheetInterfaceStyle
         navigationController.preferredContentSize = preferredSheetContentSize
         navigationController.containerViewDidInitialize = { [weak self] controller in
             self?.applyPreferredLayout(to: controller)
@@ -907,6 +936,22 @@ final class SheetNavigationController: UINavigationController {
         super.viewDidLoad()
         view.backgroundColor = .clear
         view.isOpaque = false
+        addBackdrop()
+    }
+
+    /// Lays a material behind the content so the sheet carries its own glass.
+    ///
+    /// The sheet's default chrome is drawn by the presentation container and follows the
+    /// presenting controller, which over the globe still resolves to the app's light
+    /// appearance - a white slab over a dark globe. A material inside the controller does
+    /// follow this controller's `overrideUserInterfaceStyle`, so it covers the slab with
+    /// glass that matches what is behind the sheet.
+    private func addBackdrop() {
+
+        let backdrop = UIVisualEffectView(effect: UIBlurEffect(style: .systemThickMaterial))
+        backdrop.frame = view.bounds
+        backdrop.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.insertSubview(backdrop, at: 0)
     }
 
     override func viewWillLayoutSubviews() {
