@@ -52,8 +52,11 @@ struct FlatMapView: View {
     /// Zoom multiplier applied per double-tap.
     let doubleTapZoomFactor: CGFloat
 
-    /// Whether tapping a country frames it with the camera.
-    let focusOnTap: Bool
+    /// Whether the camera frames a country when it becomes selected.
+    ///
+    /// Named for the selection rather than for the tap: a country is also selected from the
+    /// search sheet, and the camera follows in both cases.
+    let focusesSelectedCountry: Bool
 
     /// Inset kept free around a country when the camera frames it, in points.
     let focusPadding: CGFloat
@@ -153,7 +156,8 @@ struct FlatMapView: View {
     ///   - initialStartZoom: Initial user zoom applied on first camera initialization.
     ///     Defaults to `1.0`.
     ///   - doubleTapZoomFactor: Zoom multiplier on double-tap. Defaults to `2.0`.
-    ///   - focusOnTap: If true, tapping a country focuses the camera on it. Defaults to `true`.
+    ///   - focusesSelectedCountry: If true, the camera frames a country when it becomes
+    ///     selected, by tap or from the search sheet. Defaults to `true`.
     ///   - focusPadding: Padding used when focusing a country. Defaults to `24`.
     ///   - selectedCountry: External binding to the selected country.
     ///   - filter: External binding to the status filter that decides which countries
@@ -168,7 +172,7 @@ struct FlatMapView: View {
         wrapsHorizontally: Bool = false,
         initialStartZoom: CGFloat = 1.0,
         doubleTapZoomFactor: CGFloat = 2.0,
-        focusOnTap: Bool = true,
+        focusesSelectedCountry: Bool = true,
         focusPadding: CGFloat = 24,
         selectedCountry: Binding<Country?>,
         filter: Binding<CountryStatusFilter>
@@ -182,7 +186,7 @@ struct FlatMapView: View {
         self.initialStartZoom = initialStartZoom
         self.wrapsHorizontally = wrapsHorizontally
         self.doubleTapZoomFactor = doubleTapZoomFactor
-        self.focusOnTap = focusOnTap
+        self.focusesSelectedCountry = focusesSelectedCountry
         self.focusPadding = focusPadding
         self._selectedCountry = selectedCountry
         self._filter = filter
@@ -245,7 +249,7 @@ struct FlatMapView: View {
                 stopDeceleration()
 
                 // If a country is selected during rotation, maintain focus
-                if let selectedISO2 {
+                if focusesSelectedCountry, let selectedISO2 {
                     focusCountry(iso2: selectedISO2,
                                  viewport: viewport,
                                  worldRect: worldRect,
@@ -290,6 +294,8 @@ struct FlatMapView: View {
                 selectedISO2 = iso2
 
                 stopDeceleration()
+
+                guard focusesSelectedCountry else { return }
 
                 withAnimation(MapAnimation.focus) {
                     focusCountry(iso2: iso2,

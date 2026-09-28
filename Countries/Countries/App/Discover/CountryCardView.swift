@@ -577,7 +577,7 @@ private extension UIColor {
 
 /// Layout that places its subviews in a row and wraps to the next line when the proposed width runs
 /// out, which is what the travel tag chips need.
-struct FlowLayout: Layout {
+private struct FlowLayout: Layout {
 
     /// Gap between two subviews, horizontally and between rows. Defaults to `8`.
     var spacing: CGFloat = 8

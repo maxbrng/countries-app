@@ -64,7 +64,6 @@ struct MainScreen: View {
     @StateObject private var viewModel = MainScreenViewModel()
     @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
 
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Country.iso2) private var allCountries: [Country]
     @Query private var allTrips: [Trip]
 

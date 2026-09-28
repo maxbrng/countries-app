@@ -20,11 +20,8 @@ enum CountryStatusFilter: Sendable, CaseIterable, Identifiable {
     /// Stable identity derived from the case name.
     var id: String { String(describing: self) }
 
-    /// English display title of the filter.
-    ///
-    /// - Note: Plain `String`, so it is not looked up in the string catalog. The pickers
-    ///   build their own localized `Text` labels instead.
-    var title: String {
+    /// Display title of the filter, looked up in the string catalog.
+    var title: LocalizedStringKey {
         switch self {
         case .all: return "All"
         case .visited: return "Visited"

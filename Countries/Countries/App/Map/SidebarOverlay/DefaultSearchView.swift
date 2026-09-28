@@ -92,7 +92,6 @@ struct DefaultSearchView: View {
 
     @FocusState private var focusedField: Field?
 
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Country.iso2) private var allCountries: [Country]
 
     // MARK: - Body
@@ -268,9 +267,9 @@ struct DefaultSearchView: View {
                 .font(.callout)
 
             Picker("Filter", selection: $model.filter) {
-                Text("All").tag(CountryStatusFilter.all)
-                Text("Visited").tag(CountryStatusFilter.visited)
-                Text("Wishlist").tag(CountryStatusFilter.wishlist)
+                ForEach(CountryStatusFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
             }
             .pickerStyle(.segmented)
         }
