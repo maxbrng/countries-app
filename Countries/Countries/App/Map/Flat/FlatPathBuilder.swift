@@ -16,32 +16,37 @@ nonisolated enum FlatPathBuilder {
         case full
         /// World view: every point the screen can actually resolve, and no more.
         case overview
-        /// Preview mode: simplified geometry, tiny islands dropped, no polylabel.
+        /// Preview mode: reads the prepared `countries-preview.geojson`, no polylabel.
         case light
 
         /// Max deviation in normalized world units (0...1 across the whole map).
         ///
-        /// At preview size 0.0006 is well under a pixel. The overview value is set the same
-        /// way for the full-size map: at the world view the map is roughly 1200 points wide,
-        /// so one point is 1/1200 = 0.00083 world units and 0.0004 is half of that. A vertex
-        /// dropped at this tolerance could not have been drawn in a different pixel than the
-        /// one that remains — this removes what the screen cannot show, not detail.
+        /// The overview value is set for the full-size map: at the world view the map is
+        /// roughly 1200 points wide, so one point is 1/1200 = 0.00083 world units and 0.0004
+        /// is half of that. A vertex dropped at this tolerance could not have been drawn in a
+        /// different pixel than the one that remains - this removes what the screen cannot
+        /// show, not detail.
+        ///
+        /// - Note: Zero for the preview since it stopped being built from the full geometry.
+        ///   `countries-preview.geojson` is simplified to 0.0006 ahead of time, so simplifying
+        ///   it again at launch would cost time and remove nothing.
         var simplificationTolerance: CGFloat {
             switch self {
-            case .full: return 0
+            case .full, .light: return 0
             case .overview: return 0.0004
-            case .light: return 0.0006
             }
         }
 
-        /// Rings below this area (normalized units²) are skipped in preview mode.
+        /// Rings below this area (normalized units²) are skipped.
         ///
-        /// Zero for the overview: a dropped island is a missing country, which is a different
-        /// thing from a vertex the screen cannot resolve.
+        /// Zero throughout. For the overview a dropped island is a missing country, which is a
+        /// different thing from a vertex the screen cannot resolve. For the preview the file
+        /// has had its small rings removed already, and every country that would have lost all
+        /// of them kept its largest one - applying the filter again here would drop those 68
+        /// countries a second time, which is what made them absent from the dashboard map.
         var minimumRingArea: CGFloat {
             switch self {
-            case .full, .overview: return 0
-            case .light: return 0.000004
+            case .full, .overview, .light: return 0
             }
         }
     }

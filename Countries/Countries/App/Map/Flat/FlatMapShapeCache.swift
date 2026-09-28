@@ -88,7 +88,15 @@ actor FlatMapShapeCache {
         let key = Key(projection: projectionMode, variant: variant)
 
         return try await memo.value(for: key) {
+
+            // The preview reads its own file, already reduced to what a thumbnail can show.
+            // Building it from the full source meant decoding 12 MB and simplifying 547,000
+            // points on every cold start, to draw a map a few centimetres wide - and the area
+            // filter that ran afterwards silently dropped 68 of the 245 countries.
+            let resource = (variant == .light) ? "countries-preview" : "countries"
+
             let resolved = try await GeoJSONLoader.loadResolvedFeatures(
+                resource: resource,
                 resolver: resolver,
                 keySet: .init()
             )
