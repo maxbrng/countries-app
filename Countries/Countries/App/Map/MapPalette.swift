@@ -16,12 +16,10 @@ import UIKit
 /// luminance ratios of the colours the system resolves these entries to, and
 /// `MapPaletteContrastTests` recomputes every one of them, so the numbers cannot go stale.
 ///
-/// - Note: The land fills are **opaque**, blended here rather than drawn translucently. The
-///   renderer paints a coastline underneath every country and relies on the neighbouring
-///   fills to cover it again along shared borders; a translucent fill would let that casing
-///   show through as a dark double line at every inland border. The blend reproduces exactly
-///   what a translucent fill over ``ocean`` used to produce, so nothing about the map's colour
-///   changes.
+/// - Note: The land fills are **opaque**, blended here rather than drawn translucently, so
+///   that neighbouring countries cannot darken each other where their paths meet. The blend
+///   reproduces exactly what a translucent fill over ``ocean`` used to produce, so nothing
+///   about the map's colour changes.
 ///
 /// - Note: Two pairs fall below any usable threshold and are *not* fixed here, because fixing
 ///   them means changing what the map looks like, which is [D-02]: wishlist against neutral
@@ -46,12 +44,6 @@ enum MapPalette {
         /// Blend weight of a known country without a status.
         static let neutralFill: Double = 0.22
 
-        /// Blend weight of the coastline against the sea.
-        ///
-        /// High, because only a fraction of a point of the stroke ever stays visible; a
-        /// lighter line at that width disappears into its own antialiasing.
-        static let coastline: Double = 0.65
-
         /// Opacity of the hairline between two neighbouring countries.
         static let interiorBorder: Double = 0.75
 
@@ -70,10 +62,10 @@ enum MapPalette {
 
     /// Land that is not part of the current country set: Antarctica, and anything filtered out.
     ///
-    /// - Note: Contrast against ``ocean`` is 1.27 in light and 1.49 in dark appearance. This is
-    ///   the lowest ratio on the map, and on its own it is what made Antarctica read as a hole
-    ///   in the dashboard preview rather than as a continent. The ``coastline`` underneath is
-    ///   what now carries that edge.
+    /// - Note: Contrast against ``ocean`` is 1.27 in light and 1.49 in dark appearance — the
+    ///   lowest ratio on the map. Nothing carries this edge since the coastline was removed in
+    ///   [D-01], so Antarctica reads as a hole in the dashboard preview rather than as a
+    ///   continent. Deliberate, and recorded here so it is not rediscovered as a bug.
     static let unknownLandFill = blended(.systemFill, over: .systemBackground)
 
     /// Land that is known but carries no status.
@@ -101,19 +93,6 @@ enum MapPalette {
                                       over: .systemBackground)
 
     // MARK: - Strokes
-
-    /// The line between land and sea, drawn underneath every country.
-    ///
-    /// Along a shared border it is covered again by the neighbouring country's fill, so it
-    /// only stays visible where land actually meets water.
-    ///
-    /// - Note: Contrast against ``ocean`` is 6.98 in light and 8.60 in dark appearance, and
-    ///   against ``neutralLandFill`` 4.13 and 4.80. Both sides clear the 3:1 required of a
-    ///   non-text graphic, which no land fill on its own comes close to. It has to be this
-    ///   dark: only a fraction of a point of the stroke survives the fills drawn over it, and
-    ///   a lighter line at that width disappears into its own antialiasing — measured, not
-    ///   assumed.
-    static let coastline = blended(.label, alpha: Opacity.coastline, over: .systemBackground)
 
     /// Hairline between two neighbouring countries, drawn in the sea colour so that the border
     /// reads as a gap rather than as a line of its own.
