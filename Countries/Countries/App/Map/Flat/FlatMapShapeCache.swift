@@ -28,8 +28,10 @@ actor FlatMapShapeCache {
 
     /// Level of detail the geometry is simplified to.
     enum Variant: Hashable, Sendable {
-        /// Full detail, used by the interactive map.
+        /// Full detail, used once the camera is zoomed past ``FlatMapViewModel/detailZoomThreshold``.
         case full
+        /// World view detail: every vertex the screen can resolve at that scale.
+        case overview
         /// Reduced detail, used by the non-interactive preview map.
         case light
     }
@@ -94,7 +96,11 @@ actor FlatMapShapeCache {
                 keySet: .init()
             )
 
-            let builderVariant: FlatPathBuilder.Variant = (variant == .full ? .full : .light)
+            let builderVariant: FlatPathBuilder.Variant = switch variant {
+            case .full: .full
+            case .overview: .overview
+            case .light: .light
+            }
 
             var built: [RenderCountryShape] = []
             built.reserveCapacity(resolved.count)
