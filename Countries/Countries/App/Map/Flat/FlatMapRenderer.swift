@@ -72,20 +72,12 @@ struct FlatMapRenderer: View, Animatable {
 
     // MARK: - Constants
 
-    /// Fills, borders and label colouring.
+    /// Line weights of the country outlines.
+    ///
+    /// The colours and their opacities live in ``MapPalette``, which is where they are
+    /// documented with the contrast they reach. Duplicating them here once meant a colour
+    /// could be changed in the palette with no effect on the map.
     private enum Style {
-
-        /// Fill opacity of a visited country.
-        static let visitedFillOpacity: Double = 0.55
-        /// Fill opacity of a wishlisted country.
-        static let wishlistFillOpacity: Double = 0.75
-        /// Fill opacity of a known country without a status.
-        static let neutralFillOpacity: Double = 0.22
-
-        /// Opacity of the border between unselected countries.
-        static let borderOpacity: Double = 0.75
-        /// Opacity of the label text.
-        static let labelOpacity: Double = 0.70
 
         /// Border width of the selected country, in points before the camera scale.
         static let selectedLineWidth: CGFloat = 1.2
@@ -238,9 +230,8 @@ struct FlatMapRenderer: View, Animatable {
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
 
                 let fillColor = fill(for: shape.iso2, isSelected: isSelected)
-                let strokeColor = isSelected
-                    ? Color(uiColor: .label)
-                    : Color(uiColor: .systemBackground).opacity(Style.borderOpacity)
+                let strokeColor = isSelected ? MapPalette.selectionStroke
+                                             : MapPalette.interiorBorder
 
                 // Divided by the camera scale so the border keeps a constant
                 // on-screen width at every zoom level.
@@ -273,15 +264,15 @@ struct FlatMapRenderer: View, Animatable {
     ///   not part of ``countriesByISO2`` (unknown, or filtered out).
     private func fill(for iso2: String, isSelected: Bool) -> Color {
 
-        guard let country = countriesByISO2[iso2] else { return Color(uiColor: .systemFill) }
+        guard let country = countriesByISO2[iso2] else { return MapPalette.unknownLandFill }
 
         switch country.status {
         case .visited:
-            return Color(uiColor: .label).opacity(Style.visitedFillOpacity)
+            return MapPalette.visitedFill
         case .wishlist:
-            return .orange.opacity(Style.wishlistFillOpacity)
+            return MapPalette.wishlistFill
         default:
-            return Color(uiColor: .label).opacity(Style.neutralFillOpacity)
+            return MapPalette.neutralLandFill
         }
     }
 
@@ -514,7 +505,7 @@ struct FlatMapRenderer: View, Animatable {
             // the fit and collision checks are worth the text layout.
             let text = Text(candidate.name)
                 .font(.system(size: candidate.fontSize, weight: .semibold))
-                .foregroundStyle(Color(uiColor: .label).opacity(Style.labelOpacity))
+                .foregroundStyle(MapPalette.labelText)
 
             context.draw(context.resolve(text),
                          at: candidate.screenPoint,

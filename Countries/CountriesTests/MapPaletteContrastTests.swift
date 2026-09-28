@@ -52,6 +52,49 @@ struct MapPaletteContrastTests {
         return Resolved(red: red, green: green, blue: blue, alpha: alpha)
     }
 
+    /// Perceptual lightness of `color`, on the CIE L* scale from 0 to 100.
+    ///
+    /// The contrast ratio is a luminance *ratio*, which compresses the dark end of the scale:
+    /// two colours near black can differ enormously to the eye and still report a ratio close
+    /// to 1. L* is the scale that matches how a difference is seen, which is the only one that
+    /// can say whether the border reads the same in both appearances.
+    ///
+    /// - Parameter color: An opaque colour, already composited over whatever is beneath it.
+    /// - Returns: Its lightness, 0 for black and 100 for white.
+    private func lightness(_ color: Resolved) -> Double {
+
+        /// Below this luminance the cube root is replaced by a linear segment, which is what
+        /// keeps L* finite and well-behaved at the black end.
+        let linearSegmentThreshold = 0.008856
+        let linearSegmentSlope = 903.3
+
+        let relativeLuminance = luminance(color)
+
+        guard relativeLuminance > linearSegmentThreshold else {
+            return linearSegmentSlope * relativeLuminance
+        }
+
+        return 116 * pow(relativeLuminance, 1.0 / 3.0) - 16
+    }
+
+    /// How far apart `color` and the fill underneath it look, once `color` has been composited
+    /// onto it.
+    ///
+    /// - Parameters:
+    ///   - color: The translucent stroke or fill under test.
+    ///   - background: The opaque fill it is drawn onto.
+    ///   - style: Light or dark appearance.
+    /// - Returns: The difference in L*, always positive.
+    private func lightnessStep(of color: Color,
+                               onTopOf background: Color,
+                               in style: UIUserInterfaceStyle) -> Double {
+
+        let base = resolve(background, in: style)
+        let composited = composite(resolve(color, in: style), over: base)
+
+        return abs(lightness(composited) - lightness(base))
+    }
+
     /// Composites `color` over `background`, which is what the canvas does when it draws a
     /// translucent fill onto the sea.
     private func composite(_ color: Resolved, over background: Resolved) -> Resolved {
@@ -217,7 +260,22 @@ struct MapPaletteContrastTests {
                          onTopOf: MapPalette.neutralLandFill, in: .dark)
 
         #expect(abs(light - 1.50) < Self.tolerance)
-        #expect(abs(dark - 1.65) < Self.tolerance)
+        #expect(abs(dark - 1.51) < Self.tolerance)
+    }
+
+    @Test func test_interiorBorder_readsTheSameInBothAppearances() {
+
+        let light = lightnessStep(of: MapPalette.interiorBorder,
+                                  onTopOf: MapPalette.neutralLandFill, in: .light)
+        let dark = lightnessStep(of: MapPalette.interiorBorder,
+                                 onTopOf: MapPalette.neutralLandFill, in: .dark)
+
+        // This is the assertion the ticket is really about, and the one the contrast ratios
+        // above could not make: at a single opacity for both appearances the dark border
+        // stepped 19.6 L* against the light one's 14.9, which is why it read as a black line
+        // rather than as a gap. The ratios reported 1.65 and 1.50 and saw nothing wrong.
+        #expect(abs(light - dark) < 0.5)
+        #expect(abs(light - 14.9) < 0.1)
     }
 
     @Test func test_labelText_againstNeutralLand_clearsBodyTextContrast() {
