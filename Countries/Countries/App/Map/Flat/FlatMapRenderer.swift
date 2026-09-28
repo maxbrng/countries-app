@@ -222,8 +222,19 @@ struct FlatMapRenderer: View, Animatable {
                 drawContext.translateBy(x: -cameraCenter.x, y: -cameraCenter.y)
             }
 
+            let visibleRect = visibleDrawRect(cameraCenter: cameraCenter,
+                                              currentScale: currentScale,
+                                              offsetX: offsetX,
+                                              offsetY: offsetY)
+
             for shape in shapes {
                 let path = scaledPaths.path(for: shape.path, in: worldRect)
+
+                // Off-screen countries cost nothing to skip and everything to draw: since
+                // [D-05] each one carries roughly four times the points it used to, and at
+                // any zoom past the world view most of them are nowhere near the viewport.
+                guard path.boundingRect.intersects(visibleRect) else { continue }
+
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
 
                 let fillColor = fill(for: shape.iso2, isSelected: isSelected)
@@ -272,6 +283,40 @@ struct FlatMapRenderer: View, Animatable {
         default:
             return Color(uiColor: .label).opacity(Style.neutralFillOpacity)
         }
+    }
+
+    // MARK: - Visible area
+
+    /// The part of the drawing space the viewport currently shows.
+    ///
+    /// The canvas carries the camera transform, so a country's bounding box is in that
+    /// transformed space and can be far larger than the screen. Intersecting with this is what
+    /// makes the work proportional to what is on screen instead of to how far the user has
+    /// zoomed in.
+    ///
+    /// - Parameters:
+    ///   - cameraCenter: Centre of the viewport, the fixed point of the scale.
+    ///   - currentScale: Fit scale times user zoom.
+    ///   - offsetX: Horizontal camera offset already applied to the context.
+    ///   - offsetY: Vertical camera offset already applied to the context.
+    /// - Returns: The visible rectangle, in the space the canvas draws in.
+    private func visibleDrawRect(cameraCenter: CGPoint,
+                                 currentScale: CGFloat,
+                                 offsetX: CGFloat,
+                                 offsetY: CGFloat) -> CGRect {
+
+        guard interactiveEnabled, currentScale > 0 else { return viewport }
+
+        let translatedX = cameraCenter.x + offsetX
+        let translatedY = cameraCenter.y + offsetY
+
+        let originX = cameraCenter.x + (viewport.minX - translatedX) / currentScale
+        let originY = cameraCenter.y + (viewport.minY - translatedY) / currentScale
+
+        return CGRect(x: originX,
+                      y: originY,
+                      width: viewport.width / currentScale,
+                      height: viewport.height / currentScale)
     }
 
     // MARK: - Labels (collision-free)
