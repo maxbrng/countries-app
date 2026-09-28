@@ -20,8 +20,18 @@ final class GlobeMapViewModel {
 
     // MARK: - State
 
-    /// Renderable country geometry, empty until ``loadShapesIfNeeded()`` has succeeded.
+    /// Renderable country geometry for the far camera, empty until ``loadShapesIfNeeded()``
+    /// has succeeded.
+    ///
+    /// This is the one the globe opens with, and the one every other screen state falls back
+    /// to, because it is built first.
     private(set) var shapes: [GlobeCountryShape] = []
+
+    /// The fine geometry, built in the background once the coarse one is on screen.
+    ///
+    /// Empty until that build finishes, which is why ``shapes(forCameraDistance:)`` falls back
+    /// rather than waiting: moving the camera must never block on a build.
+    private(set) var detailShapes: [GlobeCountryShape] = []
 
     /// Lookup from lowercased iso2 to ``Country``, used for colouring and selection.
     private(set) var countryIndex: CountryIndex = .init(countries: [])
@@ -55,13 +65,46 @@ final class GlobeMapViewModel {
 
         do {
             let resolver = countryIndex.resolverIndex
-            shapes = try await GlobeShapeCache.shared.shapes(resolver: resolver)
+            shapes = try await GlobeShapeCache.shared.shapes(resolver: resolver, detail: .far)
             didLoadShapes = true
         } catch {
             shapes = []
         }
 
         isLoading = false
+
+        guard didLoadShapes else { return }
+
+        do {
+            let resolver = countryIndex.resolverIndex
+            detailShapes = try await GlobeShapeCache.shared.shapes(resolver: resolver,
+                                                                   detail: .near)
+        } catch {
+            detailShapes = []
+        }
+    }
+
+    // MARK: - Level of detail
+
+    /// Camera distance in metres below which the fine geometry starts to be worth its cost.
+    ///
+    /// At the opening distance of 25,000,000 m one point covers roughly 0.51° of longitude, so
+    /// the coarse geometry's 0.25° tolerance is half a point - invisible. That error reaches a
+    /// full point at about half the distance, which is where the two swap.
+    static let detailCameraDistance: CLLocationDistance = 12_000_000
+
+    /// The geometry to draw and hit-test at this camera distance.
+    ///
+    /// - Parameter cameraDistance: Current distance of the camera from the globe, in metres.
+    /// - Returns: The fine geometry once it has been built and the camera is close enough, the
+    ///   coarse geometry otherwise.
+    func shapes(forCameraDistance cameraDistance: CLLocationDistance) -> [GlobeCountryShape] {
+
+        guard cameraDistance <= Self.detailCameraDistance, !detailShapes.isEmpty else {
+            return shapes
+        }
+
+        return detailShapes
     }
 
     // MARK: - Hit testing

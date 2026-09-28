@@ -57,11 +57,43 @@ nonisolated enum GlobeShapeBuilder {
 
     // MARK: - Constants
 
-    /// Max deviation in degrees. ~0.08° ≈ 9 km, invisible at globe scale.
-    private static let simplificationTolerance: CGFloat = 0.08
+    /// How much geometry the globe is asked for, which depends on how far the camera is back.
+    ///
+    /// The overlays are stroked at a fixed width in points, so geometry finer than that width
+    /// does not add detail - it adds a halo. At the opening distance one point covers about
+    /// 0.51° of longitude, which is why ``far`` throws away everything below that: 877 of the
+    /// 1,329 rings in the bundled data are smaller than a single pixel there, and each one was
+    /// being drawn as a 3.8 pt blob. Around Alaska and the Pacific that is what made a selected
+    /// United States read as a star rather than as a country.
+    enum Detail: Hashable, Sendable {
 
-    /// Rings smaller than this (deg²) are dropped, unless it is the only ring.
-    private static let minimumRingArea: CGFloat = 0.02
+        /// The camera is close enough for the fine geometry to resolve.
+        case near
+
+        /// The globe is far enough back that sub-pixel geometry only produces a halo.
+        case far
+
+        /// Max deviation in degrees.
+        ///
+        /// - Note: `near` keeps 0.08° ≈ 9 km. `far` keeps 0.25°, which is half a point at the
+        ///   opening distance and still under one point at the threshold where the two swap.
+        var simplificationTolerance: CGFloat {
+            switch self {
+            case .near: return 0.08
+            case .far: return 0.25
+            }
+        }
+
+        /// Rings smaller than this (deg²) are dropped, unless it is the country's only ring.
+        ///
+        /// - Note: `far` uses the area of one pixel at the opening distance, 0.51² ≈ 0.26.
+        var minimumRingArea: CGFloat {
+            switch self {
+            case .near: return 0.02
+            case .far: return 0.26
+            }
+        }
+    }
 
     /// Fewest points that still describe an area; anything below is a point or a line.
     private static let minimumRingPointCount: Int = 3
@@ -84,9 +116,12 @@ nonisolated enum GlobeShapeBuilder {
     /// simplified to ``simplificationTolerance`` and the largest ring supplies the camera centre
     /// and focus rect.
     ///
-    /// - Parameter resolved: Features already matched to an iso2 code by ``GeoJSONLoader``.
+    /// - Parameters:
+    ///   - resolved: Features already matched to an iso2 code by ``GeoJSONLoader``.
+    ///   - detail: How much geometry to keep. See ``Detail``.
     /// - Returns: The renderable shapes; features without a usable ring are skipped.
-    static func buildShapes(from resolved: [GeoJSONLoader.ResolvedFeature]) -> [GlobeCountryShape] {
+    static func buildShapes(from resolved: [GeoJSONLoader.ResolvedFeature],
+                            detail: Detail) -> [GlobeCountryShape] {
 
         resolved.compactMap { feature in
 
@@ -101,16 +136,23 @@ nonisolated enum GlobeShapeBuilder {
             guard let mainland = ranked.first else { return nil }
 
             let kept = ranked.enumerated().filter { index, entry in
-                index == 0 || entry.area >= minimumRingArea
+                index == 0 || entry.area >= detail.minimumRingArea
             }
 
             let polygons: [GlobePolygon] = kept.compactMap { _, entry in
 
-                let simplified = PolylineSimplifier.simplify(entry.ring,
-                                                             tolerance: simplificationTolerance)
-                guard simplified.count >= minimumRingPointCount else { return nil }
+                let simplified = PolylineSimplifier.simplify(
+                    entry.ring,
+                    tolerance: detail.simplificationTolerance
+                )
 
-                let coordinates = simplified.map {
+                // A ring the tolerance would flatten below a triangle is kept as it was. The
+                // coarser `far` tolerance reaches that point for a lot of small islands, and
+                // dropping them here would remove countries that consist of nothing else.
+                let ring = simplified.count >= minimumRingPointCount ? simplified : entry.ring
+                guard ring.count >= minimumRingPointCount else { return nil }
+
+                let coordinates = ring.map {
                     CLLocationCoordinate2D(latitude: $0.y, longitude: $0.x)
                 }
 
