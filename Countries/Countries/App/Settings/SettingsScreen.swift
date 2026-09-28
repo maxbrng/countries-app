@@ -24,8 +24,8 @@ struct SettingsScreen: View {
     /// Defaults to `false`.
     @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
 
-    /// Which renderer the map screen opens in. Shares its key with ``MapScreenModel``.
-    @AppStorage(MapAppearance.storageKey) private var mapAppearance: MapAppearance = .twoD
+    /// Language the app presents itself in. Applied to the whole view tree in ``CountriesApp``.
+    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .system
 
     @Environment(\.modelContext) private var modelContext
 
@@ -39,9 +39,7 @@ struct SettingsScreen: View {
 
     var body: some View {
         List {
-            mapSection
             generalSection
-            privacySection
             aboutSection
             resetSection
         }
@@ -51,31 +49,25 @@ struct SettingsScreen: View {
 
     // MARK: - Sections
 
-    private var mapSection: some View {
-        Section("Map") {
-            Picker("Map style", selection: $mapAppearance) {
-                ForEach(MapAppearance.allCases, id: \.self) { appearance in
-                    Text(appearance.title).tag(appearance)
-                }
-            }
-            .pickerStyle(.inline)
-        }
-    }
-
+    /// The controls that belong to the app as a whole, and the way into the pages that do not.
     private var generalSection: some View {
         Section("General") {
-            Toggle("Only show UN countries", isOn: $showOnlyUNMembers)
-        }
-    }
 
-    /// Facts about what the app stores and sends, not a statement of intent.
-    private var privacySection: some View {
-        Section("Privacy") {
-            fact("Your countries, trips and settings are stored on this device only.")
-            fact("The app has no account and no server. Nothing you enter leaves the device.")
-            fact("iCloud sync is switched off, so nothing is copied to your other devices.")
-            fact("Country outlines and country data are built into the app. Nothing is downloaded.")
-            fact("There is no analytics, no tracking and no advertising.")
+            Picker("Language", selection: $appLanguage) {
+                ForEach(AppLanguage.allCases) { language in
+                    language.label.tag(language)
+                }
+            }
+
+            Toggle("Only show UN countries", isOn: $showOnlyUNMembers)
+
+            NavigationLink("Map") {
+                MapSettingsScreen()
+            }
+
+            NavigationLink("Privacy") {
+                PrivacyScreen()
+            }
         }
     }
 
@@ -131,16 +123,6 @@ struct SettingsScreen: View {
     }
 
     // MARK: - Content helpers
-
-    /// One line of the privacy section.
-    ///
-    /// - Parameter text: The statement, looked up in the string catalog.
-    private func fact(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
 
     /// Marketing version and build number, for example `1.0 (42)`.
     private static var versionDescription: String {
