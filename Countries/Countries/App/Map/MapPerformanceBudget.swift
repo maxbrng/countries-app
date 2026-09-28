@@ -37,6 +37,14 @@ nonisolated enum MapPerformanceBudget {
     /// number that matters is the first appearance of the main screen, not a frame rate.
     static let previewFrameMilliseconds: Double = 26
 
+    /// Highest acceptable cost of one overview frame, in milliseconds.
+    ///
+    /// The level the interactive map draws at the world view since [D-11]. Measured at 18 ms in
+    /// the standalone CoreGraphics harness, so the ceiling follows the same doubling as the
+    /// others. Remeasure in the simulator when D-11 merges — this figure has not been taken
+    /// under the same conditions as the two above.
+    static let overviewFrameMilliseconds: Double = 40
+
     /// Highest acceptable cost of a preview frame as a share of a full-detail frame.
     ///
     /// Measured at 0.18-0.20. This is the number that actually protects the dashboard: a preview that
@@ -54,6 +62,7 @@ nonisolated enum MapPerformanceBudget {
 
         switch variant {
         case .full: return fullFrameMilliseconds
+        case .overview: return overviewFrameMilliseconds
         case .light: return previewFrameMilliseconds
         }
     }

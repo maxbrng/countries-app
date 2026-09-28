@@ -60,12 +60,6 @@ struct FlatMapRenderer: View, Animatable {
     /// Whether the selected country is highlighted.
     let selectionEnabled: Bool
 
-    /// Whether marked countries carry their ``StatusHatching`` texture.
-    ///
-    /// Off for the dashboard preview: at that size the hatch would read as noise, and the
-    /// preview carries no status legend to read it against.
-    let hatchingEnabled: Bool
-
     // MARK: - Caches
 
     /// Reference type on purpose: the renderer struct is rebuilt every frame, the
@@ -78,6 +72,27 @@ struct FlatMapRenderer: View, Animatable {
 
     // MARK: - Constants
 
+    /// Fills, borders and label colouring.
+    private enum Style {
+
+        /// Fill opacity of a visited country.
+        static let visitedFillOpacity: Double = 0.55
+        /// Fill opacity of a wishlisted country.
+        static let wishlistFillOpacity: Double = 0.75
+        /// Fill opacity of a known country without a status.
+        static let neutralFillOpacity: Double = 0.22
+
+        /// Opacity of the border between unselected countries.
+        static let borderOpacity: Double = 0.75
+        /// Opacity of the label text.
+        static let labelOpacity: Double = 0.70
+
+        /// Border width of the selected country, in points before the camera scale.
+        static let selectedLineWidth: CGFloat = 1.2
+        /// Border width of every other country, in points before the camera scale.
+        static let lineWidth: CGFloat = 0.4
+    }
+
     /// Thresholds and paddings of the label placement pass. All values are tuned
     /// against the real country set; changing one changes how many labels survive.
     private enum LabelLayout {
@@ -86,29 +101,14 @@ struct FlatMapRenderer: View, Animatable {
         /// the edge while panning.
         static let viewportOverscan: CGFloat = 80
 
-        /// Fraction of the viewport a country's box must cover before it is allowed a label.
-        ///
-        /// This is what keeps the world view clean: at the minimum zoom even Russia covers
-        /// far less than this, so nothing is drawn, and names appear as the map is zoomed in
-        /// and countries grow on screen. Every native map behaves this way; the previous
-        /// version had only an absolute size floor, which the large countries passed at every
-        /// zoom level including the smallest.
-        static let minimumViewportCoverage: CGFloat = 0.025
-
-        /// How much larger than the viewport the whole world must be before any label is drawn.
-        ///
-        /// At the minimum zoom the world exactly fills the viewport, so this draws nothing at
-        /// all there - which is the ask: a world view carries no names. Mercator alone would
-        /// not give that, because it inflates Greenland enough to pass any area test.
-        static let minimumWorldToViewportScale: CGFloat = 1.5
-
-        /// Size every label is drawn at, in screen points.
-        ///
-        /// - Note: Constant on purpose. Labels are drawn in screen space, so they never grow
-        ///   with the camera and never needed a compensation. The earlier `baseFontSize /
-        ///   currentScale` shrank them instead, and the 8 pt floor was reached at about 1.25x,
-        ///   which is why a zoomed-in map read worse than a zoomed-out one.
-        static let fontSize: CGFloat = 11
+        /// Label font size before the zoom compensation is applied.
+        static let baseFontSize: CGFloat = 10
+        /// Lower bound of the zoom-compensated font size.
+        static let minimumFontSize: CGFloat = 8
+        /// Upper bound of the zoom-compensated font size.
+        static let maximumFontSize: CGFloat = 14
+        /// Guards the font scale against dividing by a near-zero camera scale.
+        static let minimumScaleDivisor: CGFloat = 0.0001
 
         /// Horizontal slack a country's box needs on top of the text width.
         static let textFitPaddingWidth: CGFloat = 10
@@ -164,7 +164,6 @@ struct FlatMapRenderer: View, Animatable {
     ///   - interactiveEnabled: Whether the camera transform is applied.
     ///   - labelsEnabled: Whether labels are drawn.
     ///   - selectionEnabled: Whether the selection is highlighted.
-    ///   - hatchingEnabled: Whether marked countries are hatched.
     ///   - labelMetrics: Cache that outlives the per-frame struct rebuild.
     ///   - scaledPaths: Path cache that outlives the per-frame struct rebuild.
     init(
@@ -179,7 +178,6 @@ struct FlatMapRenderer: View, Animatable {
         interactiveEnabled: Bool,
         labelsEnabled: Bool,
         selectionEnabled: Bool,
-        hatchingEnabled: Bool,
         labelMetrics: LabelMetricsCache,
         scaledPaths: ScaledPathCache
     ) {
@@ -194,7 +192,6 @@ struct FlatMapRenderer: View, Animatable {
         self.interactiveEnabled = interactiveEnabled
         self.labelsEnabled = labelsEnabled
         self.selectionEnabled = selectionEnabled
-        self.hatchingEnabled = hatchingEnabled
         self.labelMetrics = labelMetrics
         self.scaledPaths = scaledPaths
     }
@@ -225,46 +222,32 @@ struct FlatMapRenderer: View, Animatable {
                 drawContext.translateBy(x: -cameraCenter.x, y: -cameraCenter.y)
             }
 
-            // Coastlines first, as a casing under the fills: along a shared border the two
-            // neighbouring fills cover the stroke again, so it survives only where land meets
-            // water. Drawing it after the fills instead would outline every country and turn
-            // the map into a net.
-            let coastlineWidth = coastlineLineWidth(currentScale: currentScale)
-            let visibleDrawRect = visibleDrawRect(cameraCenter: cameraCenter,
-                                                  currentScale: currentScale,
-                                                  offsetX: offsetX,
-                                                  offsetY: offsetY)
-
-            for shape in shapes {
-                drawContext.stroke(scaledPaths.path(for: shape.path, in: worldRect),
-                                   with: .color(MapPalette.coastline),
-                                   lineWidth: coastlineWidth)
-            }
+            let visibleRect = visibleDrawRect(cameraCenter: cameraCenter,
+                                              currentScale: currentScale,
+                                              offsetX: offsetX,
+                                              offsetY: offsetY)
 
             for shape in shapes {
                 let path = scaledPaths.path(for: shape.path, in: worldRect)
+
+                // Off-screen countries cost nothing to skip and everything to draw: since
+                // [D-05] each one carries roughly four times the points it used to, and at
+                // any zoom past the world view most of them are nowhere near the viewport.
+                guard path.boundingRect.intersects(visibleRect) else { continue }
+
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
 
-                let fillColor = fill(for: shape.iso2)
-                let strokeColor = isSelected ? MapPalette.selectionStroke
-                                             : MapPalette.interiorBorder
+                let fillColor = fill(for: shape.iso2, isSelected: isSelected)
+                let strokeColor = isSelected
+                    ? Color(uiColor: .label)
+                    : Color(uiColor: .systemBackground).opacity(Style.borderOpacity)
 
                 // Divided by the camera scale so the border keeps a constant
                 // on-screen width at every zoom level.
-                let baseLineWidth = isSelected ? MapStrokeMetrics.selectedBorderWidth
-                                               : MapStrokeMetrics.interiorBorderWidth
+                let baseLineWidth = isSelected ? Style.selectedLineWidth : Style.lineWidth
                 let lineWidth = baseLineWidth / (interactiveEnabled ? currentScale : 1)
 
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
-
-                if hatchingEnabled, let direction = hatchDirection(for: shape.iso2) {
-                    drawHatching(direction,
-                                 over: path,
-                                 clippedTo: visibleDrawRect,
-                                 currentScale: currentScale,
-                                 in: drawContext)
-                }
-
                 drawContext.stroke(path, with: .color(strokeColor), lineWidth: lineWidth)
             }
 
@@ -280,29 +263,36 @@ struct FlatMapRenderer: View, Animatable {
         }
     }
 
-    // MARK: - Coastline
+    // MARK: - Fill
 
-    /// Width of the coastline casing in the coordinate space the canvas is drawing in.
-    ///
-    /// Divided by the camera scale for the same reason the borders are: the canvas is scaled,
-    /// the stroke should not be.
-    ///
-    /// - Parameter currentScale: Fit scale times user zoom, the factor the canvas is scaled by.
-    /// - Returns: The line width to hand to `stroke(_:with:lineWidth:)`.
-    private func coastlineLineWidth(currentScale: CGFloat) -> CGFloat {
+    /// Resolves the fill colour of one country from its tracking status.
+    /// - Parameters:
+    ///   - iso2: Lowercased ISO2 code of the shape being drawn.
+    ///   - isSelected: Whether this country is the selected one.
+    /// - Returns: The status colour, or the neutral system fill when the country is
+    ///   not part of ``countriesByISO2`` (unknown, or filtered out).
+    private func fill(for iso2: String, isSelected: Bool) -> Color {
 
-        let onScreen = MapStrokeMetrics.coastlineWidth(forUserZoom: userZoom)
-        return onScreen / (interactiveEnabled ? currentScale : 1)
+        guard let country = countriesByISO2[iso2] else { return Color(uiColor: .systemFill) }
+
+        switch country.status {
+        case .visited:
+            return Color(uiColor: .label).opacity(Style.visitedFillOpacity)
+        case .wishlist:
+            return .orange.opacity(Style.wishlistFillOpacity)
+        default:
+            return Color(uiColor: .label).opacity(Style.neutralFillOpacity)
+        }
     }
 
-    // MARK: - Status hatching
+    // MARK: - Visible area
 
     /// The part of the drawing space the viewport currently shows.
     ///
     /// The canvas carries the camera transform, so a country's bounding box is in that
     /// transformed space and can be far larger than the screen. Intersecting with this is what
-    /// keeps the hatch line count bounded by what is actually visible instead of by how far
-    /// the user has zoomed in.
+    /// makes the work proportional to what is on screen instead of to how far the user has
+    /// zoomed in.
     ///
     /// - Parameters:
     ///   - cameraCenter: Centre of the viewport, the fixed point of the scale.
@@ -327,74 +317,6 @@ struct FlatMapRenderer: View, Animatable {
                       y: originY,
                       width: viewport.width / currentScale,
                       height: viewport.height / currentScale)
-    }
-
-    /// The hatch direction a country's status calls for, or `nil` when it carries no status.
-    ///
-    /// - Parameter iso2: Lowercased ISO2 code of the shape being drawn.
-    private func hatchDirection(for iso2: String) -> StatusHatching.Direction? {
-
-        switch countriesByISO2[iso2]?.status {
-        case .visited: .rising
-        case .wishlist: .falling
-        default: nil
-        }
-    }
-
-    /// Draws the hatch of one country, clipped to its own shape.
-    ///
-    /// - Parameters:
-    ///   - direction: Which way the lines run.
-    ///   - path: The country, already scaled into the drawing rectangle.
-    ///   - visibleRect: What the viewport shows, in the drawing space.
-    ///   - currentScale: Fit scale times user zoom, used to keep spacing and line width
-    ///     constant on screen.
-    ///   - context: The canvas context; a copy is clipped, so the caller's context is
-    ///     untouched.
-    private func drawHatching(_ direction: StatusHatching.Direction,
-                              over path: Path,
-                              clippedTo visibleRect: CGRect,
-                              currentScale: CGFloat,
-                              in context: GraphicsContext) {
-
-        let area = path.boundingRect.intersection(visibleRect)
-
-        guard !area.isNull, !area.isEmpty else { return }
-
-        let cameraScale = interactiveEnabled ? currentScale : 1
-        let lines = StatusHatching.path(covering: area,
-                                        direction: direction,
-                                        spacing: StatusHatching.spacing / cameraScale)
-
-        var layer = context
-        layer.clip(to: path, style: .init(eoFill: true))
-        layer.stroke(lines,
-                     with: .color(MapPalette.statusHatch),
-                     lineWidth: StatusHatching.lineWidth / cameraScale)
-    }
-
-    // MARK: - Fill
-
-    /// Resolves the fill colour of one country from its tracking status.
-    ///
-    /// - Note: The selection does not change the fill. It is carried by the stroke colour and
-    ///   width instead, so that a selected country still shows its status.
-    ///
-    /// - Parameter iso2: Lowercased ISO2 code of the shape being drawn.
-    /// - Returns: The status colour, or the neutral system fill when the country is
-    ///   not part of ``countriesByISO2`` (unknown, or filtered out).
-    private func fill(for iso2: String) -> Color {
-
-        guard let country = countriesByISO2[iso2] else { return MapPalette.unknownLandFill }
-
-        switch country.status {
-        case .visited:
-            return MapPalette.visitedFill
-        case .wishlist:
-            return MapPalette.wishlistFill
-        default:
-            return MapPalette.neutralLandFill
-        }
     }
 
     // MARK: - Labels (collision-free)
@@ -427,10 +349,7 @@ struct FlatMapRenderer: View, Animatable {
             let fontSize: CGFloat
             let screenPoint: CGPoint
             let textSize: CGSize
-            /// Natural Earth's importance, lower wins.
-            let rank: Int
-            /// Projected box area, the tie-breaker within one rank.
-            let area: CGFloat
+            let score: CGFloat
             let rect: CGRect
         }
 
@@ -462,12 +381,6 @@ struct FlatMapRenderer: View, Animatable {
                           height: max(LabelLayout.minimumProjectedExtent, maxY - minY))
         }
 
-        // Nothing at all while the map is at or near its minimum zoom.
-        let worldHeightOnScreen = worldRect.height * currentScale
-        guard viewport.height > 0,
-              worldHeightOnScreen / viewport.height >= LabelLayout.minimumWorldToViewportScale
-        else { return }
-
         let viewportExpanded = viewport.insetBy(dx: -LabelLayout.viewportOverscan,
                                                 dy: -LabelLayout.viewportOverscan)
 
@@ -478,76 +391,51 @@ struct FlatMapRenderer: View, Animatable {
 
             guard let country = countriesByISO2[shape.iso2] else { continue }
 
-            let name = country.displayName
+            let name = country.nameEnglish
             guard !name.isEmpty else { continue }
 
-            // The pole of inaccessibility of the country's largest part - the point
-            // furthest from any edge of it.
-            //
-            // Natural Earth's own label_x/label_y was tried here and is worse: it is placed
-            // for a printed world map, so Russia's sits over the Urals rather than in the
-            // middle of Russia.
-            let anchorNormalized = shape.labelAnchor
-
             let anchorWorld = CGPoint(
-                x: worldRect.minX + anchorNormalized.x * worldRect.width,
-                y: worldRect.minY + anchorNormalized.y * worldRect.height
+                x: worldRect.minX + shape.labelAnchor.x * worldRect.width,
+                y: worldRect.minY + shape.labelAnchor.y * worldRect.height
             )
             let anchorScreen = worldToScreen(anchorWorld)
 
-            // The unpadded box: how much room the outline really offers, not what the
-            // camera would frame.
-            let fitBox = shape.labelFitBoundingBoxNormalized
+            let focus = shape.focusBoundingBoxNormalized
 
-            let fitWorld = CGRect(
-                x: worldRect.minX + fitBox.minX * worldRect.width,
-                y: worldRect.minY + fitBox.minY * worldRect.height,
-                width: fitBox.width * worldRect.width,
-                height: fitBox.height * worldRect.height
+            let focusWorld = CGRect(
+                x: worldRect.minX + focus.minX * worldRect.width,
+                y: worldRect.minY + focus.minY * worldRect.height,
+                width: focus.width * worldRect.width,
+                height: focus.height * worldRect.height
             )
-            let fitScreenRect = worldRectToScreenRect(fitWorld)
+            let focusScreenRect = worldRectToScreenRect(focusWorld)
 
-            guard fitScreenRect.intersects(viewportExpanded) else { continue }
+            guard focusScreenRect.intersects(viewportExpanded) else { continue }
 
-            let fontSize = LabelLayout.fontSize
-            let bboxArea = fitScreenRect.width * fitScreenRect.height
+            let fontScale = min(1.0, 1.0 / max(currentScale, LabelLayout.minimumScaleDivisor))
+            // Rounded so the metrics cache hits instead of missing on every frame.
+            let fontSize = (LabelLayout.baseFontSize * fontScale)
+                .clamped(LabelLayout.minimumFontSize, LabelLayout.maximumFontSize)
+                .rounded()
 
-            // Relative to the viewport, not absolute: this is the gate that empties the
-            // world view and fills in as the map is zoomed.
-            let viewportArea = viewport.width * viewport.height
-            guard viewportArea > 0,
-                  bboxArea / viewportArea >= LabelLayout.minimumViewportCoverage
+            // Measured through UIKit and cached across frames. The SwiftUI Text is
+            // resolved further down, only for labels that actually get drawn.
+            let textSize = labelMetrics.size(for: name, fontSize: fontSize)
+
+            let minimumBoxWidth: CGFloat = max(LabelLayout.minimumBoxWidthFloor,
+                                               textSize.width + LabelLayout.textFitPaddingWidth)
+            let minimumBoxHeight: CGFloat = max(LabelLayout.minimumBoxHeightFloor,
+                                                textSize.height + LabelLayout.textFitPaddingHeight)
+            let textArea = textSize.width * textSize.height
+            let minimumArea: CGFloat = max(LabelLayout.minimumBoxAreaFloor,
+                                           textArea * LabelLayout.boxToTextAreaFactor)
+
+            let bboxArea = focusScreenRect.width * focusScreenRect.height
+
+            guard focusScreenRect.width >= minimumBoxWidth,
+                  focusScreenRect.height >= minimumBoxHeight,
+                  bboxArea >= minimumArea
             else { continue }
-
-            /// Whether a string fits the country's box at the drawing font size.
-            ///
-            /// Measured through UIKit and cached across frames. The SwiftUI Text is
-            /// resolved further down, only for labels that actually get drawn.
-            func fittingSize(of candidateText: String) -> CGSize? {
-
-                let size = labelMetrics.size(for: candidateText, fontSize: fontSize)
-
-                let minimumWidth = max(LabelLayout.minimumBoxWidthFloor,
-                                       size.width + LabelLayout.textFitPaddingWidth)
-                let minimumHeight = max(LabelLayout.minimumBoxHeightFloor,
-                                        size.height + LabelLayout.textFitPaddingHeight)
-                let minimumArea = max(LabelLayout.minimumBoxAreaFloor,
-                                      size.width * size.height * LabelLayout.boxToTextAreaFactor)
-
-                guard fitScreenRect.width >= minimumWidth,
-                      fitScreenRect.height >= minimumHeight,
-                      bboxArea >= minimumArea
-                else { return nil }
-
-                return size
-            }
-
-            // A name that does not fit is not drawn. Zooming in is what reveals it.
-            //
-            // Natural Earth's `abbrev` was tried here and reads as noise: a world view full
-            // of "Fr.", "Ukr." and "S.Af." is worse than a world view with nothing on it.
-            guard let textSize = fittingSize(of: name) else { continue }
-            let drawnText = name
 
             let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
@@ -560,24 +448,17 @@ struct FlatMapRenderer: View, Animatable {
 
             candidates.append(.init(
                 iso2: shape.iso2,
-                name: drawnText,
+                name: name,
                 fontSize: fontSize,
                 screenPoint: anchorScreen,
                 textSize: textSize,
-                rank: shape.labelInfo.rank,
-                area: bboxArea,
+                score: bboxArea,
                 rect: labelRect
             ))
         }
 
-        // Most important country first, so it keeps its label when two labels overlap.
-        //
-        // This used to be projected box area alone, which let the projection decide what
-        // matters: in Web Mercator Niger outranks France. Natural Earth's own importance
-        // ranking decides now, and area only breaks ties within one rank.
-        candidates.sort {
-            $0.rank != $1.rank ? $0.rank < $1.rank : $0.area > $1.area
-        }
+        // Largest country first, so it keeps its label when two labels overlap.
+        candidates.sort { $0.score > $1.score }
 
         /// Bucket coordinate in the uniform collision grid.
         struct CellKey: Hashable { let x: Int; let y: Int }
@@ -633,7 +514,7 @@ struct FlatMapRenderer: View, Animatable {
             // the fit and collision checks are worth the text layout.
             let text = Text(candidate.name)
                 .font(.system(size: candidate.fontSize, weight: .semibold))
-                .foregroundStyle(MapPalette.labelText)
+                .foregroundStyle(Color(uiColor: .label).opacity(Style.labelOpacity))
 
             context.draw(context.resolve(text),
                          at: candidate.screenPoint,

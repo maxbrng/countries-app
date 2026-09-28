@@ -141,6 +141,14 @@ struct FlatMapView: View {
     ///   resolves to; see ``MapPerformanceBudget``.
     private var shapeVariant: FlatMapShapeCache.Variant { detail.variant }
 
+    /// The geometry to draw and hit-test at the current zoom.
+    ///
+    /// Drawing and hit-testing read the same property on purpose: a tap has to land on the
+    /// shape that is actually on screen, not on a differently simplified one.
+    private var currentShapes: [RenderCountryShape] {
+        viewModel.shapes(forUserZoom: camera.userZoom)
+    }
+
     // MARK: - Init
 
     /// Creates a FlatMapView.
@@ -348,7 +356,7 @@ struct FlatMapView: View {
         }()
 
         FlatMapRenderer(
-            shapes: viewModel.shapes,
+            shapes: currentShapes,
             countriesByISO2: countriesByISO2ForMarking,
             selectedISO2: selectedISO2,
             viewport: viewport,
@@ -571,7 +579,7 @@ struct FlatMapView: View {
                               worldRect: CGRect,
                               fitScale: CGFloat) {
         
-        guard let shape = viewModel.shapes.first(where: { $0.iso2 == iso2 }) else { return }
+        guard let shape = currentShapes.first(where: { $0.iso2 == iso2 }) else { return }
         
         let focus = shape.focusBoundingBoxNormalized
         
@@ -842,7 +850,7 @@ struct FlatMapView: View {
             y: (worldPoint.y - worldRect.minY) / worldRect.height
         )
 
-        for shape in viewModel.shapes.reversed() {
+        for shape in currentShapes.reversed() {
             guard shape.boundsNormalized.contains(normalizedPoint) else { continue }
             if shape.path.contains(normalizedPoint, using: .evenOdd) {
                 return shape.iso2

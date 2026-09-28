@@ -14,22 +14,33 @@ nonisolated enum FlatPathBuilder {
     enum Variant: Sendable {
         /// Interactive / detail mode: full geometry, hybrid centroid + polylabel.
         case full
+        /// World view: every point the screen can actually resolve, and no more.
+        case overview
         /// Preview mode: simplified geometry, tiny islands dropped, no polylabel.
         case light
 
         /// Max deviation in normalized world units (0...1 across the whole map).
-        /// At preview size 0.0006 is well under a pixel.
+        ///
+        /// At preview size 0.0006 is well under a pixel. The overview value is set the same
+        /// way for the full-size map: at the world view the map is roughly 1200 points wide,
+        /// so one point is 1/1200 = 0.00083 world units and 0.0004 is half of that. A vertex
+        /// dropped at this tolerance could not have been drawn in a different pixel than the
+        /// one that remains — this removes what the screen cannot show, not detail.
         var simplificationTolerance: CGFloat {
             switch self {
             case .full: return 0
+            case .overview: return 0.0004
             case .light: return 0.0006
             }
         }
 
         /// Rings below this area (normalized units²) are skipped in preview mode.
+        ///
+        /// Zero for the overview: a dropped island is a missing country, which is a different
+        /// thing from a vertex the screen cannot resolve.
         var minimumRingArea: CGFloat {
             switch self {
-            case .full: return 0
+            case .full, .overview: return 0
             case .light: return 0.000004
             }
         }
@@ -87,8 +98,16 @@ nonisolated enum FlatPathBuilder {
             }
 
             if variant.simplificationTolerance > 0 {
-                points = PolylineSimplifier.simplify(points,
-                                                     tolerance: variant.simplificationTolerance)
+                let simplified = PolylineSimplifier.simplify(
+                    points,
+                    tolerance: variant.simplificationTolerance
+                )
+                // A ring the tolerance would flatten below a triangle is kept as it was: the
+                // point of simplifying is to drop vertices the screen cannot resolve, and a
+                // ring that falls under three points is dropped entirely further down — which
+                // turns a small island state into a hole in the map. Measured: without this,
+                // 23 of 245 countries disappear from the overview.
+                if simplified.count >= 3 { points = simplified }
             }
 
             guard let start = points.first, points.count >= 3 else { return false }
@@ -108,8 +127,16 @@ nonisolated enum FlatPathBuilder {
             var points = projectRing(ring)
 
             if variant.simplificationTolerance > 0 {
-                points = PolylineSimplifier.simplify(points,
-                                                     tolerance: variant.simplificationTolerance)
+                let simplified = PolylineSimplifier.simplify(
+                    points,
+                    tolerance: variant.simplificationTolerance
+                )
+                // A ring the tolerance would flatten below a triangle is kept as it was: the
+                // point of simplifying is to drop vertices the screen cannot resolve, and a
+                // ring that falls under three points is dropped entirely further down — which
+                // turns a small island state into a hole in the map. Measured: without this,
+                // 23 of 245 countries disappear from the overview.
+                if simplified.count >= 3 { points = simplified }
             }
 
             guard let start = points.first, points.count >= 3 else { return }
@@ -178,7 +205,10 @@ nonisolated enum FlatPathBuilder {
         
         let labelAnchor: CGPoint = {
             switch variant {
-            case .full:
+            case .full, .overview:
+                // The same anchor as .full, deliberately: the overview is drawn on the real
+                // map with labels on it, and a different anchor would make every name jump
+                // the moment the camera crosses the detail threshold.
                 return makeHybridLabelAnchor(bestCandidate: best)
             case .light:
                 return makeLightLabelAnchor(bestCandidate: best)

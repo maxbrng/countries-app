@@ -76,11 +76,13 @@ nonisolated struct MapDetailRequest: Hashable, Sendable {
     /// anything else would be detail that cannot be seen.
     ///
     /// - Returns: ``FlatMapShapeCache/Variant/light`` when none of the three switches is on,
-    ///   ``FlatMapShapeCache/Variant/full`` otherwise.
+    ///   ``FlatMapShapeCache/Variant/overview`` otherwise. Never ``full``: since [D-11] the
+    ///   full geometry is fetched by ``FlatMapViewModel`` once the camera is zoomed past the
+    ///   point where it can be seen, not by the call site.
     var variant: FlatMapShapeCache.Variant {
 
         guard selectionEnabled || interactiveEnabled || labelsEnabled else { return .light }
 
-        return .full
+        return .overview
     }
 }
