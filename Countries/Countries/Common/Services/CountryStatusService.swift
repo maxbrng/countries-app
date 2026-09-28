@@ -69,4 +69,39 @@ enum CountryStatusService {
         country.status = status
         try context.save()
     }
+
+    /// Applies `status` to every country whose ``Country/iso2`` is in `codes`.
+    ///
+    /// One save for the whole set rather than one per country: the first launch can hand in
+    /// two hundred codes at once, and that is two hundred round trips to the store otherwise.
+    ///
+    /// - Parameters:
+    ///   - status: The status to store.
+    ///   - codes: ISO2 codes, matched case-insensitively against the stored uppercase code.
+    ///   - context: The model context holding the countries.
+    /// - Returns: How many countries actually changed. Zero is a valid answer — a user who
+    ///   selected nothing has said something, and the caller should not treat it as a failure.
+    /// - Throws: Any error from the fetch or the save.
+    @discardableResult
+    static func setStatus(_ status: CountryStatus,
+                          forCountriesWithISO2 codes: Set<String>,
+                          in context: ModelContext) throws -> Int {
+
+        guard !codes.isEmpty else { return 0 }
+
+        let wanted = Set(codes.map { $0.uppercased() })
+        let countries = try context.fetch(FetchDescriptor<Country>())
+
+        var changed = 0
+        for country in countries where wanted.contains(country.iso2) && country.status != status {
+            country.status = status
+            changed += 1
+        }
+
+        guard changed > 0 else { return 0 }
+
+        try context.save()
+
+        return changed
+    }
 }

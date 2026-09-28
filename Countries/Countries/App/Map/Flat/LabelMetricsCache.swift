@@ -5,14 +5,15 @@
 //  Created by Max Breuning on 05.08.26.
 //
 
-import UIKit
 import CoreGraphics
+import Foundation
 
 /// Caches measured label sizes across frames.
 ///
 /// `drawLabels` used to call `GraphicsContext.resolve` and `measure` for every
 /// country on every frame, which during a pan or a fling is a few hundred text
-/// layouts per frame. Measuring through UIKit instead lets the result be cached
+/// layouts per frame. Measuring through the platform's text system instead lets the result
+/// be cached
 /// outside the draw closure, so only the labels that actually survive the fit and
 /// collision checks get resolved and drawn.
 @MainActor
@@ -35,7 +36,7 @@ final class LabelMetricsCache {
 
     // MARK: - Measuring
 
-    /// Returns the drawn size of a label, measuring through UIKit only on a cache miss.
+    /// Returns the drawn size of a label, measuring only on a cache miss.
     /// - Parameters:
     ///   - text: The label string, measured exactly as it will be drawn.
     ///   - fontSize: Point size of the semibold system font used for the label.
@@ -48,8 +49,8 @@ final class LabelMetricsCache {
 
         if let cached = sizes[key] { return cached }
 
-        let font = UIFont.systemFont(ofSize: CGFloat(key.fontSize), weight: .semibold)
-        let size = (text as NSString).size(withAttributes: [.font: font])
+        let font = PlatformFont.mapLabelFont(ofSize: CGFloat(key.fontSize))
+        let size = font.measuredSize(of: text)
 
         sizes[key] = size
         return size

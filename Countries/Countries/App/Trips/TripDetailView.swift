@@ -163,7 +163,7 @@ struct TripDetailView: View {
                 .frame(maxWidth: TripDetailLayout.flagMaxWidth,
                        maxHeight: TripDetailLayout.flagMaxHeight)
 
-            Text(verbatim: country.nameEnglish)
+            Text(verbatim: country.displayName)
         }
     }
 
@@ -174,7 +174,7 @@ struct TripDetailView: View {
     /// Sorted here because the relationship has no order of its own, so the same trip would
     /// otherwise list its countries differently on different launches.
     private var sortedCountries: [Country] {
-        trip.countries.sorted { $0.nameEnglish < $1.nameEnglish }
+        trip.countries.sortedByDisplayName()
     }
 
     // MARK: - Actions

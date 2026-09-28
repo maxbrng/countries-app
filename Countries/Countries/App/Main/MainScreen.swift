@@ -61,7 +61,6 @@ struct MainScreen: View {
     /// resolved by ``RootTabView``.
     @Binding var path: NavigationPath
 
-    @StateObject private var viewModel = MainScreenViewModel()
     @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
 
     @Query(sort: \Country.iso2) private var allCountries: [Country]
@@ -117,21 +116,31 @@ struct MainScreen: View {
                 }
             }
         }
-        .task {
-            let source = showOnlyUNMembers ? allCountries.filter { $0.isUNMember } : allCountries
-            viewModel.update(from: source)
-        }
-        .onChange(of: allCountries) { _, newValue in
-            let source = showOnlyUNMembers ? newValue.filter { $0.isUNMember } : newValue
-            viewModel.update(from: source)
-        }
-        .onChange(of: showOnlyUNMembers) { _, newValue in
-            let source = newValue ? allCountries.filter { $0.isUNMember } : allCountries
-            viewModel.update(from: source)
-        }
         .task(id: allCountries.count) {
             await warmInteractiveMapGeometry()
         }
+    }
+
+    // MARK: - Content
+
+    /// The countries the card's two columns list.
+    ///
+    /// Computed from the query rather than mirrored into a view model. `Country` is a class,
+    /// so changing a status leaves the array's elements identical and an `onChange(of:)` on it
+    /// never fires — which is how the card came to show zero while the statistics beside it,
+    /// which read the query directly, showed the right number.
+    private var statusSource: [Country] {
+        showOnlyUNMembers ? allCountries.filter(\.isUNMember) : allCountries
+    }
+
+    /// Visited countries, in the order the user reads them.
+    private var visitedCountries: [Country] {
+        statusSource.filter { $0.status == .visited }.sortedByDisplayName()
+    }
+
+    /// Wishlisted countries, in the order the user reads them.
+    private var wishlistCountries: [Country] {
+        statusSource.filter { $0.status == .wishlist }.sortedByDisplayName()
     }
 
     // MARK: - Geometry warm-up
@@ -173,13 +182,13 @@ struct MainScreen: View {
                     .foregroundStyle(.primary)
 
                 HStack(alignment: .top, spacing: Layout.cardColumnSpacing) {
-                    countryPreviewList(for: "Visited", countries: viewModel.visitedCountries)
+                    countryPreviewList(for: "Visited", countries: visitedCountries)
 
                     // Explicit key: this column is a heading over a list, so German wants the
                     // noun ("Wunschliste"). The detail screen's button says the same English
                     // words but needs the full phrase, and one key cannot hold both.
                     countryPreviewList(for: "dashboard.column.wishlist",
-                                       countries: viewModel.wishlistCountries)
+                                       countries: wishlistCountries)
                 }
 
                 Divider()
@@ -239,7 +248,7 @@ struct MainScreen: View {
                             )
                             .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
 
-                        Text(country.nameEnglish)
+                        Text(country.displayName)
                             .foregroundStyle(.primary)
                             .multilineTextAlignment(.leading)
                             .truncationMode(.tail)

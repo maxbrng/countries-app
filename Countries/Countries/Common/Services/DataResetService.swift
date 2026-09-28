@@ -92,6 +92,12 @@ enum DataResetService {
             UserDefaults.standard.removeObject(forKey: key)
         }
 
+        // "First-launch state" includes the first launch itself. Without this the reset would
+        // leave a user who has just erased everything on an empty map with no way back to the
+        // screen that offered to fill it.
+        OnboardingState.reset()
+        HomeCountry.reset()
+
         try CountrySeeder.seedIfNeeded(in: context)
 
         logger.info("Data reset completed; countries re-seeded.")

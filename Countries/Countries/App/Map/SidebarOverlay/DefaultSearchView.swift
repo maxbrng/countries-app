@@ -223,22 +223,10 @@ struct DefaultSearchView: View {
         if trimmed.isEmpty {
             filtered = source
         } else {
-            filtered = source.filter { country in
-                // Simple search across name, ISO codes and, where present, alternative names.
-                let haystack = [
-                    country.nameEnglish,
-                    country.iso2,
-                    country.iso3
-                ]
-                    .compactMap { $0 }
-                    .joined(separator: " ")
-                    .lowercased()
-
-                return haystack.contains(trimmed.lowercased())
-            }
+            filtered = source.filter { $0.matches(searchQuery: trimmed) }
         }
 
-        return filtered.sorted { ($0.nameEnglish) < ($1.nameEnglish) }
+        return filtered.sortedByDisplayName()
     }
 
     /// Whether the sheet shows results instead of the filters.

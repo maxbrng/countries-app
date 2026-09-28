@@ -10,7 +10,6 @@
 //
 
 import Foundation
-import UIKit
 
 /// Shared loader that decodes GeoJSON from the app bundle and resolves each feature to an ISO2 code.
 /// The resulting `ResolvedFeature` can be used by different renderers (Flat / Globe) without duplicating decoding code.
@@ -203,12 +202,8 @@ extension GeoJSONLoader {
     static func startReleasingCacheUnderPressure() {
 
         let center = NotificationCenter.default
-        let names: [Notification.Name] = [
-            UIApplication.didEnterBackgroundNotification,
-            UIApplication.didReceiveMemoryWarningNotification
-        ]
 
-        for name in names {
+        for name in MemoryPressureSignals.releaseCaches {
             center.addObserver(forName: name, object: nil, queue: nil) { _ in
                 Task { await GeoJSONResourceCache.shared.discardCachedCollections() }
             }

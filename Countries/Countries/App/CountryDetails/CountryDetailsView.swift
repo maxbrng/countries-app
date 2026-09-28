@@ -76,7 +76,7 @@ struct CountryDetailsView: View {
             }
             .padding()
         }
-        .navigationTitle(country.nameEnglish)
+        .navigationTitle(country.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
         .toolbar(.hidden, for: .tabBar)
@@ -100,7 +100,7 @@ struct CountryDetailsView: View {
                 .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
 
             VStack(alignment: .leading, spacing: Layout.headerTextSpacing) {
-                Text(country.nameEnglish)
+                Text(country.displayName)
                     .font(.title2).fontWeight(.semibold)
                 if let native = country.nativeName, !native.isEmpty {
                     Text(native)
@@ -135,7 +135,7 @@ struct CountryDetailsView: View {
             }
 
             if let continent = country.continent {
-                infoRow(title: "Continent", value: continent)
+                infoRow(title: "Continent", value: ContinentName.name(for: continent))
             }
 
             if let capital = country.capital, !capital.isEmpty {

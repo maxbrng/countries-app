@@ -478,7 +478,7 @@ struct FlatMapRenderer: View, Animatable {
 
             guard let country = countriesByISO2[shape.iso2] else { continue }
 
-            let name = country.nameEnglish
+            let name = country.displayName
             guard !name.isEmpty else { continue }
 
             // The pole of inaccessibility of the country's largest part - the point

@@ -79,6 +79,10 @@ final class Country {
         self.translationsData = try? JSONEncoder().encode(translations)
     }
     
+    /// Memo for ``displayName``, which would otherwise decode ``translationsData`` on every
+    /// read. Not persisted: it depends on the language the app is running in.
+    @Transient var cachedDisplayName: String?
+
     var localizedNames: [String: String] {
         
         get {

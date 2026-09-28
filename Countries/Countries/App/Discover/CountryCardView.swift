@@ -271,7 +271,7 @@ struct CountryCardView: View {
                 )
                 .frame(width: CardMetrics.flagWidth, height: CardMetrics.flagHeight)
 
-            Text(country.nameEnglish)
+            Text(country.displayName)
                 .font(.title.bold())
                 .foregroundStyle(.white)
         }
