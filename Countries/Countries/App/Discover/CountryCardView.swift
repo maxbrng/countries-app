@@ -291,7 +291,7 @@ struct CountryCardView: View {
             Spacer(minLength: 0)
 
             MiniChip(icon: "shield",
-                     text: country.safetyLevel.shortLabel,
+                     text: country.safetyLevel.shortTitle,
                      tint: country.safetyLevel.tint)
         }
     }
@@ -325,7 +325,7 @@ private struct TravelTagRow: View {
             ForEach(tags, id: \.self) { tag in
                 TagIconChip(
                     icon: tag.symbolName,
-                    label: tag.shortLabel
+                    label: tag.shortTitle
                 )
             }
         }
@@ -339,8 +339,8 @@ private struct TagIconChip: View {
     /// SF Symbol name.
     let icon: String
 
-    /// Short label shown next to the symbol.
-    let label: String
+    /// Short label shown next to the symbol, looked up in the string catalog.
+    let label: LocalizedStringKey
 
     var body: some View {
         HStack(spacing: CardMetrics.chipContentSpacing) {
@@ -372,7 +372,7 @@ private struct ClimateThermometerBadge: View {
                 .foregroundStyle(tag.tint,
                                  .white.opacity(CardMetrics.thermometerSecondaryOpacity))
 
-            Text(tag.shortLabel.capitalized)
+            Text(tag.shortTitle)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white.opacity(CardMetrics.badgeTextOpacity))
         }
@@ -423,7 +423,7 @@ private struct CostEuroBadge: View {
         }
         .frame(height: CardMetrics.badgeHeight, alignment: .center)
         .capsuleBadgeStyle()
-        .accessibilityLabel("Kostenlevel \(level.rawValue) von 5")
+        .accessibilityLabel("Cost level \(level.rawValue) of 5")
     }
 }
 
@@ -435,8 +435,8 @@ private struct MiniChip: View {
     /// SF Symbol name.
     let icon: String
 
-    /// Label shown next to the symbol.
-    let text: String
+    /// Label shown next to the symbol, looked up in the string catalog.
+    let text: LocalizedStringKey
 
     /// Tint applied to both symbol and label.
     let tint: Color
@@ -469,35 +469,10 @@ private struct MiniChip: View {
 
 private extension TravelTag {
 
-    /// Chip label, short enough to survive the card's flow layout.
-    var shortLabel: String {
-        switch self {
-        case .beach: return "Beach"
-        case .nature: return "Nature"
-        case .hiking: return "Hike"
-        case .culture: return "Culture"
-        case .food: return "Food"
-        case .nightlife: return "Night"
-        case .citytrip: return "City"
-        case .relax: return "Relax"
-        case .adventure: return "Adventure"
-        case .skiing: return "Ski"
-        }
-    }
 }
 
 private extension ClimateTag {
 
-    /// Badge label for the climate.
-    var shortLabel: String {
-        switch self {
-        case .cold: return "Cold"
-        case .mild: return "Mild"
-        case .warm: return "Warm"
-        case .tropical: return "Tropical"
-        case .mixed: return "Mixed"
-        }
-    }
 
     /// Thermometer fill height, 0...1, which also picks the symbol variant.
     var fillLevel: CGFloat {
@@ -519,16 +494,6 @@ private extension ClimateTag {
 
 private extension SafetyLevel {
 
-    /// Badge label for the safety level.
-    var shortLabel: String {
-        switch self {
-        case .verySafe: return "Very safe"
-        case .safe: return "Safe"
-        case .mixed: return "Mixed"
-        case .risky: return "Risky"
-        case .veryRisky: return "Very risky"
-        }
-    }
 
     /// Colour matching the safety level, from green for safe to red for risky.
     var tint: Color {
@@ -574,84 +539,6 @@ private extension UIColor {
 }
 
 // MARK: - Flow Layout
-
-/// Layout that places its subviews in a row and wraps to the next line when the proposed width runs
-/// out, which is what the travel tag chips need.
-struct FlowLayout: Layout {
-
-    /// Gap between two subviews, horizontally and between rows. Defaults to `8`.
-    var spacing: CGFloat = 8
-
-    /// Reports the size the wrapped rows need.
-    ///
-    /// - Parameters:
-    ///   - proposal: The proposed size; an unspecified width is treated as unbounded.
-    ///   - subviews: The subviews to place.
-    ///   - cache: Unused.
-    /// - Returns: The full proposed width and the height of all resulting rows.
-    func sizeThatFits(
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) -> CGSize {
-
-        let maxWidth = proposal.width ?? .infinity
-        var currentX: CGFloat = 0
-        var currentY: CGFloat = 0
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX + size.width > maxWidth {
-                currentX = 0
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            rowHeight = max(rowHeight, size.height)
-            currentX += size.width + spacing
-        }
-
-        return CGSize(width: maxWidth, height: currentY + rowHeight)
-    }
-
-    /// Places the subviews row by row, wrapping at the trailing edge of `bounds`.
-    ///
-    /// - Parameters:
-    ///   - bounds: The region to place the subviews in.
-    ///   - proposal: The proposed size; each subview is placed at its own ideal size instead.
-    ///   - subviews: The subviews to place.
-    ///   - cache: Unused.
-    func placeSubviews(
-        in bounds: CGRect,
-        proposal: ProposedViewSize,
-        subviews: Subviews,
-        cache: inout ()
-    ) {
-        var currentX = bounds.minX
-        var currentY = bounds.minY
-        var rowHeight: CGFloat = 0
-
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-
-            if currentX + size.width > bounds.maxX {
-                currentX = bounds.minX
-                currentY += rowHeight + spacing
-                rowHeight = 0
-            }
-
-            subview.place(
-                at: CGPoint(x: currentX, y: currentY),
-                proposal: ProposedViewSize(size)
-            )
-
-            rowHeight = max(rowHeight, size.height)
-            currentX += size.width + spacing
-        }
-    }
-}
 
 // MARK: - Capsule Badge Style Modifier
 

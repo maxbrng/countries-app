@@ -245,7 +245,7 @@ struct FlatMapRenderer: View, Animatable {
                 let path = scaledPaths.path(for: shape.path, in: worldRect)
                 let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
 
-                let fillColor = fill(for: shape.iso2, isSelected: isSelected)
+                let fillColor = fill(for: shape.iso2)
                 let strokeColor = isSelected ? MapPalette.selectionStroke
                                              : MapPalette.interiorBorder
 
@@ -376,12 +376,14 @@ struct FlatMapRenderer: View, Animatable {
     // MARK: - Fill
 
     /// Resolves the fill colour of one country from its tracking status.
-    /// - Parameters:
-    ///   - iso2: Lowercased ISO2 code of the shape being drawn.
-    ///   - isSelected: Whether this country is the selected one.
+    ///
+    /// - Note: The selection does not change the fill. It is carried by the stroke colour and
+    ///   width instead, so that a selected country still shows its status.
+    ///
+    /// - Parameter iso2: Lowercased ISO2 code of the shape being drawn.
     /// - Returns: The status colour, or the neutral system fill when the country is
     ///   not part of ``countriesByISO2`` (unknown, or filtered out).
-    private func fill(for iso2: String, isSelected: Bool) -> Color {
+    private func fill(for iso2: String) -> Color {
 
         guard let country = countriesByISO2[iso2] else { return MapPalette.unknownLandFill }
 

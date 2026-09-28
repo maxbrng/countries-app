@@ -92,7 +92,6 @@ struct DefaultSearchView: View {
 
     @FocusState private var focusedField: Field?
 
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Country.iso2) private var allCountries: [Country]
 
     // MARK: - Body
@@ -268,9 +267,9 @@ struct DefaultSearchView: View {
                 .font(.callout)
 
             Picker("Filter", selection: $model.filter) {
-                Text("All").tag(CountryStatusFilter.all)
-                Text("Visited").tag(CountryStatusFilter.visited)
-                Text("Wishlist").tag(CountryStatusFilter.wishlist)
+                ForEach(CountryStatusFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
             }
             .pickerStyle(.segmented)
         }
@@ -295,7 +294,7 @@ struct DefaultSearchView: View {
                     Text("From")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    DatePicker("Von", selection: $start, in: ...end, displayedComponents: .date)
+                    DatePicker("From", selection: $start, in: ...end, displayedComponents: .date)
                         .labelsHidden()
                 }
                 .fixedSize()
@@ -306,7 +305,7 @@ struct DefaultSearchView: View {
                     Text("To")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    DatePicker("Bis", selection: $end, in: start..., displayedComponents: .date)
+                    DatePicker("To", selection: $end, in: start..., displayedComponents: .date)
                         .labelsHidden()
                 }
                 .fixedSize()

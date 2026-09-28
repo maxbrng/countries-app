@@ -45,12 +45,6 @@ struct CountryQuickActionPanelView: View {
     /// Set while the confirmation for withdrawing a visited status is up.
     @State private var pendingWithdrawal: Country?
 
-    /// Invoked when the panel should be dismissed.
-    ///
-    /// - Note: The close control lives in the navigation bar of the presenting
-    ///   `MapViewController`, so the panel itself does not call this.
-    let onClose: () -> Void
-
     // MARK: - State
 
     @Environment(\.modelContext) private var modelContext

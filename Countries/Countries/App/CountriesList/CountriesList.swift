@@ -58,7 +58,6 @@ struct CountriesList: View {
 
         let base = showOnlyUNMembers ? allCountries.filter { $0.isUNMember } : allCountries
         let filtered = viewModel.filteredCountries(from: base, searchText: searchText)
-        let groups = viewModel.groups(from: filtered)
 
         List {
             if filtered.isEmpty {
@@ -67,7 +66,8 @@ struct CountriesList: View {
                 emptyState(isSearching: !searchText.isEmpty,
                            storeIsEmpty: allCountries.isEmpty)
             } else if searchText.isEmpty {
-                groupedList(groups: groups)
+                // Grouped only here: the search branch discards the grouping.
+                groupedList(groups: viewModel.groups(from: filtered))
             } else {
                 ungroupedList(countries: filtered)
             }
@@ -195,9 +195,9 @@ struct CountriesList: View {
                 .ignoresSafeArea(edges: .top)
 
             Picker("Filter", selection: $viewModel.filter) {
-                Text("All").tag(CountryStatusFilter.all)
-                Text("Visited").tag(CountryStatusFilter.visited)
-                Text("Wishlist").tag(CountryStatusFilter.wishlist)
+                ForEach(CountryStatusFilter.allCases) { filter in
+                    Text(filter.title).tag(filter)
+                }
             }
             .pickerStyle(.segmented)
             .padding()

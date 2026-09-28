@@ -778,10 +778,8 @@ final class MapViewController: UIViewController {
     /// - Returns: The sheet content, already carrying the SwiftData context.
     private func countrySheetContent(for country: Country) -> AnyView {
         AnyView(
-            CountryQuickActionPanelView(country: country) { [weak self] in
-                self?.model.route = .none
-            }
-            .environment(\.modelContext, modelContext)
+            CountryQuickActionPanelView(country: country)
+                .environment(\.modelContext, modelContext)
         )
     }
 
