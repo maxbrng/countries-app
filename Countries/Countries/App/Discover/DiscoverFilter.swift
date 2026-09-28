@@ -58,6 +58,6 @@ struct DiscoverFilter: Equatable {
 
                 return true
             }
-            .sorted { $0.nameEnglish.localizedCaseInsensitiveCompare($1.nameEnglish) == .orderedAscending }
+            .sortedByDisplayName()
     }
 }

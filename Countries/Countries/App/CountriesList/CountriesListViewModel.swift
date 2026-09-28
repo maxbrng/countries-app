@@ -37,11 +37,6 @@ enum CountryStatusFilter: Sendable, CaseIterable, Identifiable {
 @MainActor
 final class CountriesListViewModel: ObservableObject {
 
-    // MARK: - Constants
-
-    /// Placeholder continent code for countries without a continent.
-    private static let unknownContinentCode = "??"
-
     // MARK: - Published state
 
     /// Status filter selected in the segmented header. Defaults to ``CountryStatusFilter/all``.
@@ -71,9 +66,9 @@ final class CountriesListViewModel: ObservableObject {
     ///
     /// - Parameters:
     ///   - allCountries: The countries to narrow down.
-    ///   - searchText: Raw field contents; trimmed, and matched case-insensitively against
-    ///     the English name and the ISO2 code.
-    /// - Returns: The matching countries sorted by English name.
+    ///   - searchText: Raw field contents; trimmed, and matched against the displayed name,
+    ///     the English name and both ISO codes — see ``Country/matches(searchQuery:)``.
+    /// - Returns: The matching countries sorted by the name the user sees.
     func filteredCountries(from allCountries: [Country], searchText: String) -> [Country] {
 
         var result = allCountries
@@ -91,21 +86,10 @@ final class CountriesListViewModel: ObservableObject {
         // Search
         let searchResult = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !searchResult.isEmpty {
-            result = result.filter {
-                $0.nameEnglish.localizedCaseInsensitiveContains(searchResult) ||
-                $0.iso2.localizedCaseInsensitiveContains(searchResult)
-            }
+            result = result.filter { $0.matches(searchQuery: searchResult) }
         }
 
-        // Sort
-        result.sort {
-            let comparisonResult = $0.nameEnglish.localizedCaseInsensitiveCompare($1.nameEnglish)
-            return sortAscending
-                ? (comparisonResult == .orderedAscending)
-                : (comparisonResult == .orderedDescending)
-        }
-
-        return result
+        return result.sortedByDisplayName(ascending: sortAscending)
     }
 
     // MARK: - Grouping
@@ -116,37 +100,24 @@ final class CountriesListViewModel: ObservableObject {
     /// - Returns: Groups sorted by title, honouring ``sortAscending``.
     func groups(from countries: [Country]) -> [CountryGroup] {
 
-        let dict = Dictionary(grouping: countries, by: { $0.continent ?? Self.unknownContinentCode })
+        let dict = Dictionary(grouping: countries, by: { $0.continent ?? ContinentName.unknownCode })
 
         var groups = dict.map { code, items in
             CountryGroup(
                 continentCode: code,
-                title: continentTitle(for: code),
+                title: ContinentName.name(for: code),
                 countries: items
             )
         }
 
-        // Sort groups by title
-        groups.sort { sortAscending ? $0.title < $1.title : $0.title > $1.title }
+        // Sorted by the translated title, so the headings follow the same alphabet as the
+        // rows under them.
+        groups.sort {
+            let comparison = $0.title.localizedStandardCompare($1.title)
+            return sortAscending ? comparison == .orderedAscending : comparison == .orderedDescending
+        }
 
         return groups
     }
 
-    /// Display title for a continent code.
-    ///
-    /// - Parameter code: Two-letter continent code as stored on ``Country``.
-    /// - Returns: The English continent name, or `code` itself for an unrecognised value.
-    private func continentTitle(for code: String) -> String {
-        switch code {
-        case "AF": "Africa"
-        case "AN": "Antarctica"
-        case "AS": "Asia"
-        case "EU": "Europe"
-        case "NA": "North America"
-        case "OC": "Oceania"
-        case "SA": "South America"
-        case Self.unknownContinentCode: "Unknown"
-        default: code
-        }
-    }
 }

@@ -113,7 +113,7 @@ struct TripEditorView: View {
             }
 
             if !selectedCountries.isEmpty {
-                Text(selectedCountries.map(\.nameEnglish).joined(separator: ", "))
+                Text(selectedCountries.map(\.displayName).joined(separator: ", "))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -143,9 +143,10 @@ struct TripEditorView: View {
 
     // MARK: - Helpers
 
-    /// The selected countries, resolved from ``TripDraft/countryCodes``.
+    /// The selected countries, resolved from ``TripDraft/countryCodes`` and in the order the
+    /// user reads them, which is not the order the query sorted them in.
     private var selectedCountries: [Country] {
-        allCountries.filter { draft.countryCodes.contains($0.iso2) }
+        allCountries.filter { draft.countryCodes.contains($0.iso2) }.sortedByDisplayName()
     }
 
     // MARK: - Actions

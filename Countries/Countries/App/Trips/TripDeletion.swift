@@ -60,7 +60,7 @@ enum TripDeletion {
             tripTitle: TripFormatting.displayTitle(for: trip),
             dateRange: TripFormatting.dateRange(for: trip),
             hasNotes: !(trip.notes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty,
-            countryNames: trip.countries.map(\.nameEnglish).sorted()
+            countryNames: trip.countries.sortedByDisplayName().map(\.displayName)
         )
     }
 

@@ -239,7 +239,7 @@ struct MainScreen: View {
                             )
                             .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
 
-                        Text(country.nameEnglish)
+                        Text(country.displayName)
                             .foregroundStyle(.primary)
                             .multilineTextAlignment(.leading)
                             .truncationMode(.tail)
