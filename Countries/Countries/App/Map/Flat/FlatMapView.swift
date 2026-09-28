@@ -132,7 +132,17 @@ struct FlatMapView: View {
     private var shapeVariant: FlatMapShapeCache.Variant {
         // Preview: no interaction, no selection, no labels.
         if !interactiveEnabled && !selectionEnabled && !labelsEnabled { return .light }
-        return .full
+        // The interactive map asks for the overview and gets the full geometry behind it,
+        // so the first frame does not wait for half a million vertices to be projected.
+        return .overview
+    }
+
+    /// The geometry to draw and hit-test at the current zoom.
+    ///
+    /// Drawing and hit-testing read the same property on purpose: a tap has to land on the
+    /// shape that is actually on screen, not on a differently simplified one.
+    private var currentShapes: [RenderCountryShape] {
+        viewModel.shapes(forUserZoom: camera.userZoom)
     }
 
     // MARK: - Init
@@ -324,7 +334,7 @@ struct FlatMapView: View {
         }()
 
         FlatMapRenderer(
-            shapes: viewModel.shapes,
+            shapes: currentShapes,
             countriesByISO2: countriesByISO2ForMarking,
             selectedISO2: selectedISO2,
             viewport: viewport,
@@ -467,7 +477,7 @@ struct FlatMapView: View {
                               worldRect: CGRect,
                               fitScale: CGFloat) {
         
-        guard let shape = viewModel.shapes.first(where: { $0.iso2 == iso2 }) else { return }
+        guard let shape = currentShapes.first(where: { $0.iso2 == iso2 }) else { return }
         
         let focus = shape.focusBoundingBoxNormalized
         
@@ -738,7 +748,7 @@ struct FlatMapView: View {
             y: (worldPoint.y - worldRect.minY) / worldRect.height
         )
 
-        for shape in viewModel.shapes.reversed() {
+        for shape in currentShapes.reversed() {
             guard shape.boundsNormalized.contains(normalizedPoint) else { continue }
             if shape.path.contains(normalizedPoint, using: .evenOdd) {
                 return shape.iso2
