@@ -360,53 +360,10 @@ struct FlatMapView: View {
         .contentShape(Rectangle())
         .overlay {
             if interactiveEnabled {
-                MapGestureOverlay(
-                    onTouchDown: stopDeceleration,
-                    onPanBegan: stopDeceleration,
-                    onPanChanged: { panDelta in
-                        applyPan(delta: panDelta,
-                                 viewport: viewport,
-                                 worldRect: worldRect,
-                                 fitScale: fitScale)
-                    },
-                    onPanEnded: { velocity in
-                        startDeceleration(velocity: velocity,
-                                          viewport: viewport,
-                                          worldRect: worldRect,
-                                          fitScale: fitScale)
-                    },
-                    onPinchBegan: stopDeceleration,
-                    onPinchChanged: { scaleDelta, center in
-                        applyPinch(scaleDelta: scaleDelta,
-                                   pinchCenter: center,
-                                   viewport: viewport,
-                                   worldRect: worldRect,
-                                   fitScale: fitScale)
-                    },
-                    onPinchEnded: {
-                        withAnimation(MapAnimation.settle) {
-                            camera.clamp(viewport: viewport,
-                                         worldRect: worldRect,
-                                         fitScale: fitScale)
-                        }
-                    },
-                    onDoubleTap: { point in
-                        withAnimation(MapAnimation.doubleTapZoom) {
-                            applyDoubleTap(at: point,
-                                           viewport: viewport,
-                                           worldRect: worldRect,
-                                           fitScale: fitScale)
-                            camera.clamp(viewport: viewport,
-                                         worldRect: worldRect,
-                                         fitScale: fitScale)
-                        }
-                    },
-                    onTap: { point in
-                        handleTap(at: point,
-                                  viewport: viewport,
-                                  worldRect: worldRect,
-                                  fitScale: fitScale)
-                    }
+                PlatformMapGestureSurface(
+                    handlers: gestureHandlers(viewport: viewport,
+                                              worldRect: worldRect,
+                                              fitScale: fitScale)
                 )
             }
         }
@@ -417,6 +374,71 @@ struct FlatMapView: View {
     /// Refreshes shapes/indices for the active projection, stops deceleration and
     /// initializes the camera once per projection.
     ///
+    /// Everything the map wants to be told about a gesture, bound to the current geometry.
+    ///
+    /// Built per layout rather than stored: the handlers close over the viewport, the world
+    /// rectangle and the fit scale, and a stored copy would keep panning the map according to
+    /// the very first layout it ever had.
+    ///
+    /// - Parameters:
+    ///   - viewport: The area the map is drawn into.
+    ///   - worldRect: The projected world inside that viewport.
+    ///   - fitScale: Scale applied on top of the camera's own zoom.
+    /// - Returns: The handlers for ``PlatformMapGestureSurface``.
+    private func gestureHandlers(viewport: CGRect,
+                                 worldRect: CGRect,
+                                 fitScale: CGFloat) -> MapGestureHandlers {
+
+        MapGestureHandlers(
+            onTouchDown: stopDeceleration,
+            onPanBegan: stopDeceleration,
+            onPanChanged: { panDelta in
+                applyPan(delta: panDelta,
+                         viewport: viewport,
+                         worldRect: worldRect,
+                         fitScale: fitScale)
+            },
+            onPanEnded: { velocity in
+                startDeceleration(velocity: velocity,
+                                  viewport: viewport,
+                                  worldRect: worldRect,
+                                  fitScale: fitScale)
+            },
+            onPinchBegan: stopDeceleration,
+            onPinchChanged: { scaleDelta, center in
+                applyPinch(scaleDelta: scaleDelta,
+                           pinchCenter: center,
+                           viewport: viewport,
+                           worldRect: worldRect,
+                           fitScale: fitScale)
+            },
+            onPinchEnded: {
+                withAnimation(MapAnimation.settle) {
+                    camera.clamp(viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
+                }
+            },
+            onDoubleTap: { point in
+                withAnimation(MapAnimation.doubleTapZoom) {
+                    applyDoubleTap(at: point,
+                                   viewport: viewport,
+                                   worldRect: worldRect,
+                                   fitScale: fitScale)
+                    camera.clamp(viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
+                }
+            },
+            onTap: { point in
+                handleTap(at: point,
+                          viewport: viewport,
+                          worldRect: worldRect,
+                          fitScale: fitScale)
+            }
+        )
+    }
+
     /// Shown when the country geometry cannot be built.
     ///
     /// Says what is missing rather than what threw: an empty ocean is not obviously a failure,
