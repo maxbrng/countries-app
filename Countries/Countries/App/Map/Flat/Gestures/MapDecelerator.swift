@@ -69,7 +69,14 @@ final class MapDecelerator {
         self.onFinish = onFinish
         self.lastTimestamp = 0
 
-        let link = CADisplayLink(target: self, selector: #selector(handleFrame(_:)))
+        // No screen means no frames will ever arrive, so the fling ends before it starts
+        // rather than leaving the caller waiting for an `onFinish` that never comes.
+        guard let link = PlatformDisplayLink.make(target: self,
+                                                  selector: #selector(handleFrame(_:))) else {
+            onFinish()
+            return
+        }
+
         // Opt into the full ProMotion range; needs CADisableMinimumFrameDuration
         // in Info.plist to go above 60 Hz.
         link.preferredFrameRateRange = CAFrameRateRange(minimum: Self.minimumFrameRate,
