@@ -43,6 +43,31 @@ enum TripFormatting {
         return trimmed
     }
 
+    /// Length of a trip in days, counting both the first and the last day.
+    ///
+    /// A trip that starts and ends on the same day is one day long, not zero, because that is
+    /// what a traveller means by "a day trip". A trip with only one of the two dates set is
+    /// also one day: the other end is unknown, and guessing it would be worse than saying the
+    /// least the data supports.
+    ///
+    /// - Parameter trip: The trip to measure.
+    /// - Returns: The inclusive number of days, or `nil` when the trip carries no dates.
+    static func durationInDays(for trip: Trip) -> Int? {
+
+        guard let anyDate = trip.startDate ?? trip.endDate else { return nil }
+
+        let otherDate = trip.endDate ?? trip.startDate ?? anyDate
+        let calendar = Calendar.current
+        let first = calendar.startOfDay(for: min(anyDate, otherDate))
+        let last = calendar.startOfDay(for: max(anyDate, otherDate))
+
+        guard let elapsed = calendar.dateComponents([.day], from: first, to: last).day else {
+            return nil
+        }
+
+        return elapsed + 1
+    }
+
     /// Date range of a trip as one line.
     ///
     /// - Parameter trip: The trip to describe.
