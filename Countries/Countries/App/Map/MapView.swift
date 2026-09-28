@@ -26,7 +26,7 @@ struct MapView: View {
         ZStack {
             switch model.appearance {
             case .twoD:
-                FlatMapView(interactiveEnabled: true,
+                FlatMapView(detail: .interactive,
                             projectionMode: ShapeRequest.interactiveMap.projection,
                             initialStartZoom: Self.initialFlatMapZoom,
                             selectedCountry: $model.selectedCountry,

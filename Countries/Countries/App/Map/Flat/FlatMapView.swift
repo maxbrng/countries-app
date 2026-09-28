@@ -24,15 +24,18 @@ struct FlatMapView: View {
 
     // MARK: - Configuration
 
+    /// What this map is asked to do, and therefore how much geometry it builds.
+    let detail: MapDetailRequest
+
     /// Whether taps select a country and hit-testing runs at all.
-    let selectionEnabled: Bool
+    var selectionEnabled: Bool { detail.selectionEnabled }
 
     /// Whether pan, pinch and double-tap gestures are attached.
-    let interactiveEnabled: Bool
+    var interactiveEnabled: Bool { detail.interactiveEnabled }
 
     /// Whether country labels are drawn. Effective only together with interaction
     /// and selection, see ``renderSubtree(viewport:worldRect:fitScale:)``.
-    let labelsEnabled: Bool
+    var labelsEnabled: Bool { detail.labelsEnabled }
 
     /// How the projected world is sized inside the viewport.
     let renderMode: FlatMapRenderMode
@@ -131,21 +134,16 @@ struct FlatMapView: View {
 
     /// Level of detail requested from ``FlatMapShapeCache``.
     ///
-    /// - Note: The light variant is what keeps the preview on the main screen cheap.
-    private var shapeVariant: FlatMapShapeCache.Variant {
-        // Preview: no interaction, no selection, no labels.
-        if !interactiveEnabled && !selectionEnabled && !labelsEnabled { return .light }
-        return .full
-    }
+    /// - Note: The rule lives on ``MapDetailRequest`` so that a test can ask what a call site
+    ///   resolves to; see ``MapPerformanceBudget``.
+    private var shapeVariant: FlatMapShapeCache.Variant { detail.variant }
 
     // MARK: - Init
 
     /// Creates a FlatMapView.
     /// - Parameters:
-    ///   - selectionEnabled: Enable/disable selection + hit-testing. Defaults to `true`.
-    ///   - interactiveEnabled: Enable/disable gestures. Defaults to `false`.
-    ///   - labelsEnabled: Show labels (effective only if interaction + selection are
-    ///     enabled). Defaults to `true`.
+    ///   - detail: Selection, interaction and labels, and with them the level of detail the
+    ///     geometry is built at. Defaults to ``MapDetailRequest/interactive``.
     ///   - renderMode: How the world is sized inside the viewport (e.g. aspectFit).
     ///     Defaults to `.aspectFit`.
     ///   - projectionMode: Map projection used to prepare shapes. Defaults to `.webMercator`.
@@ -163,9 +161,7 @@ struct FlatMapView: View {
     ///   - filter: External binding to the status filter that decides which countries
     ///     are coloured by status.
     init(
-        selectionEnabled: Bool = true,
-        interactiveEnabled: Bool = false,
-        labelsEnabled: Bool = true,
+        detail: MapDetailRequest = .interactive,
         renderMode: FlatMapRenderMode = .aspectFit,
         projectionMode: FlatMapProjectionMode = .webMercator,
         aspectFitStartsZoomed: Bool = true,
@@ -177,9 +173,7 @@ struct FlatMapView: View {
         selectedCountry: Binding<Country?>,
         filter: Binding<CountryStatusFilter>
     ) {
-        self.selectionEnabled = selectionEnabled
-        self.interactiveEnabled = interactiveEnabled
-        self.labelsEnabled = labelsEnabled
+        self.detail = detail
         self.renderMode = renderMode
         self.projectionMode = projectionMode
         self.aspectFitStartsZoomed = aspectFitStartsZoomed
