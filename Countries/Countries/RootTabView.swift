@@ -37,6 +37,12 @@ struct RootTabView: View {
 
     // MARK: - Body
 
+    /// Owns the undo window that follows a trip deletion.
+    ///
+    /// Held here because both screens that can delete a trip need it, and deleting from
+    /// ``TripDetailView`` leaves that screen immediately — the offer has to survive that.
+    @State private var tripDeletion = TripDeletionCoordinator()
+
     var body: some View {
 
         TabView {
@@ -61,6 +67,10 @@ struct RootTabView: View {
                 NavigationStack {
                     TripsListView()
                 }
+                // Above the stack, not inside ``TripsListView``: a pushed destination is a
+                // sibling of the list, not its child, so a value provided by the list never
+                // reaches ``TripDetailView``.
+                .environment(tripDeletion)
             }
 
             Tab("All Countries", systemImage: "magnifyingglass", role: .search) {

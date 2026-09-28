@@ -48,6 +48,9 @@ struct TripDetailView: View {
     /// Drives the delete confirmation.
     @State private var showsDeleteConfirmation = false
 
+    /// Provided by ``RootTabView``, because the undo has to outlive this screen.
+    @Environment(TripDeletionCoordinator.self) private var deletion
+
     // MARK: - Body
 
     var body: some View {
@@ -72,13 +75,13 @@ struct TripDetailView: View {
         .sheet(isPresented: $isEditing) {
             TripEditorView(subject: .existing(trip))
         }
-        .confirmationDialog("Delete this trip?",
-                            isPresented: $showsDeleteConfirmation,
-                            titleVisibility: .visible) {
-            Button("Delete Trip", role: .destructive) { deleteTrip() }
-            Button("Cancel", role: .cancel) {}
+        .alert("Delete trip?", isPresented: $showsDeleteConfirmation) {
+
+            Button("Delete", role: .destructive) { deleteTrip() }
+            Button("Cancel", role: .cancel) { }
+
         } message: {
-            Text("The countries on this trip keep their visited status.")
+            Text(verbatim: TripDeletion.confirmationMessage(for: trip))
         }
     }
 
@@ -181,12 +184,14 @@ struct TripDetailView: View {
 
     /// Deletes the trip and leaves the screen.
     ///
+    /// The undo window is opened by the coordinator rather than here, because this screen is
+    /// gone a moment later and the offer has to appear on the list behind it.
+    ///
     /// - Note: The relationship to ``Country`` nullifies, so every country on the trip keeps
     ///   its status — see [C-05].
     private func deleteTrip() {
 
-        modelContext.delete(trip)
-        try? modelContext.save()
+        deletion.delete(trip, in: modelContext)
         dismiss()
     }
 }
