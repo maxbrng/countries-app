@@ -52,7 +52,7 @@ struct DashboardStatisticsTests {
     // MARK: - Nothing visited
 
     @Test
-    func test_worldShare_withNothingVisited_showsNoPercentage() {
+    func test_worldShare_withNothingVisited_reportsZeroRatherThanNothing() {
 
         // Arrange & Act
         let statistics = DashboardStatistics(countriesVisited: 0,
@@ -61,7 +61,7 @@ struct DashboardStatisticsTests {
                                              continentsTotal: 7)
 
         // Assert
-        #expect(statistics.worldShare == .nothingVisited)
+        #expect(statistics.worldShare == .percentage(0))
     }
 
     // MARK: - Rounding
@@ -110,7 +110,7 @@ struct DashboardStatisticsTests {
     // MARK: - Everything visited
 
     @Test
-    func test_worldShare_withEveryCountryVisited_changesTheUnitInsteadOfReportingAHundred() {
+    func test_worldShare_withEveryCountryVisited_reportsAHundred() {
 
         // Arrange & Act
         let statistics = DashboardStatistics(countriesVisited: 195,
@@ -119,7 +119,7 @@ struct DashboardStatisticsTests {
                                              continentsTotal: 7)
 
         // Assert
-        #expect(statistics.worldShare == .everything)
+        #expect(statistics.worldShare == .percentage(100))
         #expect(statistics.gaugeProgress == 1)
     }
 
@@ -139,11 +139,11 @@ struct DashboardStatisticsTests {
         #expect(statistics.countriesVisited == 195)
         #expect(statistics.continentsVisited == 7)
         #expect(statistics.gaugeProgress == 1)
-        #expect(statistics.worldShare == .everything)
+        #expect(statistics.worldShare == .percentage(100))
     }
 
     @Test
-    func test_init_withNegativeCounts_readsAsNothingVisited() {
+    func test_init_withNegativeCounts_readsAsZero() {
 
         // Arrange & Act
         let statistics = DashboardStatistics(countriesVisited: -3,
@@ -154,6 +154,6 @@ struct DashboardStatisticsTests {
         // Assert
         #expect(statistics.countriesVisited == 0)
         #expect(statistics.continentsVisited == 0)
-        #expect(statistics.worldShare == .nothingVisited)
+        #expect(statistics.worldShare == .percentage(0))
     }
 }

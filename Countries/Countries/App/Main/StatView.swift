@@ -116,23 +116,18 @@ struct StatView: View {
 
     /// What the gauge prints in its centre.
     ///
-    /// A completed world changes the unit instead of celebrating: "All of the world" is a
-    /// statement, "100 %" is a score, and the app does not hand out scores.
-    ///
     /// - Parameter share: The share the statistics allow.
     @ViewBuilder
     private func shareLabel(for share: DashboardStatistics.WorldShare) -> some View {
 
         switch share {
-        case .unmeasurable, .nothingVisited:
-            // An em dash rather than "0 %": there is nothing to report yet, and saying so in
-            // large type reads as a verdict on the reader.
+        case .unmeasurable:
+            // There is nothing to divide by. A percentage here would be a claim about an
+            // empty set, which is the one case where a figure would be worse than no figure.
             Text(verbatim: "—")
-                .accessibilityLabel(Text("Nothing visited yet"))
+                .accessibilityLabel(Text("Nothing to measure yet"))
         case .percentage(let percentage):
             Text(verbatim: "\(percentage)%")
-        case .everything:
-            Text("All")
         }
     }
 }
