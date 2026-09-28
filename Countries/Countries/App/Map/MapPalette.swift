@@ -117,16 +117,6 @@ enum MapPalette {
 
     /// Lines of the status hatch, drawn inside a marked country.
     ///
-    /// The sea colour, so the hatch reads as the fill being cut away rather than as a second
-    /// colour laid over it — which is the point: it has to work when the two fills it
-    /// separates are indistinguishable.
-    ///
-    /// - Note: Contrast against ``visitedFill`` is 4.76 in light and 6.27 in dark appearance,
-    ///   against ``wishlistFill`` 1.89 and 5.46. The weak one is wishlist in light appearance,
-    ///   which is also the fill whose colour collapses there, so the hatch carries it on
-    ///   texture: the lines are 0.9 pt of sea colour inside an otherwise solid shape.
-    static let statusHatch = ocean
-
     /// Hairline between two neighbouring countries, drawn in the sea colour so that the border
     /// reads as a gap rather than as a line of its own.
     ///

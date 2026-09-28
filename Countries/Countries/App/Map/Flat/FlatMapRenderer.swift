@@ -60,12 +60,6 @@ struct FlatMapRenderer: View, Animatable {
     /// Whether the selected country is highlighted.
     let selectionEnabled: Bool
 
-    /// Whether marked countries carry their ``StatusHatching`` texture.
-    ///
-    /// Off for the dashboard preview: at that size the hatch would read as noise, and the
-    /// preview carries no status legend to read it against.
-    let hatchingEnabled: Bool
-
     // MARK: - Caches
 
     /// Reference type on purpose: the renderer struct is rebuilt every frame, the
@@ -164,7 +158,6 @@ struct FlatMapRenderer: View, Animatable {
     ///   - interactiveEnabled: Whether the camera transform is applied.
     ///   - labelsEnabled: Whether labels are drawn.
     ///   - selectionEnabled: Whether the selection is highlighted.
-    ///   - hatchingEnabled: Whether marked countries are hatched.
     ///   - labelMetrics: Cache that outlives the per-frame struct rebuild.
     ///   - scaledPaths: Path cache that outlives the per-frame struct rebuild.
     init(
@@ -179,7 +172,6 @@ struct FlatMapRenderer: View, Animatable {
         interactiveEnabled: Bool,
         labelsEnabled: Bool,
         selectionEnabled: Bool,
-        hatchingEnabled: Bool,
         labelMetrics: LabelMetricsCache,
         scaledPaths: ScaledPathCache
     ) {
@@ -194,7 +186,6 @@ struct FlatMapRenderer: View, Animatable {
         self.interactiveEnabled = interactiveEnabled
         self.labelsEnabled = labelsEnabled
         self.selectionEnabled = selectionEnabled
-        self.hatchingEnabled = hatchingEnabled
         self.labelMetrics = labelMetrics
         self.scaledPaths = scaledPaths
     }
@@ -230,10 +221,6 @@ struct FlatMapRenderer: View, Animatable {
             // water. Drawing it after the fills instead would outline every country and turn
             // the map into a net.
             let coastlineWidth = coastlineLineWidth(currentScale: currentScale)
-            let visibleDrawRect = visibleDrawRect(cameraCenter: cameraCenter,
-                                                  currentScale: currentScale,
-                                                  offsetX: offsetX,
-                                                  offsetY: offsetY)
 
             for shape in shapes {
                 drawContext.stroke(scaledPaths.path(for: shape.path, in: worldRect),
@@ -256,14 +243,6 @@ struct FlatMapRenderer: View, Animatable {
                 let lineWidth = baseLineWidth / (interactiveEnabled ? currentScale : 1)
 
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
-
-                if hatchingEnabled, let direction = hatchDirection(for: shape.iso2) {
-                    drawHatching(direction,
-                                 over: path,
-                                 clippedTo: visibleDrawRect,
-                                 currentScale: currentScale,
-                                 in: drawContext)
-                }
 
                 drawContext.stroke(path, with: .color(strokeColor), lineWidth: lineWidth)
             }
@@ -293,84 +272,6 @@ struct FlatMapRenderer: View, Animatable {
 
         let onScreen = MapStrokeMetrics.coastlineWidth(forUserZoom: userZoom)
         return onScreen / (interactiveEnabled ? currentScale : 1)
-    }
-
-    // MARK: - Status hatching
-
-    /// The part of the drawing space the viewport currently shows.
-    ///
-    /// The canvas carries the camera transform, so a country's bounding box is in that
-    /// transformed space and can be far larger than the screen. Intersecting with this is what
-    /// keeps the hatch line count bounded by what is actually visible instead of by how far
-    /// the user has zoomed in.
-    ///
-    /// - Parameters:
-    ///   - cameraCenter: Centre of the viewport, the fixed point of the scale.
-    ///   - currentScale: Fit scale times user zoom.
-    ///   - offsetX: Horizontal camera offset already applied to the context.
-    ///   - offsetY: Vertical camera offset already applied to the context.
-    /// - Returns: The visible rectangle, in the space the canvas draws in.
-    private func visibleDrawRect(cameraCenter: CGPoint,
-                                 currentScale: CGFloat,
-                                 offsetX: CGFloat,
-                                 offsetY: CGFloat) -> CGRect {
-
-        guard interactiveEnabled, currentScale > 0 else { return viewport }
-
-        let translatedX = cameraCenter.x + offsetX
-        let translatedY = cameraCenter.y + offsetY
-
-        let originX = cameraCenter.x + (viewport.minX - translatedX) / currentScale
-        let originY = cameraCenter.y + (viewport.minY - translatedY) / currentScale
-
-        return CGRect(x: originX,
-                      y: originY,
-                      width: viewport.width / currentScale,
-                      height: viewport.height / currentScale)
-    }
-
-    /// The hatch direction a country's status calls for, or `nil` when it carries no status.
-    ///
-    /// - Parameter iso2: Lowercased ISO2 code of the shape being drawn.
-    private func hatchDirection(for iso2: String) -> StatusHatching.Direction? {
-
-        switch countriesByISO2[iso2]?.status {
-        case .visited: .rising
-        case .wishlist: .falling
-        default: nil
-        }
-    }
-
-    /// Draws the hatch of one country, clipped to its own shape.
-    ///
-    /// - Parameters:
-    ///   - direction: Which way the lines run.
-    ///   - path: The country, already scaled into the drawing rectangle.
-    ///   - visibleRect: What the viewport shows, in the drawing space.
-    ///   - currentScale: Fit scale times user zoom, used to keep spacing and line width
-    ///     constant on screen.
-    ///   - context: The canvas context; a copy is clipped, so the caller's context is
-    ///     untouched.
-    private func drawHatching(_ direction: StatusHatching.Direction,
-                              over path: Path,
-                              clippedTo visibleRect: CGRect,
-                              currentScale: CGFloat,
-                              in context: GraphicsContext) {
-
-        let area = path.boundingRect.intersection(visibleRect)
-
-        guard !area.isNull, !area.isEmpty else { return }
-
-        let cameraScale = interactiveEnabled ? currentScale : 1
-        let lines = StatusHatching.path(covering: area,
-                                        direction: direction,
-                                        spacing: StatusHatching.spacing / cameraScale)
-
-        var layer = context
-        layer.clip(to: path, style: .init(eoFill: true))
-        layer.stroke(lines,
-                     with: .color(MapPalette.statusHatch),
-                     lineWidth: StatusHatching.lineWidth / cameraScale)
     }
 
     // MARK: - Fill
