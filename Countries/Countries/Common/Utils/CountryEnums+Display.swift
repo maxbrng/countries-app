@@ -28,6 +28,20 @@ extension TravelTag {
         }
     }
 
+    /// Short form for a chip that has to fit beside a symbol in a flow layout.
+    ///
+    /// Only differs from ``title`` where the full name is too long for a chip; the other
+    /// cases share the key, so a translator sees each word once.
+    var shortTitle: LocalizedStringKey {
+        switch self {
+        case .hiking: "Hike"
+        case .nightlife: "Night"
+        case .citytrip: "City"
+        case .skiing: "Ski"
+        default: title
+        }
+    }
+
     /// SF Symbol representing the tag, on a filter chip and on a country card.
     var symbolName: String {
         switch self {
@@ -54,9 +68,15 @@ extension ClimateTag {
         case .mild: "Mild"
         case .warm: "Warm"
         case .tropical: "Tropical"
-        case .mixed: "Mixed"
+        // Explicit key: "mixed" is "gemischt" for a climate and "durchwachsen" for a safety
+        // level, and one source string cannot hold both.
+        case .mixed: "climate.mixed"
         }
     }
+
+    /// Short form for the card's thermometer badge. Identical to ``title`` today, kept as its
+    /// own property so the badge can shorten a name without touching the filter chips.
+    var shortTitle: LocalizedStringKey { title }
 }
 
 extension CostLevel {
@@ -84,9 +104,13 @@ extension SafetyLevel {
         switch self {
         case .verySafe: "Very safe"
         case .safe: "Safe"
-        case .mixed: "Mixed"
+        // See ``ClimateTag/title``: the same English word, a different German one.
+        case .mixed: "safety.mixed"
         case .risky: "Risky"
         case .veryRisky: "Very risky"
         }
     }
+
+    /// Short form for the card's mini chip. Identical to ``title`` today.
+    var shortTitle: LocalizedStringKey { title }
 }

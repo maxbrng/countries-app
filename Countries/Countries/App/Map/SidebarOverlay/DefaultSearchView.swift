@@ -294,7 +294,7 @@ struct DefaultSearchView: View {
                     Text("From")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    DatePicker("Von", selection: $start, in: ...end, displayedComponents: .date)
+                    DatePicker("From", selection: $start, in: ...end, displayedComponents: .date)
                         .labelsHidden()
                 }
                 .fixedSize()
@@ -305,7 +305,7 @@ struct DefaultSearchView: View {
                     Text("To")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    DatePicker("Bis", selection: $end, in: start..., displayedComponents: .date)
+                    DatePicker("To", selection: $end, in: start..., displayedComponents: .date)
                         .labelsHidden()
                 }
                 .fixedSize()

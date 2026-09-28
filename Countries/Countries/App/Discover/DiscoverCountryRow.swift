@@ -110,6 +110,6 @@ struct DiscoverCountryRow: View {
                 .foregroundStyle(isWishlisted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isWishlisted ? "Remove from wishlist" : "Add to wishlist")
+        .accessibilityLabel(isWishlisted ? "Remove from Wishlist" : "Add to Wishlist")
     }
 }

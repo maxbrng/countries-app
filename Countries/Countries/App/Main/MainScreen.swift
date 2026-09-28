@@ -30,7 +30,7 @@ struct MainScreen: View {
         static let cardHorizontalPadding: CGFloat = 24
         /// Vertical spacing between the card's title, its columns and the detail link.
         static let cardContentSpacing: CGFloat = 16
-        /// Horizontal spacing between the "Visited" and "On Wishlist" columns.
+        /// Horizontal spacing between the "Visited" and "Wishlist" columns.
         static let cardColumnSpacing: CGFloat = 24
         static let previewListSpacing: CGFloat = 8
         /// Horizontal spacing between the count and its caption.
@@ -175,7 +175,11 @@ struct MainScreen: View {
                 HStack(alignment: .top, spacing: Layout.cardColumnSpacing) {
                     countryPreviewList(for: "Visited", countries: viewModel.visitedCountries)
 
-                    countryPreviewList(for: "On Wishlist", countries: viewModel.wishlistCountries)
+                    // Explicit key: this column is a heading over a list, so German wants the
+                    // noun ("Wunschliste"). The detail screen's button says the same English
+                    // words but needs the full phrase, and one key cannot hold both.
+                    countryPreviewList(for: "dashboard.column.wishlist",
+                                       countries: viewModel.wishlistCountries)
                 }
 
                 Divider()
