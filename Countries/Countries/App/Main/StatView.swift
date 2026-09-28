@@ -36,40 +36,31 @@ struct StatView: View {
     var body: some View {
 
         let source = showOnlyUNMembers ? allCountries.filter(\.isUNMember) : allCountries
-
-        let visited = source.filter { $0.status == .visited }
-        let countriesVisited = Double(visited.count)
-        let totalCountries = Double(source.count)
-
-        let totalContinents = Double(Set(source.compactMap(\.continent)).count)
-        let continentsVisited = Double(Set(visited.compactMap(\.continent)).count)
+        let statistics = DashboardStatistics(countries: source)
 
         HStack(alignment: .center, spacing: 0) {
 
-            statistic(currentValue: countriesVisited,
-                      maxValue: totalCountries,
-                      caption: "countries",
-                      graphVisualization: false)
-                .frame(maxWidth: .infinity)
-                .multilineTextAlignment(.center)
+            column {
+                count(statistics.countriesVisited, of: statistics.countriesTotal)
+            } caption: {
+                Text("countries")
+            }
 
             Divider()
 
-            statistic(currentValue: countriesVisited,
-                      maxValue: totalCountries,
-                      caption: "of the world",
-                      graphVisualization: true)
-                .frame(maxWidth: .infinity)
-                .multilineTextAlignment(.center)
+            column {
+                gauge(for: statistics)
+            } caption: {
+                Text("of the world")
+            }
 
             Divider()
 
-            statistic(currentValue: continentsVisited,
-                      maxValue: totalContinents,
-                      caption: "continents",
-                      graphVisualization: false)
-                .frame(maxWidth: .infinity)
-                .multilineTextAlignment(.center)
+            column {
+                count(statistics.continentsVisited, of: statistics.continentsTotal)
+            } caption: {
+                Text("continents")
+            }
         }
         .frame(maxWidth: .infinity, alignment: .center)
     }
@@ -79,52 +70,70 @@ struct StatView: View {
     /// One of the three columns.
     ///
     /// - Parameters:
-    ///   - currentValue: The reached value, for example the number of visited countries.
-    ///   - maxValue: The value that stands for 100 %. A zero is treated as "nothing reached"
-    ///     rather than dividing by it.
-    ///   - caption: Caption below the figure, looked up in the string catalog.
-    ///   - graphVisualization: `true` draws a percentage gauge instead of an `x/y` figure.
-    @ViewBuilder
-    private func statistic(currentValue: Double,
-                           maxValue: Double,
-                           caption: LocalizedStringKey,
-                           graphVisualization: Bool) -> some View {
+    ///   - figure: The large part of the column — a figure or the gauge.
+    ///   - caption: The caption below it.
+    private func column<Figure: View, Caption: View>(
+        @ViewBuilder figure: () -> Figure,
+        @ViewBuilder caption: () -> Caption
+    ) -> some View {
 
         VStack {
-
-            if graphVisualization {
-                gauge(currentValue: currentValue, maxValue: maxValue)
-            } else {
-                Text(verbatim: "\(Int(currentValue))/\(Int(maxValue))")
-                    .font(.title3)
-                    .fontWeight(.semibold)
-            }
-
-            Text(caption)
+            figure()
+            caption()
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
+        .frame(maxWidth: .infinity)
+        .multilineTextAlignment(.center)
     }
 
-    /// Circular gauge showing `currentValue` as a percentage of `maxValue`.
+    /// An `x/y` figure.
     ///
     /// - Parameters:
-    ///   - currentValue: The reached value.
-    ///   - maxValue: The value that stands for 100 %.
-    private func gauge(currentValue: Double, maxValue: Double) -> some View {
+    ///   - value: The reached value.
+    ///   - total: The value it is measured against.
+    private func count(_ value: Int, of total: Int) -> some View {
 
-        // Guards both a zero maximum and values outside the range.
-        let progress = maxValue > 0 ? max(0, min(1, currentValue / maxValue)) : 0
-        let percentage = Int((progress * 100).rounded())
+        Text(verbatim: "\(value)/\(total)")
+            .font(.title3)
+            .fontWeight(.semibold)
+    }
 
-        return Gauge(value: progress) {
-            Text(verbatim: "\(percentage)%")
+    /// The circular gauge for the share of the world that has been seen.
+    ///
+    /// - Parameter statistics: The figures deciding what the gauge may claim.
+    private func gauge(for statistics: DashboardStatistics) -> some View {
+
+        Gauge(value: statistics.gaugeProgress) {
+            shareLabel(for: statistics.worldShare)
                 .font(.callout)
                 .fontWeight(.semibold)
         }
         .gaugeStyle(CircularStrokeGaugeStyle(lineWidth: Layout.gaugeLineWidth))
         .frame(width: Layout.gaugeSize, height: Layout.gaugeSize)
         .padding(.bottom, Layout.gaugeBottomPadding)
+    }
+
+    /// What the gauge prints in its centre.
+    ///
+    /// A completed world changes the unit instead of celebrating: "All of the world" is a
+    /// statement, "100 %" is a score, and the app does not hand out scores.
+    ///
+    /// - Parameter share: The share the statistics allow.
+    @ViewBuilder
+    private func shareLabel(for share: DashboardStatistics.WorldShare) -> some View {
+
+        switch share {
+        case .unmeasurable, .nothingVisited:
+            // An em dash rather than "0 %": there is nothing to report yet, and saying so in
+            // large type reads as a verdict on the reader.
+            Text(verbatim: "—")
+                .accessibilityLabel(Text("Nothing visited yet"))
+        case .percentage(let percentage):
+            Text(verbatim: "\(percentage)%")
+        case .everything:
+            Text("All")
+        }
     }
 }
 
