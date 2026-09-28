@@ -60,7 +60,7 @@ struct TripRow: View {
     @ViewBuilder
     private var flagStrip: some View {
 
-        let countries = trip.countries.sorted { $0.nameEnglish < $1.nameEnglish }
+        let countries = trip.countries.sortedByDisplayName()
         let remainingCount = max(0, countries.count - TripRowLayout.flagLimit)
 
         // A ViewBuilder cannot return early, so this branch stays an if/else.

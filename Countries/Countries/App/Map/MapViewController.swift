@@ -661,7 +661,7 @@ final class MapViewController: UIViewController {
            presentedRoute.country != nil,
            let host = secondarySheetViewController?.viewControllers.first as? SheetViewController<AnyView> {
 
-            host.navigationItem.title = country.nameEnglish
+            host.navigationItem.title = country.displayName
             host.rootView = countrySheetContent(for: country)
             presentedRoute = .country(country)
             updateBaseSheetDetentForStack()
@@ -703,7 +703,7 @@ final class MapViewController: UIViewController {
         case .country(let country):
             secondarySheetViewController = presentSheet(
                 content: countrySheetContent(for: country),
-                title: country.nameEnglish,
+                title: country.displayName,
                 detentHeight: Self.countrySheetDetentHeight
             ) { [weak self] in
                 self?.model.route = .none

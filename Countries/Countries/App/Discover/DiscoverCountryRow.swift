@@ -71,7 +71,7 @@ struct DiscoverCountryRow: View {
 
             VStack(alignment: .leading, spacing: Layout.textSpacing) {
 
-                Text(country.nameEnglish)
+                Text(country.displayName)
                     .foregroundStyle(.primary)
 
                 tagLine

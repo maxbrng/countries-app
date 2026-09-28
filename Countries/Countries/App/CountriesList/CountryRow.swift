@@ -56,7 +56,7 @@ struct CountryRow: View {
                 .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
 
             VStack(alignment: .leading) {
-                Text(country.nameEnglish)
+                Text(country.displayName)
                 Text(country.iso2)
                     .font(.caption)
                     .foregroundStyle(.secondary)

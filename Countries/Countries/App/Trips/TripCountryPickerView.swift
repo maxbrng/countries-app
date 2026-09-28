@@ -64,17 +64,17 @@ struct TripCountryPickerView: View {
     // MARK: - Content
 
     /// The countries offered, narrowed by the UN filter and the search field.
+    ///
+    /// - Note: Sorted here rather than in the query, because the query can only sort by a
+    ///   stored property and the displayed name is resolved per language.
     private var filteredCountries: [Country] {
 
         let base = showOnlyUNMembers ? allCountries.filter(\.isUNMember) : allCountries
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !query.isEmpty else { return base }
+        guard !query.isEmpty else { return base.sortedByDisplayName() }
 
-        return base.filter {
-            $0.nameEnglish.localizedCaseInsensitiveContains(query)
-                || $0.iso2.localizedCaseInsensitiveContains(query)
-        }
+        return base.filter { $0.matches(searchQuery: query) }.sortedByDisplayName()
     }
 
     /// One row: flag, name and a checkmark while the country is selected.
@@ -95,7 +95,7 @@ struct TripCountryPickerView: View {
                 )
                 .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
 
-            Text(country.nameEnglish)
+            Text(country.displayName)
 
             Spacer()
 
