@@ -39,8 +39,22 @@ enum MapPalette {
         /// Fill opacity of a known country without a status.
         static let neutralFill: Double = 0.22
 
-        /// Opacity of the hairline between two neighbouring countries.
-        static let interiorBorder: Double = 0.75
+        /// Opacity of the hairline between two neighbouring countries, in light appearance.
+        static let interiorBorderLight: Double = 0.75
+
+        /// The same hairline in dark appearance.
+        ///
+        /// Lower than its light counterpart, and not for taste. The border is drawn in the sea
+        /// colour so that it reads as a gap; in dark appearance `systemBackground` is pure
+        /// black, so at 0.75 the gap lands on #0E0E0E against a land fill of #383838. That is
+        /// a perceptual step of 19.6 L*, against the 14.9 L* the same opacity produces in light
+        /// appearance — the border stops reading as a gap and starts reading as ink.
+        ///
+        /// 0.56 is the opacity at which the dark step matches the light one: 14.97 L* against
+        /// 14.93. WCAG contrast barely registers the change - it moves from 1.65 to 1.51, while
+        /// the border stops looking like ink - which is why the ratios alone said the two
+        /// appearances were already equivalent when they plainly were not.
+        static let interiorBorderDark: Double = 0.56
 
         /// Opacity of the label text.
         static let label: Double = 0.70
@@ -85,9 +99,19 @@ enum MapPalette {
     /// Hairline between two neighbouring countries, drawn in the sea colour so that the border
     /// reads as a gap rather than as a line of its own.
     ///
-    /// - Note: Contrast against ``neutralLandFill`` is 1.50 in light and 1.65 in dark
+    /// - Note: Contrast against ``neutralLandFill`` is 1.50 in light and 1.51 in dark
     ///   appearance. Deliberately low: this separates two fills, it does not outline the map.
-    static let interiorBorder = Color(uiColor: .systemBackground).opacity(Opacity.interiorBorder)
+    ///   The two appearances carry different opacities so that they produce the same
+    ///   *perceptual* step — see ``Opacity/interiorBorderDark`` for why the contrast ratio is
+    ///   the wrong measure here.
+    static let interiorBorder = Color(uiColor: UIColor { traits in
+
+        let opacity = traits.userInterfaceStyle == .dark
+            ? Opacity.interiorBorderDark
+            : Opacity.interiorBorderLight
+
+        return UIColor.systemBackground.withAlphaComponent(opacity)
+    })
 
     /// Outline of the selected country.
     ///
