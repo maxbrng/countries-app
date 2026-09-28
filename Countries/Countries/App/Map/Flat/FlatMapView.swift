@@ -24,15 +24,18 @@ struct FlatMapView: View {
 
     // MARK: - Configuration
 
+    /// What this map is asked to do, and therefore how much geometry it builds.
+    let detail: MapDetailRequest
+
     /// Whether taps select a country and hit-testing runs at all.
-    let selectionEnabled: Bool
+    var selectionEnabled: Bool { detail.selectionEnabled }
 
     /// Whether pan, pinch and double-tap gestures are attached.
-    let interactiveEnabled: Bool
+    var interactiveEnabled: Bool { detail.interactiveEnabled }
 
     /// Whether country labels are drawn. Effective only together with interaction
     /// and selection, see ``renderSubtree(viewport:worldRect:fitScale:)``.
-    let labelsEnabled: Bool
+    var labelsEnabled: Bool { detail.labelsEnabled }
 
     /// How the projected world is sized inside the viewport.
     let renderMode: FlatMapRenderMode
@@ -66,6 +69,9 @@ struct FlatMapView: View {
     @Query private var countries: [Country]
     @Binding private var selectedCountry: Country?
     @Binding private var filter: CountryStatusFilter
+
+    /// Where the map is looking, shared with the globe so a switch between the two keeps it.
+    @Binding private var sharedFocus: MapFocus?
 
     @State private var viewModel = FlatMapViewModel()
 
@@ -131,21 +137,16 @@ struct FlatMapView: View {
 
     /// Level of detail requested from ``FlatMapShapeCache``.
     ///
-    /// - Note: The light variant is what keeps the preview on the main screen cheap.
-    private var shapeVariant: FlatMapShapeCache.Variant {
-        // Preview: no interaction, no selection, no labels.
-        if !interactiveEnabled && !selectionEnabled && !labelsEnabled { return .light }
-        return .full
-    }
+    /// - Note: The rule lives on ``MapDetailRequest`` so that a test can ask what a call site
+    ///   resolves to; see ``MapPerformanceBudget``.
+    private var shapeVariant: FlatMapShapeCache.Variant { detail.variant }
 
     // MARK: - Init
 
     /// Creates a FlatMapView.
     /// - Parameters:
-    ///   - selectionEnabled: Enable/disable selection + hit-testing. Defaults to `true`.
-    ///   - interactiveEnabled: Enable/disable gestures. Defaults to `false`.
-    ///   - labelsEnabled: Show labels (effective only if interaction + selection are
-    ///     enabled). Defaults to `true`.
+    ///   - detail: Selection, interaction and labels, and with them the level of detail the
+    ///     geometry is built at. Defaults to ``MapDetailRequest/interactive``.
     ///   - renderMode: How the world is sized inside the viewport (e.g. aspectFit).
     ///     Defaults to `.aspectFit`.
     ///   - projectionMode: Map projection used to prepare shapes. Defaults to `.webMercator`.
@@ -162,10 +163,11 @@ struct FlatMapView: View {
     ///   - selectedCountry: External binding to the selected country.
     ///   - filter: External binding to the status filter that decides which countries
     ///     are coloured by status.
+    ///   - sharedFocus: Where the map is looking, shared with the globe. Read once on appear
+    ///     and written as the camera moves. Defaults to a constant `nil`, which is what a
+    ///     preview wants: nothing to restore and nothing to report.
     init(
-        selectionEnabled: Bool = true,
-        interactiveEnabled: Bool = false,
-        labelsEnabled: Bool = true,
+        detail: MapDetailRequest = .interactive,
         renderMode: FlatMapRenderMode = .aspectFit,
         projectionMode: FlatMapProjectionMode = .webMercator,
         aspectFitStartsZoomed: Bool = true,
@@ -175,11 +177,10 @@ struct FlatMapView: View {
         focusesSelectedCountry: Bool = true,
         focusPadding: CGFloat = 24,
         selectedCountry: Binding<Country?>,
-        filter: Binding<CountryStatusFilter>
+        filter: Binding<CountryStatusFilter>,
+        sharedFocus: Binding<MapFocus?> = .constant(nil)
     ) {
-        self.selectionEnabled = selectionEnabled
-        self.interactiveEnabled = interactiveEnabled
-        self.labelsEnabled = labelsEnabled
+        self.detail = detail
         self.renderMode = renderMode
         self.projectionMode = projectionMode
         self.aspectFitStartsZoomed = aspectFitStartsZoomed
@@ -190,6 +191,7 @@ struct FlatMapView: View {
         self.focusPadding = focusPadding
         self._selectedCountry = selectedCountry
         self._filter = filter
+        self._sharedFocus = sharedFocus
 
         _countries = Query()
     }
@@ -235,6 +237,10 @@ struct FlatMapView: View {
                 camera.clamp(viewport: viewport,
                              worldRect: worldRect,
                              fitScale: fitScale)
+                restoreSharedFocus(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
+            }
+            .onChange(of: camera) { _, _ in
+                publishSharedFocus(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
             }
             .onChange(of: geometryProxy.size) { _, newSize in
                 guard newSize != .zero else { return }
@@ -360,53 +366,10 @@ struct FlatMapView: View {
         .contentShape(Rectangle())
         .overlay {
             if interactiveEnabled {
-                MapGestureOverlay(
-                    onTouchDown: stopDeceleration,
-                    onPanBegan: stopDeceleration,
-                    onPanChanged: { panDelta in
-                        applyPan(delta: panDelta,
-                                 viewport: viewport,
-                                 worldRect: worldRect,
-                                 fitScale: fitScale)
-                    },
-                    onPanEnded: { velocity in
-                        startDeceleration(velocity: velocity,
-                                          viewport: viewport,
-                                          worldRect: worldRect,
-                                          fitScale: fitScale)
-                    },
-                    onPinchBegan: stopDeceleration,
-                    onPinchChanged: { scaleDelta, center in
-                        applyPinch(scaleDelta: scaleDelta,
-                                   pinchCenter: center,
-                                   viewport: viewport,
-                                   worldRect: worldRect,
-                                   fitScale: fitScale)
-                    },
-                    onPinchEnded: {
-                        withAnimation(MapAnimation.settle) {
-                            camera.clamp(viewport: viewport,
-                                         worldRect: worldRect,
-                                         fitScale: fitScale)
-                        }
-                    },
-                    onDoubleTap: { point in
-                        withAnimation(MapAnimation.doubleTapZoom) {
-                            applyDoubleTap(at: point,
-                                           viewport: viewport,
-                                           worldRect: worldRect,
-                                           fitScale: fitScale)
-                            camera.clamp(viewport: viewport,
-                                         worldRect: worldRect,
-                                         fitScale: fitScale)
-                        }
-                    },
-                    onTap: { point in
-                        handleTap(at: point,
-                                  viewport: viewport,
-                                  worldRect: worldRect,
-                                  fitScale: fitScale)
-                    }
+                PlatformMapGestureSurface(
+                    handlers: gestureHandlers(viewport: viewport,
+                                              worldRect: worldRect,
+                                              fitScale: fitScale)
                 )
             }
         }
@@ -417,6 +380,71 @@ struct FlatMapView: View {
     /// Refreshes shapes/indices for the active projection, stops deceleration and
     /// initializes the camera once per projection.
     ///
+    /// Everything the map wants to be told about a gesture, bound to the current geometry.
+    ///
+    /// Built per layout rather than stored: the handlers close over the viewport, the world
+    /// rectangle and the fit scale, and a stored copy would keep panning the map according to
+    /// the very first layout it ever had.
+    ///
+    /// - Parameters:
+    ///   - viewport: The area the map is drawn into.
+    ///   - worldRect: The projected world inside that viewport.
+    ///   - fitScale: Scale applied on top of the camera's own zoom.
+    /// - Returns: The handlers for ``PlatformMapGestureSurface``.
+    private func gestureHandlers(viewport: CGRect,
+                                 worldRect: CGRect,
+                                 fitScale: CGFloat) -> MapGestureHandlers {
+
+        MapGestureHandlers(
+            onTouchDown: stopDeceleration,
+            onPanBegan: stopDeceleration,
+            onPanChanged: { panDelta in
+                applyPan(delta: panDelta,
+                         viewport: viewport,
+                         worldRect: worldRect,
+                         fitScale: fitScale)
+            },
+            onPanEnded: { velocity in
+                startDeceleration(velocity: velocity,
+                                  viewport: viewport,
+                                  worldRect: worldRect,
+                                  fitScale: fitScale)
+            },
+            onPinchBegan: stopDeceleration,
+            onPinchChanged: { scaleDelta, center in
+                applyPinch(scaleDelta: scaleDelta,
+                           pinchCenter: center,
+                           viewport: viewport,
+                           worldRect: worldRect,
+                           fitScale: fitScale)
+            },
+            onPinchEnded: {
+                withAnimation(MapAnimation.settle) {
+                    camera.clamp(viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
+                }
+            },
+            onDoubleTap: { point in
+                withAnimation(MapAnimation.doubleTapZoom) {
+                    applyDoubleTap(at: point,
+                                   viewport: viewport,
+                                   worldRect: worldRect,
+                                   fitScale: fitScale)
+                    camera.clamp(viewport: viewport,
+                                 worldRect: worldRect,
+                                 fitScale: fitScale)
+                }
+            },
+            onTap: { point in
+                handleTap(at: point,
+                          viewport: viewport,
+                          worldRect: worldRect,
+                          fitScale: fitScale)
+            }
+        )
+    }
+
     /// Shown when the country geometry cannot be built.
     ///
     /// Says what is missing rather than what threw: an empty ocean is not obviously a failure,
@@ -493,6 +521,51 @@ struct FlatMapView: View {
     ///   - viewport: The map's drawing area.
     ///   - worldRect: The projected world rectangle.
     ///   - fitScale: Base fit scale for current layout.
+    // MARK: - Shared focus
+
+    /// Moves the camera to where the other renderer left off, once, when the map appears.
+    ///
+    /// Only the interactive map restores: a preview has no camera the user can have moved, and
+    /// putting it somewhere other than the world view would be surprising.
+    ///
+    /// - Parameters:
+    ///   - viewport: The area the map is drawn into.
+    ///   - worldRect: The projected world's rect at zoom 1.
+    ///   - fitScale: Scale applied before the user zoom.
+    private func restoreSharedFocus(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat) {
+
+        guard interactiveEnabled,
+              let sharedFocus,
+              let restored = sharedFocus.flatCamera(viewport: viewport,
+                                                    worldRect: worldRect,
+                                                    fitScale: fitScale,
+                                                    projection: projectionMode)
+        else { return }
+
+        camera.userZoom = restored.userZoom
+        camera.normalizedCenter = restored.normalizedCenter
+        camera.clamp(viewport: viewport, worldRect: worldRect, fitScale: fitScale)
+    }
+
+    /// Reports the camera into the shared focus so the globe can pick it up.
+    ///
+    /// - Parameters:
+    ///   - viewport: The area the map is drawn into.
+    ///   - worldRect: The projected world's rect at zoom 1.
+    ///   - fitScale: Scale applied before the user zoom.
+    private func publishSharedFocus(viewport: CGRect, worldRect: CGRect, fitScale: CGFloat) {
+
+        guard interactiveEnabled,
+              let reported = MapFocus.fromFlatMap(camera: camera,
+                                                  viewport: viewport,
+                                                  worldRect: worldRect,
+                                                  fitScale: fitScale,
+                                                  projection: projectionMode)
+        else { return }
+
+        sharedFocus = reported
+    }
+
     private func focusCountry(iso2: String,
                               viewport: CGRect,
                               worldRect: CGRect,

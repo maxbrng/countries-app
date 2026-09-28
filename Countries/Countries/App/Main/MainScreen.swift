@@ -76,8 +76,7 @@ struct MainScreen: View {
 
                 NavigationLink(value: AppRoute.mapScreen) {
 
-                    FlatMapView(selectionEnabled: false,
-                                labelsEnabled: false,
+                    FlatMapView(detail: .preview,
                                 renderMode: .stretch,
                                 projectionMode: .plateCarree,
                                 selectedCountry: .constant(nil),

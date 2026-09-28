@@ -26,13 +26,15 @@ struct MapView: View {
         ZStack {
             switch model.appearance {
             case .twoD:
-                FlatMapView(interactiveEnabled: true,
+                FlatMapView(detail: .interactive,
                             projectionMode: ShapeRequest.interactiveMap.projection,
                             initialStartZoom: Self.initialFlatMapZoom,
                             selectedCountry: $model.selectedCountry,
-                            filter: $model.filter)
+                            filter: $model.filter,
+                            sharedFocus: $model.focus)
             case .threeD:
-                GlobeMapView(selectedCountry: $model.selectedCountry)
+                GlobeMapView(selectedCountry: $model.selectedCountry,
+                             sharedFocus: $model.focus)
             }
         }
         .ignoresSafeArea()

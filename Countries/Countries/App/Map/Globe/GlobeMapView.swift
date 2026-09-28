@@ -89,6 +89,9 @@ struct GlobeMapView: View {
     @Query private var countries: [Country]
     @Binding private var selectedCountry: Country?
 
+    /// Where the map is looking, shared with the flat map so a switch between the two keeps it.
+    @Binding private var sharedFocus: MapFocus?
+
     @State private var viewModel = GlobeMapViewModel()
     @State private var selectedISO2: String?
 
@@ -104,10 +107,17 @@ struct GlobeMapView: View {
 
     /// Creates the globe view.
     ///
-    /// - Parameter selectedCountry: Shared selection binding, kept in sync in both directions:
-    ///   an external change focuses the camera, a tap on the globe writes back into it.
-    init(selectedCountry: Binding<Country?>) {
+    /// - Parameters:
+    ///   - selectedCountry: Shared selection binding, kept in sync in both directions:
+    ///     an external change focuses the camera, a tap on the globe writes back into it.
+    ///   - sharedFocus: Where the map is looking, shared with the flat map. Read once when the
+    ///     globe appears and written as the camera settles. Defaults to a constant `nil` for
+    ///     previews, which have nothing to restore and nothing to report.
+    init(selectedCountry: Binding<Country?>,
+         sharedFocus: Binding<MapFocus?> = .constant(nil)) {
+
         self._selectedCountry = selectedCountry
+        self._sharedFocus = sharedFocus
         _countries = Query()
     }
 
@@ -184,6 +194,11 @@ struct GlobeMapView: View {
                     MapCompass()
                     MapScaleView()
                 }
+                // `.onEnd` on purpose: the globe reports a camera on every frame of a drag,
+                // and the shared focus only needs where the user stopped.
+                .onMapCameraChange(frequency: .onEnd) { context in
+                    publishSharedFocus(camera: context.camera)
+                }
 
                 LoadStateOverlay(state: viewModel.loadState,
                                  loadingMessage: "Building the globe…",
@@ -195,6 +210,7 @@ struct GlobeMapView: View {
         .task {
             viewModel.updateCountryIndex(countries: countries)
             await viewModel.loadShapesIfNeeded()
+            restoreSharedFocus()
             syncSelectionFromBinding()
         }
         .onChange(of: countries) { _, newCountries in
@@ -204,6 +220,33 @@ struct GlobeMapView: View {
         .onChange(of: selectedCountry) { _, _ in
             syncSelectionFromBinding()
         }
+    }
+
+    // MARK: - Shared focus
+
+    /// Moves the camera to where the flat map left off, once, when the globe appears.
+    ///
+    /// Runs before ``syncSelectionFromBinding()``, so a selection that arrives with the switch
+    /// still gets the last word and flies the camera to its country.
+    private func restoreSharedFocus() {
+
+        guard let sharedFocus else { return }
+
+        cameraPosition = .camera(
+            MapCamera(centerCoordinate: .init(latitude: sharedFocus.latitude,
+                                              longitude: sharedFocus.longitude),
+                      distance: sharedFocus.globeDistance)
+        )
+    }
+
+    /// Reports the camera into the shared focus so the flat map can pick it up.
+    ///
+    /// - Parameter camera: The camera the globe settled on.
+    private func publishSharedFocus(camera: MapCamera) {
+
+        sharedFocus = MapFocus.fromGlobe(latitude: camera.centerCoordinate.latitude,
+                                         longitude: camera.centerCoordinate.longitude,
+                                         distance: camera.distance)
     }
 
     // MARK: - Selection

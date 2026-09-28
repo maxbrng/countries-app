@@ -11,8 +11,9 @@ import Foundation
 /// result afterwards. Previously ``GlobeShapeBuilder`` ran on the MainActor on every
 /// appearance switch, which is what froze the UI when entering 3D.
 ///
-/// - Note: Concurrent callers share a single build: the second caller awaits the in-flight
-///   task instead of starting a second one.
+/// - Note: The caching itself is ``AsyncMemo``, shared with ``FlatMapShapeCache`` and the
+///   decoded GeoJSON, so concurrent callers share a single build here for the same reason
+///   and by the same code as everywhere else.
 actor GlobeShapeCache {
 
     // MARK: - Shared instance
@@ -22,11 +23,12 @@ actor GlobeShapeCache {
 
     // MARK: - State
 
-    /// Result of the completed build, kept for the lifetime of the process.
-    private var cachedShapes: [GlobeCountryShape]?
+    /// Built globe geometry, keyed by the bundled resource it came from.
+    private let memo = AsyncMemo<String, [GlobeCountryShape]>()
 
-    /// Build currently running, used to de-duplicate overlapping requests.
-    private var inFlight: Task<[GlobeCountryShape], Error>?
+    /// Bundled GeoJSON the globe is built from. One entry, named rather than implied, so the
+    /// key says what it stands for.
+    private static let resource = "countries"
 
     // MARK: - Access
 
@@ -38,24 +40,9 @@ actor GlobeShapeCache {
     /// - Throws: Whatever ``GeoJSONLoader`` throws while reading or decoding the bundled GeoJSON.
     func shapes(resolver: GeoJSONLoader.ResolverIndex) async throws -> [GlobeCountryShape] {
 
-        if let cachedShapes { return cachedShapes }
-        if let inFlight { return try await inFlight.value }
-
-        let task = Task.detached(priority: .userInitiated) { () async throws -> [GlobeCountryShape] in
+        try await memo.value(for: Self.resource) {
             let resolved = try await GeoJSONLoader.loadResolvedFeatures(resolver: resolver)
             return GlobeShapeBuilder.buildShapes(from: resolved)
-        }
-
-        inFlight = task
-
-        do {
-            let shapes = try await task.value
-            cachedShapes = shapes
-            inFlight = nil
-            return shapes
-        } catch {
-            inFlight = nil
-            throw error
         }
     }
 }

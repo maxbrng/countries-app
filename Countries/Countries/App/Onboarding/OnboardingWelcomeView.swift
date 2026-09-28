@@ -42,9 +42,7 @@ struct OnboardingWelcomeView: View {
 
             Spacer(minLength: 0)
 
-            FlatMapView(selectionEnabled: false,
-                        interactiveEnabled: false,
-                        labelsEnabled: false,
+            FlatMapView(detail: .preview,
                         aspectFitStartsZoomed: false,
                         selectedCountry: $selectedCountry,
                         filter: $filter)

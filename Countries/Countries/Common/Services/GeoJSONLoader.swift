@@ -152,40 +152,35 @@ nonisolated enum GeoJSONLoader {
 /// background or while the system is short of it, which is exactly when iOS decides what to
 /// terminate - hence ``discardCachedCollections()`` and the observers that call it.
 private actor GeoJSONResourceCache {
+
+    /// Process-wide cache; the decoded file is identical for every map on screen.
     static let shared = GeoJSONResourceCache()
 
-    private var cachedCollections: [String: GeoJSON.FeatureCollection] = [:]
-    private var inFlight: [String: Task<GeoJSON.FeatureCollection, Error>] = [:]
+    /// Decoded collections, keyed by resource name.
+    private let memo = AsyncMemo<String, GeoJSON.FeatureCollection>()
 
     /// Drops every decoded collection. The next request parses the file again.
     ///
     /// In-flight decodes are left alone: they have a caller waiting, and their result is
     /// cached when they finish.
-    func discardCachedCollections() {
-        cachedCollections.removeAll()
+    func discardCachedCollections() async {
+        await memo.discardAll()
     }
 
+    /// Returns the decoded collection for `resource`, parsing the file on first use.
+    ///
+    /// - Parameter resource: Name of the bundled `.geojson` file, without its extension.
+    /// - Returns: The decoded feature collection.
+    /// - Throws: `CocoaError(.fileNoSuchFile)` when the resource is not in the bundle, or any
+    ///   decoding error.
     func featureCollection(resource: String) async throws -> GeoJSON.FeatureCollection {
-        if let cached = cachedCollections[resource] { return cached }
-        if let task = inFlight[resource] { return try await task.value }
 
-        let task = Task.detached(priority: .userInitiated) { () throws -> GeoJSON.FeatureCollection in
+        try await memo.value(for: resource) {
             guard let url = Bundle.main.url(forResource: resource, withExtension: "geojson") else {
                 throw CocoaError(.fileNoSuchFile)
             }
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(GeoJSON.FeatureCollection.self, from: data)
-        }
-
-        inFlight[resource] = task
-        do {
-            let collection = try await task.value
-            cachedCollections[resource] = collection
-            inFlight[resource] = nil
-            return collection
-        } catch {
-            inFlight[resource] = nil
-            throw error
         }
     }
 }
