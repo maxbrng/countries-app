@@ -243,6 +243,7 @@ struct FlatMapRenderer: View, Animatable {
                 let lineWidth = baseLineWidth / (interactiveEnabled ? currentScale : 1)
 
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
+
                 drawContext.stroke(path, with: .color(strokeColor), lineWidth: lineWidth)
             }
 

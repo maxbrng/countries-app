@@ -115,6 +115,8 @@ enum MapPalette {
     ///   assumed.
     static let coastline = blended(.label, alpha: Opacity.coastline, over: .systemBackground)
 
+    /// Lines of the status hatch, drawn inside a marked country.
+    ///
     /// Hairline between two neighbouring countries, drawn in the sea colour so that the border
     /// reads as a gap rather than as a line of its own.
     ///
