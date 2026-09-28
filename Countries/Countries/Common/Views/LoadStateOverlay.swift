@@ -19,17 +19,10 @@ struct LoadStateOverlay: View {
 
     // MARK: - Layout
 
-    /// Sizes of the two boxes.
+    /// The two values both boxes share, so they cannot drift apart.
     private enum Layout {
-        /// Gap between the spinner and its caption.
-        static let loadingSpacing: CGFloat = 8
-        /// Padding inside both boxes.
         static let padding: CGFloat = 16
         static let cornerRadius: CGFloat = 12
-        /// Keeps the failure box off the edges on a narrow screen.
-        static let failureHorizontalPadding: CGFloat = 24
-        /// Gap between the failure lines and the retry button.
-        static let failureSpacing: CGFloat = 12
     }
 
     // MARK: - Properties
@@ -65,7 +58,7 @@ struct LoadStateOverlay: View {
     /// The spinner, never without its caption.
     private var loading: some View {
 
-        VStack(spacing: Layout.loadingSpacing) {
+        VStack(spacing: 8) {
             ProgressView()
             Text(loadingMessage)
                 .font(.footnote)
@@ -79,7 +72,7 @@ struct LoadStateOverlay: View {
     /// The failure, never without its retry.
     private var failure: some View {
 
-        VStack(spacing: Layout.failureSpacing) {
+        VStack(spacing: 12) {
 
             Label("Could not be loaded", systemImage: "exclamationmark.triangle")
                 .font(.headline)
@@ -94,7 +87,8 @@ struct LoadStateOverlay: View {
         }
         .padding(Layout.padding)
         .background(.regularMaterial, in: .rect(cornerRadius: Layout.cornerRadius))
-        .padding(.horizontal, Layout.failureHorizontalPadding)
+        // Keeps the box off the edges on a narrow screen.
+        .padding(.horizontal, 24)
     }
 }
 
