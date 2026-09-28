@@ -132,7 +132,9 @@ struct StatView: View {
         case .percentage(let percentage):
             Text(verbatim: "\(percentage)%")
         case .everything:
-            Text("All")
+            // Explicit key: this "all" means "all of it", while the status filter's "All"
+            // means "all of them" — one German word each, and they are not the same word.
+            Text("stat.share.all")
         }
     }
 }

@@ -63,7 +63,7 @@ struct RootTabView: View {
                 }
             }
 
-            Tab("All Countries", systemImage: "magnifyingglass", role: .search) {
+            Tab("All countries", systemImage: "magnifyingglass", role: .search) {
                 NavigationStack {
                     // Inside the stack, so the field belongs to the tab bar.
                     CountriesList(searchText: $countrySearch)
