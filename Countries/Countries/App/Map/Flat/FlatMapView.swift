@@ -84,6 +84,9 @@ struct FlatMapView: View {
 
     @State private var labelMetrics = LabelMetricsCache()
 
+    /// Country paths already scaled into the drawing rectangle, kept across frames.
+    @State private var scaledPaths = ScaledPathCache()
+
     // MARK: - Layout tracking
 
     /// Last viewport size seen, used to tell a rotation apart from the first layout.
@@ -332,7 +335,8 @@ struct FlatMapView: View {
             interactiveEnabled: interactiveEnabled,
             labelsEnabled: labelsEnabled && interactiveEnabled && selectionEnabled,
             selectionEnabled: selectionEnabled,
-            labelMetrics: labelMetrics
+            labelMetrics: labelMetrics,
+            scaledPaths: scaledPaths
         )
         .contentShape(Rectangle())
         .overlay {
