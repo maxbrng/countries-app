@@ -11,13 +11,15 @@ import SwiftUI
 enum AppRoute: Hashable {
     /// The full country list, pushed from the main screen's country card.
     case fullCountryList
+    /// The trips list, pushed from the main screen's trip card.
+    case tripsList
     /// The interactive map screen.
     case mapScreen
     /// The settings screen.
     case settings
 }
 
-/// Root of the app: Countries, and the country list in the search role.
+/// Root of the app: Countries, Trips, and the country list in the search role.
 ///
 /// - Note: Only the first tab owns a ``NavigationPath``; ``AppRoute`` is resolved there.
 struct RootTabView: View {
@@ -49,6 +51,12 @@ struct RootTabView: View {
                 .toolbar(path.isEmpty ? .visible : .hidden, for: .tabBar)
             }
 
+            Tab("Trips", systemImage: "suitcase.rolling.fill") {
+                NavigationStack {
+                    TripsListView()
+                }
+            }
+
             Tab("All Countries", systemImage: "magnifyingglass", role: .search) {
                 NavigationStack {
                     // Inside the stack, so the field belongs to the tab bar.
@@ -72,6 +80,8 @@ struct RootTabView: View {
         case .fullCountryList:
             CountriesList(searchText: $fullListSearch)
                 .searchable(text: $fullListSearch)
+        case .tripsList:
+            TripsListView()
         case .mapScreen:
             MapControllerRepresentable(path: $path)
                 .ignoresSafeArea()
