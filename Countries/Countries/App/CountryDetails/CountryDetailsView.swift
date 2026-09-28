@@ -182,11 +182,6 @@ struct CountryDetailsView: View {
             infoRow(title: "Cost Level", value: String(describing: country.costLevel).capitalized)
             infoRow(title: "Safety Level", value: String(describing: country.safetyLevel).capitalized)
 
-            // Hero Image URL
-            if let hero = country.heroImageURL, !hero.isEmpty {
-                infoRow(title: "Hero Image URL", value: hero)
-            }
-
             // Trips count
             infoRow(title: "Trips", value: "\(country.trips.count)")
         }
@@ -368,7 +363,6 @@ private struct NotesEditorView: View {
             climateTags: [.mild],
             costLevel: .expensive,
             safetyLevel: .verySafe,
-            heroImageURL: "https://example.com/berlin.jpg",
             translations: ["de": "Deutschland", "en": "Germany"]
         ))
     }

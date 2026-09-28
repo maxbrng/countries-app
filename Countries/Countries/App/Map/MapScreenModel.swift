@@ -9,11 +9,33 @@ import Observation
 import SwiftUI
 
 /// Which of the two map renderers the map screen shows.
-enum MapAppearance: Hashable, CaseIterable {
+enum MapAppearance: String, Hashable, CaseIterable {
     /// The flat, projected map drawn with `Canvas` and `CGPath`.
     case twoD
     /// The three-dimensional globe.
     case threeD
+
+    /// `UserDefaults` key the choice is stored under.
+    ///
+    /// - Note: Also used by `@AppStorage` in the settings screen, so the two stay in step.
+    static let storageKey = "mapAppearance"
+
+    /// The stored choice, or ``twoD`` while nothing has been stored yet.
+    static var stored: MapAppearance {
+        get {
+            let raw = UserDefaults.standard.string(forKey: storageKey) ?? ""
+            return MapAppearance(rawValue: raw) ?? .twoD
+        }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: storageKey) }
+    }
+
+    /// Label for the settings picker.
+    var title: LocalizedStringKey {
+        switch self {
+        case .twoD: "Flat map"
+        case .threeD: "Globe"
+        }
+    }
 }
 
 /// Which detent the base (search) sheet currently rests on.
@@ -72,8 +94,13 @@ final class MapScreenModel {
 
     // MARK: - Intent
 
-    /// Which renderer is shown. Defaults to ``MapAppearance/twoD``.
-    var appearance: MapAppearance = .twoD
+    /// Which renderer is shown.
+    ///
+    /// Starts from the stored choice and writes every change back, so picking a style here or
+    /// in the settings screen survives leaving the map and restarting the app.
+    var appearance: MapAppearance = .stored {
+        didSet { MapAppearance.stored = appearance }
+    }
 
     /// Which countries the map highlights. Defaults to `.all`.
     var filter: CountryStatusFilter = .all

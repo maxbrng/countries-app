@@ -34,7 +34,6 @@ final class Country {
     var costLevel: CostLevel
     var safetyLevel: SafetyLevel
     
-    var heroImageURL: String?
     
     @Relationship var trips: [Trip] = []
     
@@ -58,7 +57,6 @@ final class Country {
         climateTags: [ClimateTag],
         costLevel: CostLevel,
         safetyLevel: SafetyLevel,
-        heroImageURL: String? = nil,
         translations: [String: String]
     ) {
         self.iso2 = iso2.uppercased()
@@ -78,7 +76,6 @@ final class Country {
         self.climateTags = climateTags
         self.costLevel = costLevel
         self.safetyLevel = safetyLevel
-        self.heroImageURL = heroImageURL
         self.translationsData = try? JSONEncoder().encode(translations)
     }
     

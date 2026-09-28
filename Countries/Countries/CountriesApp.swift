@@ -27,7 +27,13 @@ struct CountriesApp: App {
                 Country.self,
                 Trip.self
             ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // `.none` on purpose, not by omission: the entitlement lists CloudKit, so the default
+        // `.automatic` would start syncing the moment a container identifier is filled in. The
+        // privacy section claims the data stays on the device, and this is what makes that true.
+        // Turning sync on means changing this line and that text together.
+        let modelConfiguration = ModelConfiguration(schema: schema,
+                                                    isStoredInMemoryOnly: false,
+                                                    cloudKitDatabase: .none)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -36,12 +42,22 @@ struct CountriesApp: App {
         }
     }()
 
+    // MARK: - Language
+
+    /// Language chosen inside the app, applied to the whole view tree below.
+    ///
+    /// Read here rather than deeper down because a locale override only reaches the views
+    /// underneath it, and every screen has to follow the choice - including the ones a
+    /// `NavigationLink` pushes, which are siblings of the view that pushed them.
+    @AppStorage(AppLanguage.storageKey) private var appLanguage: AppLanguage = .system
+
     // MARK: - Scene
 
     var body: some Scene {
 
         WindowGroup {
             RootTabView()
+                .environment(\.locale, appLanguage.locale ?? Locale.autoupdatingCurrent)
                 .task {
                     do {
                         let context = sharedModelContainer.mainContext
