@@ -40,6 +40,7 @@
 		5012BE812EE23AA100B67989 /* Exceptions for "Countries" folder in "CountriesTests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Resources/Assets/countries-preview.geojson,
 				Resources/Assets/countries.geojson,
 			);
 			target = 501163E62EE0DD4300563A50 /* CountriesTests */;
@@ -47,6 +48,7 @@
 		5012BE822EE23AA100B67989 /* Exceptions for "Countries" folder in "CountriesUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Resources/Assets/countries-preview.geojson,
 				Resources/Assets/countries.geojson,
 			);
 			target = 501163F02EE0DD4300563A50 /* CountriesUITests */;

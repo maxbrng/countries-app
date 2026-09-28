@@ -18,19 +18,26 @@ nonisolated enum FlatPathBuilder {
         case light
 
         /// Max deviation in normalized world units (0...1 across the whole map).
-        /// At preview size 0.0006 is well under a pixel.
+        ///
+        /// - Note: Zero throughout since the preview stopped being built from the full
+        ///   geometry. `countries-preview.geojson` is simplified to 0.0006 ahead of time,
+        ///   so simplifying it again at launch would cost time and remove nothing.
         var simplificationTolerance: CGFloat {
             switch self {
-            case .full: return 0
-            case .light: return 0.0006
+            case .full, .light: return 0
             }
         }
 
-        /// Rings below this area (normalized units²) are skipped in preview mode.
+        /// Rings below this area (normalized units²) are skipped.
+        ///
+        /// - Note: Zero throughout, for the same reason, and for one more: the preview file
+        ///   has had its small rings removed already, but every country that would have lost
+        ///   *all* of them kept its largest one. Applying the filter again here would drop
+        ///   those 68 countries a second time, which is what made them absent from the
+        ///   dashboard map in the first place.
         var minimumRingArea: CGFloat {
             switch self {
-            case .full: return 0
-            case .light: return 0.000004
+            case .full, .light: return 0
             }
         }
     }
