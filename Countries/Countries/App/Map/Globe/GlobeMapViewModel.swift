@@ -7,8 +7,12 @@
 
 import Foundation
 import Observation
+import os
 import SwiftData
 import MapKit
+
+private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "Countries",
+                            category: "GlobeMap")
 
 /// Owns the globe's geometry and answers hit tests for ``GlobeMapView``.
 ///
@@ -18,6 +22,14 @@ import MapKit
 @MainActor
 final class GlobeMapViewModel {
 
+    // MARK: - Nested types
+
+    /// Builds the globe overlays for one resolver.
+    ///
+    /// Injectable so the failure branch can be exercised; the default goes through
+    /// ``GlobeShapeCache``.
+    typealias ShapeLoader = @Sendable (GeoJSONLoader.ResolverIndex) async throws -> [GlobeCountryShape]
+
     // MARK: - State
 
     /// Renderable country geometry, empty until ``loadShapesIfNeeded()`` has succeeded.
@@ -26,10 +38,21 @@ final class GlobeMapViewModel {
     /// Lookup from lowercased iso2 to ``Country``, used for colouring and selection.
     private(set) var countryIndex: CountryIndex = .init(countries: [])
 
-    /// Whether the geometry is still being built. Starts as `true`.
-    private(set) var isLoading: Bool = true
+    /// Where the geometry stands, driving ``LoadStateOverlay``.
+    private(set) var loadState: LoadState = .idle
 
     private var didLoadShapes = false
+
+    private let loadShapes: ShapeLoader
+
+    // MARK: - Life cycle
+
+    /// - Parameter loadShapes: How the overlays are built. Defaults to the shared cache.
+    init(loadShapes: @escaping ShapeLoader = { resolver in
+        try await GlobeShapeCache.shared.shapes(resolver: resolver)
+    }) {
+        self.loadShapes = loadShapes
+    }
 
     // MARK: - Loading
 
@@ -42,26 +65,34 @@ final class GlobeMapViewModel {
 
     /// Loads the globe geometry on first call and no-ops afterwards.
     ///
-    /// - Note: On failure ``shapes`` is reset to empty and ``isLoading`` still ends up `false`,
-    ///   so the globe shows MapKit's own borders without overlays instead of a stuck spinner.
+    /// - Note: On failure the overlays are dropped and the state ends up ``LoadState/failed``,
+    ///   so the globe shows MapKit's own borders under a message instead of a stuck spinner.
     func loadShapesIfNeeded() async {
 
         guard !didLoadShapes else {
-            isLoading = false
+            loadState = .ready
             return
         }
 
-        isLoading = true
+        loadState = .loading
 
         do {
-            let resolver = countryIndex.resolverIndex
-            shapes = try await GlobeShapeCache.shared.shapes(resolver: resolver)
+            shapes = try await loadShapes(countryIndex.resolverIndex)
             didLoadShapes = true
+            loadState = .ready
         } catch {
             shapes = []
+            loadState = .failed
+            logger.error("Globe shapes failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
 
-        isLoading = false
+    /// Runs the load again after a failure.
+    func reloadShapes() async {
+
+        didLoadShapes = false
+
+        await loadShapesIfNeeded()
     }
 
     // MARK: - Hit testing

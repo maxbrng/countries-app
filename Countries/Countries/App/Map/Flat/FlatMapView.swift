@@ -211,6 +211,18 @@ struct FlatMapView: View {
                 worldRect: worldRect,
                 fitScale: fitScale
             )
+            .overlay {
+                // Only on the real map: the dashboard preview is decoration, and a spinner
+                // flashing inside a card on every appearance says nothing worth saying. The
+                // map one tap away reports and retries.
+                if interactiveEnabled {
+                    LoadStateOverlay(state: viewModel.loadState,
+                                     loadingMessage: "Building the map…",
+                                     failureMessage: Self.failureMessage) {
+                        Task { await reloadDataIgnoringCache() }
+                    }
+                }
+            }
             .onAppear {
                 if lastViewportSize == .zero {
                     lastViewportSize = geometryProxy.size
@@ -399,6 +411,18 @@ struct FlatMapView: View {
     /// Refreshes shapes/indices for the active projection, stops deceleration and
     /// initializes the camera once per projection.
     ///
+    /// Shown when the country geometry cannot be built.
+    ///
+    /// Says what is missing rather than what threw: an empty ocean is not obviously a failure,
+    /// which is the whole reason this message exists.
+    private static let failureMessage: LocalizedStringKey =
+        "The country outlines could not be built, so the map is empty."
+
+    /// Loads the geometry again after a failure, ignoring the memo of the last request.
+    private func reloadDataIgnoringCache() async {
+        await viewModel.reloadShapes(projectionMode: projectionMode, variant: shapeVariant)
+    }
+
     /// - Note: Called from a `.task(id:)` keyed on projection and variant, so it runs
     ///   once per geometry set rather than once per appearance.
     @MainActor

@@ -82,9 +82,6 @@ struct GlobeMapView: View {
         static let neutralSelectedFillOpacity: Double = 0.35
         static let neutralFillOpacity: Double = 0.15
 
-        static let loadingOverlaySpacing: CGFloat = 15
-        static let loadingOverlayPadding: CGFloat = 25
-        static let loadingOverlayCornerRadius: CGFloat = 20
     }
 
     // MARK: - State
@@ -188,8 +185,10 @@ struct GlobeMapView: View {
                     MapScaleView()
                 }
 
-                if viewModel.isLoading {
-                    loadingOverlay
+                LoadStateOverlay(state: viewModel.loadState,
+                                 loadingMessage: "Building the globe…",
+                                 failureMessage: Self.failureMessage) {
+                    Task { await viewModel.reloadShapes() }
                 }
             }
         }
@@ -322,17 +321,10 @@ struct GlobeMapView: View {
         isSelected ? Style.selectedStrokeWidth : Style.strokeWidth
     }
 
-    /// Indicator shown while the globe geometry is still being built.
-    private var loadingOverlay: some View {
-
-        VStack(spacing: Style.loadingOverlaySpacing) {
-            ProgressView().tint(.white)
-            Text("Loading globe…")
-                .foregroundStyle(.white)
-                .font(.caption.bold())
-        }
-        .padding(Style.loadingOverlayPadding)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: Style.loadingOverlayCornerRadius))
-    }
+    /// Shown when the overlays cannot be built.
+    ///
+    /// Names what is missing rather than what failed: without the overlays the globe still
+    /// works as a globe, it just has no countries on it.
+    private static let failureMessage: LocalizedStringKey =
+        "The country outlines could not be built. The globe itself still works."
 }
