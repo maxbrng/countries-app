@@ -21,12 +21,25 @@ struct TripsListView: View {
 
     @Query private var allTrips: [Trip]
 
+    /// Timings of the list.
+    private enum Layout {
+        /// How long the undo banner takes to appear and to leave.
+        static let undoBannerAnimation: Double = 0.25
+    }
+
     /// The trip the editor sheet is open for, or `nil` while it is closed.
     ///
     /// Only ever ``TripEditorSubject/new`` from here — an existing trip is edited from
     /// ``TripDetailView`` — but the enum is what `.sheet(item:)` needs, because `nil` already
     /// means "sheet closed".
     @State private var editorSubject: TripEditorSubject?
+
+    /// Owns the undo window. Held here rather than in ``TripDetailView``, because deleting
+    /// from the detail screen leaves it immediately and the offer has to survive that.
+    @State private var deletion = TripDeletionCoordinator()
+
+    /// The trip the confirmation sheet is open for, or `nil` while it is closed.
+    @State private var deletionCandidate: Trip?
 
     // MARK: - Body
 
@@ -54,6 +67,21 @@ struct TripsListView: View {
         .sheet(item: $editorSubject) { subject in
             TripEditorView(subject: subject)
         }
+        .sheet(item: $deletionCandidate) { trip in
+            TripDeletionConfirmationView(summary: TripDeletion.summary(for: trip)) {
+                deletion.delete(trip, in: modelContext)
+            }
+        }
+        .environment(deletion)
+        .safeAreaInset(edge: .bottom) {
+            if let pending = deletion.pendingUndo {
+                TripUndoBanner(tripTitle: pending.tripTitle) {
+                    deletion.undo(in: modelContext)
+                }
+            }
+        }
+        .animation(.easeInOut(duration: Layout.undoBannerAnimation),
+                   value: deletion.pendingUndo?.id)
     }
 
     // MARK: - Content
@@ -97,18 +125,19 @@ struct TripsListView: View {
 
     // MARK: - Actions
 
-    /// Deletes the trips at `offsets` of ``sortedTrips``.
+    /// Opens the confirmation for the swiped trip.
+    ///
+    /// The swipe does not delete on its own: what a deletion keeps is the part users get
+    /// wrong, and that has to be said before the trip is gone, not after.
     ///
     /// - Parameter offsets: Row offsets handed over by the list's delete action.
-    /// - Note: The relationship to ``Country`` nullifies, so the countries themselves and their
-    ///   statuses survive the deletion.
     private func deleteTrips(at offsets: IndexSet) {
 
         let trips = sortedTrips
-        for index in offsets where trips.indices.contains(index) {
-            modelContext.delete(trips[index])
-        }
-        try? modelContext.save()
+
+        guard let index = offsets.first, trips.indices.contains(index) else { return }
+
+        deletionCandidate = trips[index]
     }
 }
 
