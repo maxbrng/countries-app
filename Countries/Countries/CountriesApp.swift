@@ -20,13 +20,13 @@ struct CountriesApp: App {
 
     /// The single on-disk container for ``Country`` and ``Trip``.
     ///
+    /// Built from ``CountriesSchemaV1`` and handed a migration plan from the first release on,
+    /// so the store carries a version number a later migration can start from.
+    ///
     /// - Note: The app cannot run without its store, so a failure here is fatal by design.
     private let sharedModelContainer: ModelContainer = {
 
-        let schema = Schema([
-                Country.self,
-                Trip.self
-            ])
+        let schema = Schema(versionedSchema: CountriesSchemaV1.self)
         // `.none` on purpose, not by omission: the entitlement lists CloudKit, so the default
         // `.automatic` would start syncing the moment a container identifier is filled in. The
         // privacy section claims the data stays on the device, and this is what makes that true.
@@ -36,7 +36,9 @@ struct CountriesApp: App {
                                                     cloudKitDatabase: .none)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema,
+                                      migrationPlan: CountriesMigrationPlan.self,
+                                      configurations: [modelConfiguration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
