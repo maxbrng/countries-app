@@ -72,16 +72,6 @@ struct FlatMapRenderer: View, Animatable {
 
     // MARK: - Constants
 
-    /// Stroke widths of the draw pass. The colours live in ``MapPalette``, together with the
-    /// contrast ratio each of them reaches.
-    private enum Style {
-
-        /// Border width of the selected country, in points before the camera scale.
-        static let selectedLineWidth: CGFloat = 1.2
-        /// Border width of every other country, in points before the camera scale.
-        static let lineWidth: CGFloat = 0.4
-    }
-
     /// Thresholds and paddings of the label placement pass. All values are tuned
     /// against the real country set; changing one changes how many labels survive.
     private enum LabelLayout {
@@ -236,7 +226,8 @@ struct FlatMapRenderer: View, Animatable {
 
                 // Divided by the camera scale so the border keeps a constant
                 // on-screen width at every zoom level.
-                let baseLineWidth = isSelected ? Style.selectedLineWidth : Style.lineWidth
+                let baseLineWidth = isSelected ? MapStrokeMetrics.selectedBorderWidth
+                                               : MapStrokeMetrics.interiorBorderWidth
                 let lineWidth = baseLineWidth / (interactiveEnabled ? currentScale : 1)
 
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
