@@ -22,39 +22,42 @@ actor GlobeShapeCache {
 
     // MARK: - State
 
-    /// Result of the completed build, kept for the lifetime of the process.
-    private var cachedShapes: [GlobeCountryShape]?
+    /// Completed builds, kept for the lifetime of the process, one per detail level.
+    private var cachedShapes: [GlobeShapeBuilder.Detail: [GlobeCountryShape]] = [:]
 
-    /// Build currently running, used to de-duplicate overlapping requests.
-    private var inFlight: Task<[GlobeCountryShape], Error>?
+    /// Builds currently running, used to de-duplicate overlapping requests.
+    private var inFlight: [GlobeShapeBuilder.Detail: Task<[GlobeCountryShape], Error>] = [:]
 
     // MARK: - Access
 
     /// Returns the globe geometry, building it off the main actor on first use.
     ///
-    /// - Parameter resolver: `Sendable` iso2 lookup table from ``CountryIndex``, used instead of
-    ///   the SwiftData ``Country`` models, which must never cross into background work.
+    /// - Parameters:
+    ///   - resolver: `Sendable` iso2 lookup table from ``CountryIndex``, used instead of the
+    ///     SwiftData ``Country`` models, which must never cross into background work.
+    ///   - detail: Which level of detail to build. See ``GlobeShapeBuilder/Detail``.
     /// - Returns: The cached shapes, or the freshly built ones on first call.
     /// - Throws: Whatever ``GeoJSONLoader`` throws while reading or decoding the bundled GeoJSON.
-    func shapes(resolver: GeoJSONLoader.ResolverIndex) async throws -> [GlobeCountryShape] {
+    func shapes(resolver: GeoJSONLoader.ResolverIndex,
+                detail: GlobeShapeBuilder.Detail) async throws -> [GlobeCountryShape] {
 
-        if let cachedShapes { return cachedShapes }
-        if let inFlight { return try await inFlight.value }
+        if let cached = cachedShapes[detail] { return cached }
+        if let running = inFlight[detail] { return try await running.value }
 
         let task = Task.detached(priority: .userInitiated) { () async throws -> [GlobeCountryShape] in
             let resolved = try await GeoJSONLoader.loadResolvedFeatures(resolver: resolver)
-            return GlobeShapeBuilder.buildShapes(from: resolved)
+            return GlobeShapeBuilder.buildShapes(from: resolved, detail: detail)
         }
 
-        inFlight = task
+        inFlight[detail] = task
 
         do {
             let shapes = try await task.value
-            cachedShapes = shapes
-            inFlight = nil
+            cachedShapes[detail] = shapes
+            inFlight[detail] = nil
             return shapes
         } catch {
-            inFlight = nil
+            inFlight[detail] = nil
             throw error
         }
     }
