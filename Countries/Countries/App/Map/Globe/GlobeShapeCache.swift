@@ -23,26 +23,25 @@ actor GlobeShapeCache {
 
     // MARK: - State
 
-    /// Built globe geometry, keyed by the bundled resource it came from.
-    private let memo = AsyncMemo<String, [GlobeCountryShape]>()
-
-    /// Bundled GeoJSON the globe is built from. One entry, named rather than implied, so the
-    /// key says what it stands for.
-    private static let resource = "countries"
+    /// Built globe geometry, keyed by the level of detail it was built at.
+    private let memo = AsyncMemo<GlobeShapeBuilder.Detail, [GlobeCountryShape]>()
 
     // MARK: - Access
 
     /// Returns the globe geometry, building it off the main actor on first use.
     ///
-    /// - Parameter resolver: `Sendable` iso2 lookup table from ``CountryIndex``, used instead of
-    ///   the SwiftData ``Country`` models, which must never cross into background work.
+    /// - Parameters:
+    ///   - resolver: `Sendable` iso2 lookup table from ``CountryIndex``, used instead of the
+    ///     SwiftData ``Country`` models, which must never cross into background work.
+    ///   - detail: Which level of detail to build. See ``GlobeShapeBuilder/Detail``.
     /// - Returns: The cached shapes, or the freshly built ones on first call.
     /// - Throws: Whatever ``GeoJSONLoader`` throws while reading or decoding the bundled GeoJSON.
-    func shapes(resolver: GeoJSONLoader.ResolverIndex) async throws -> [GlobeCountryShape] {
+    func shapes(resolver: GeoJSONLoader.ResolverIndex,
+                detail: GlobeShapeBuilder.Detail) async throws -> [GlobeCountryShape] {
 
-        try await memo.value(for: Self.resource) {
+        try await memo.value(for: detail) {
             let resolved = try await GeoJSONLoader.loadResolvedFeatures(resolver: resolver)
-            return GlobeShapeBuilder.buildShapes(from: resolved)
+            return GlobeShapeBuilder.buildShapes(from: resolved, detail: detail)
         }
     }
 }

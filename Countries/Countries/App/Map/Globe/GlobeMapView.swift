@@ -95,6 +95,10 @@ struct GlobeMapView: View {
     @State private var viewModel = GlobeMapViewModel()
     @State private var selectedISO2: String?
 
+    /// Distance of the camera from the globe in metres, tracked so the overlays can drop to
+    /// the coarse geometry when the fine one would only produce a halo.
+    @State private var cameraDistance: CLLocationDistance = Camera.initialDistance
+
     @State private var cameraPosition: MapCameraPosition = .camera(
         MapCamera(
             centerCoordinate: .init(latitude: Camera.initialLatitude,
@@ -128,7 +132,9 @@ struct GlobeMapView: View {
     /// lot of rendering for no visual gain.
     private var highlightedShapes: [GlobeCountryShape] {
 
-        guard !viewModel.shapes.isEmpty else { return [] }
+        let available = viewModel.shapes(forCameraDistance: cameraDistance)
+
+        guard !available.isEmpty else { return [] }
 
         let marked = Set(
             countries
@@ -138,7 +144,7 @@ struct GlobeMapView: View {
 
         guard !marked.isEmpty || selectedISO2 != nil else { return [] }
 
-        return viewModel.shapes.filter { shape in
+        return available.filter { shape in
             marked.contains(shape.iso2) || shape.iso2 == selectedISO2
         }
     }
@@ -194,10 +200,12 @@ struct GlobeMapView: View {
                     MapCompass()
                     MapScaleView()
                 }
-                // `.onEnd` on purpose: the globe reports a camera on every frame of a drag,
-                // and the shared focus only needs where the user stopped.
+                // `.onEnd` on purpose twice over: the globe reports a camera on every frame
+                // of a drag, the shared focus only needs where the user stopped, and swapping
+                // the level of detail mid-gesture would rebuild every overlay per frame.
                 .onMapCameraChange(frequency: .onEnd) { context in
                     publishSharedFocus(camera: context.camera)
+                    cameraDistance = context.camera.distance
                 }
 
                 LoadStateOverlay(state: viewModel.loadState,
