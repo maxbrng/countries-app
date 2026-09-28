@@ -35,19 +35,19 @@ actor FlatMapShapeCache {
     }
 
     /// Cache key: one entry per projection and variant combination.
-    private struct Key: Hashable {
+    private struct Key: Hashable, Sendable {
         let projection: FlatMapProjectionMode
         let variant: Variant
     }
 
     // MARK: - State
 
-    /// Finished geometry sets, kept for the lifetime of the process.
-    private var cache: [Key: [RenderCountryShape]] = [:]
-
-    /// Builds that have started but not finished, so concurrent callers can await
-    /// the same task instead of projecting the world twice.
-    private var inFlight: [Key: Task<[RenderCountryShape], Error>] = [:]
+    /// Finished geometry sets, one per projection and variant.
+    ///
+    /// - Note: The caching itself is ``AsyncMemo``, shared with ``GlobeShapeCache`` and the
+    ///   decoded GeoJSON. Concurrent callers await the same build rather than projecting the
+    ///   world twice, by the same code in all three places.
+    private let memo = AsyncMemo<Key, [RenderCountryShape]>()
 
     // MARK: - Access
 
@@ -85,10 +85,7 @@ actor FlatMapShapeCache {
 
         let key = Key(projection: projectionMode, variant: variant)
 
-        if let cached = cache[key] { return cached }
-        if let inflight = inFlight[key] { return try await inflight.value }
-
-        let task = Task.detached(priority: .userInitiated) { () async throws -> [RenderCountryShape] in
+        return try await memo.value(for: key) {
             let resolved = try await GeoJSONLoader.loadResolvedFeatures(
                 resolver: resolver,
                 keySet: .init()
@@ -124,23 +121,11 @@ actor FlatMapShapeCache {
             }
             return built
         }
-
-        inFlight[key] = task
-        do {
-            let shapes = try await task.value
-            cache[key] = shapes
-            inFlight[key] = nil
-            return shapes
-        } catch {
-            inFlight[key] = nil
-            throw error
-        }
     }
 
-    /// Drops all cached and in-flight geometry, forcing the next request to rebuild.
-    func clearAll() {
-        cache.removeAll()
-        inFlight.removeAll()
+    /// Drops all cached geometry, forcing the next request to rebuild.
+    func clearAll() async {
+        await memo.discardAll()
     }
 
     // MARK: - Label hints
