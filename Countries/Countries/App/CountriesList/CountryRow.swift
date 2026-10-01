@@ -83,6 +83,7 @@ struct CountryRow: View {
     ///   - newStatus: The status the swipe action stands for. Swiping the status the country
     ///     already has clears it again.
     private func toggleStatus(of country: Country, _ newStatus: CountryStatus) {
+
         try? CountryStatusService.toggleStatus(newStatus, for: country, in: modelContext)
     }
 

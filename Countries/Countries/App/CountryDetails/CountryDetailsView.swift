@@ -244,6 +244,7 @@ struct CountryDetailsView: View {
     /// - Parameter newStatus: The status the tapped toolbar button stands for. Tapping the
     ///   button of the status the country already has clears it again.
     private func toggleStatus(_ newStatus: CountryStatus) {
+
         try? CountryStatusService.toggleStatus(newStatus, for: country, in: modelContext)
     }
 

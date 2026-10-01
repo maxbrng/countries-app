@@ -124,6 +124,7 @@ struct CountryQuickActionPanelView: View {
     /// - Note: A failure leaves the country unchanged; there is no UI for it, so it is
     ///   only logged.
     private func toggle(_ status: CountryStatus) {
+
         do {
             try CountryStatusService.toggleStatus(status, for: country, in: modelContext)
         } catch {
