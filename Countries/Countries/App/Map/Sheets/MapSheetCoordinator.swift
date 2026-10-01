@@ -75,6 +75,18 @@ final class MapSheetCoordinator: NSObject {
     /// than by the user, which is the only case this type lowers again.
     private var didExpandBaseSheetForSearch = false
 
+    /// The base detent this coordinator last asked for, as opposed to the one the sheet is
+    /// currently reporting.
+    ///
+    /// `animateChanges` is asynchronous: for the length of the animation
+    /// `selectedDetentIdentifier` still reads the value being left behind. Selecting a country
+    /// from the search results ends the search focus and opens a sheet in the same pass, so
+    /// ``updateBaseSheetDetentForStack()`` ran while ``syncBaseSheetWithSearchFocus()``'s
+    /// collapse was still in flight and stored `.large` - the height *search* had raised the
+    /// sheet to, which the user never chose. The base then sprang back to full height when the
+    /// country sheet was dismissed.
+    private var intendedBaseDetentIdentifier: UISheetPresentationController.Detent.Identifier?
+
     /// Rotation guard. Everything geometry-related reads this to decide between the
     /// soft treatment (during the turn) and the hard one (once it has settled).
     private var isInSizeTransition = false
@@ -557,6 +569,7 @@ final class MapSheetCoordinator: NSObject {
         secondarySheetViewController = nil
         presentedRoute = .none
         storedBaseDetentIdentifier = nil
+        intendedBaseDetentIdentifier = nil
         isTransitioningSecondarySheet = false
         didExpandBaseSheetForSearch = false
 
@@ -662,12 +675,14 @@ final class MapSheetCoordinator: NSObject {
         if model.isSearchFieldFocused {
             guard sheet.selectedDetentIdentifier == Self.smallDetentIdentifier else { return }
             didExpandBaseSheetForSearch = true
+            intendedBaseDetentIdentifier = .large
             sheet.animateChanges {
                 sheet.selectedDetentIdentifier = .large
             }
             publishSheetState()
         } else if didExpandBaseSheetForSearch {
             didExpandBaseSheetForSearch = false
+            intendedBaseDetentIdentifier = Self.smallDetentIdentifier
             sheet.animateChanges {
                 sheet.selectedDetentIdentifier = Self.smallDetentIdentifier
             }
@@ -685,15 +700,21 @@ final class MapSheetCoordinator: NSObject {
         if showsSecondary {
             // Remember the detent from before *anything* was stacked on top.
             if storedBaseDetentIdentifier == nil {
-                storedBaseDetentIdentifier = sheet.selectedDetentIdentifier ?? .medium
+                // The intended detent, not the reported one - see
+                // ``intendedBaseDetentIdentifier``.
+                storedBaseDetentIdentifier = intendedBaseDetentIdentifier
+                    ?? sheet.selectedDetentIdentifier
+                    ?? .medium
             }
             guard sheet.selectedDetentIdentifier != Self.smallDetentIdentifier else { return }
+            intendedBaseDetentIdentifier = Self.smallDetentIdentifier
             sheet.animateChanges {
                 sheet.selectedDetentIdentifier = Self.smallDetentIdentifier
             }
         } else if let restore = storedBaseDetentIdentifier {
             storedBaseDetentIdentifier = nil
             guard sheet.selectedDetentIdentifier != restore else { return }
+            intendedBaseDetentIdentifier = restore
             sheet.animateChanges {
                 sheet.selectedDetentIdentifier = restore
             }
