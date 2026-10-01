@@ -105,22 +105,56 @@ final class MapScreenModel {
     /// Which countries the map highlights. Defaults to `.all`.
     var filter: CountryStatusFilter = .all
 
+    /// Where the map is looking, in terms both renderers understand.
+    ///
+    /// Each renderer writes its own camera here as it moves, and reads it back once when it
+    /// appears. That is what carries the view across a switch between 2D and 3D, which used to
+    /// drop back to the opening position because neither renderer could read the other's
+    /// camera. `nil` means nothing has been looked at yet and the renderer opens where it
+    /// always did.
+    ///
+    /// - Note: Written continuously and read once, so the two renderers never chase each other.
+    var focus: MapFocus?
+
     /// What the user wants stacked on the base sheet.
-    var route: MapSheetRoute = .none
+    ///
+    /// Kept in step with ``selectedCountry`` in both directions, but they are not the same
+    /// thing: leaving a country's sheet for the appearance panel keeps the country selected,
+    /// which is what lets a switch between 2D and 3D hold on to it.
+    var route: MapSheetRoute = .none {
+        didSet {
+            guard route != oldValue else { return }
+
+            if let country = route.country {
+                selectedCountry = country
+                return
+            }
+
+            // Closing a country's sheet is a deselection. Replacing it with the appearance
+            // panel is not: the country stays highlighted behind it.
+            if route == .none, oldValue.country != nil { selectedCountry = nil }
+        }
+    }
 
     /// Set by the search field. The controller raises a collapsed base sheet so
     /// results have room, and lowers it again when focus is lost.
     var isSearchFieldFocused: Bool = false
 
-    /// Convenience over `route` so map views can keep binding a plain optional.
+    /// The country the map highlights and frames.
+    ///
+    /// Stored rather than read off ``route``, which is what it used to be. As a facade over the
+    /// route it was cleared by anything else that took the sheet - including the appearance
+    /// panel, so choosing 3D always deselected first and the globe opened on nothing.
     var selectedCountry: Country? {
-        get { route.country }
-        set {
-            if let newValue {
-                route = .country(newValue)
-            } else if route.country != nil {
-                route = .none
+        didSet {
+            guard selectedCountry !== oldValue else { return }
+
+            if let selectedCountry {
+                route = .country(selectedCountry)
+                return
             }
+
+            if route.country != nil { route = .none }
         }
     }
 
