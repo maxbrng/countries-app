@@ -19,10 +19,8 @@ struct CountryRow: View {
     private enum Layout {
         /// Horizontal spacing between flag, name column and badge.
         static let contentSpacing: CGFloat = 16
-        static let flagCornerRadius: CGFloat = 4
-        static let flagBorderWidth: CGFloat = 1
-        static let flagMaxWidth: CGFloat = 40
-        static let flagMaxHeight: CGFloat = 30
+        /// Height of the flag in a list row.
+        static let flagHeight: CGFloat = 30
         /// Padding on all edges of a status badge.
         static let badgePadding: CGFloat = 4
         /// Additional horizontal padding of a status badge.
@@ -42,15 +40,7 @@ struct CountryRow: View {
 
     var body: some View {
         HStack(spacing: Layout.contentSpacing) {
-            Image(country.iso2.lowercased())
-                .resizable()
-                .clipShape(RoundedRectangle(cornerRadius: Layout.flagCornerRadius, style: .continuous))
-                .scaledToFit()
-                .overlay(
-                    RoundedRectangle(cornerRadius: Layout.flagCornerRadius, style: .continuous)
-                        .stroke(.quaternary, lineWidth: Layout.flagBorderWidth)
-                )
-                .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
+            CountryFlag(iso2: country.iso2, height: Layout.flagHeight)
 
             VStack(alignment: .leading) {
                 Text(country.displayName)

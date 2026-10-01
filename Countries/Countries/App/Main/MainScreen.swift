@@ -39,10 +39,19 @@ struct MainScreen: View {
         static let countryRowSpacing: CGFloat = 6
         /// Horizontal spacing between a flag and a country name.
         static let flagLabelSpacing: CGFloat = 8
-        static let flagCornerRadius: CGFloat = 2
-        static let flagBorderWidth: CGFloat = 1
-        static let flagMaxWidth: CGFloat = 15
-        static let flagMaxHeight: CGFloat = 10
+        /// Height of a flag in the country columns.
+        static let flagHeight: CGFloat = 10
+        /// Height of a flag in the trip rows, where several sit side by side.
+        static let tripFlagHeight: CGFloat = 14
+        /// How far each flag of a trip overlaps the one before it, as a share of its width.
+        ///
+        /// Overlapping rather than spacing them keeps a five-country trip the same width as a
+        /// two-country one, so the titles beside them stay on a common left edge.
+        static let tripFlagOverlapShare: CGFloat = 0.35
+        /// Vertical spacing between a trip's title and its detail line.
+        static let tripRowSpacing: CGFloat = 3
+        /// Vertical spacing between two trip rows.
+        static let tripListSpacing: CGFloat = 14
     }
 
     /// Number of countries listed per column before the "+n more" line takes over.
@@ -50,6 +59,12 @@ struct MainScreen: View {
 
     /// Number of trips listed on the dashboard before the card only links onwards.
     private static let recentTripLimit = 3
+
+    /// Number of flags shown per trip before the row stops adding them.
+    ///
+    /// Four is what fits beside a title at this width once they overlap; beyond that the count
+    /// on the line underneath is the better answer than a row of slivers.
+    private static let tripFlagLimit = 4
 
     /// Head start given to the on-screen map preview before the interactive map's geometry
     /// is built in the background.
@@ -235,17 +250,7 @@ struct MainScreen: View {
 
                     HStack(spacing: Layout.flagLabelSpacing) {
 
-                        Image(country.iso2.lowercased())
-                            .resizable()
-                            .scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: Layout.flagCornerRadius,
-                                                        style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: Layout.flagCornerRadius,
-                                                 style: .continuous)
-                                    .stroke(.quaternary, lineWidth: Layout.flagBorderWidth)
-                            )
-                            .frame(maxWidth: Layout.flagMaxWidth, maxHeight: Layout.flagMaxHeight)
+                        CountryFlag(iso2: country.iso2, height: Layout.flagHeight)
 
                         Text(country.displayName)
                             .foregroundStyle(.primary)
@@ -323,27 +328,80 @@ struct MainScreen: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            VStack(alignment: .leading, spacing: Layout.previewListSpacing) {
+            VStack(alignment: .leading, spacing: Layout.tripListSpacing) {
                 ForEach(recent) { trip in
-                    HStack(spacing: Layout.flagLabelSpacing) {
-
-                        Text(TripFormatting.displayTitle(for: trip))
-                            .font(.footnote)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-
-                        Spacer()
-
-                        if let range = TripFormatting.dateRange(for: trip) {
-                            Text(range)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                    }
+                    tripRow(for: trip)
                 }
             }
         }
+    }
+
+    /// One trip on the dashboard: its flags, its name and what it consisted of.
+    ///
+    /// - Parameter trip: The trip to describe.
+    @ViewBuilder
+    private func tripRow(for trip: Trip) -> some View {
+
+        HStack(spacing: Layout.flagLabelSpacing) {
+
+            tripFlags(for: trip)
+
+            VStack(alignment: .leading, spacing: Layout.tripRowSpacing) {
+
+                Text(TripFormatting.displayTitle(for: trip))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(Self.tripDetailLine(for: trip))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+    }
+
+    /// The flags of a trip's countries, overlapping, newest-added last.
+    ///
+    /// - Parameter trip: The trip whose countries to show.
+    @ViewBuilder
+    private func tripFlags(for trip: Trip) -> some View {
+
+        let shown = trip.countries.prefix(Self.tripFlagLimit)
+        let overlap = Layout.tripFlagHeight * CountryFlag.aspectRatio * Layout.tripFlagOverlapShare
+
+        HStack(spacing: -overlap) {
+            ForEach(Array(shown.enumerated()), id: \.element.iso2) { index, country in
+                CountryFlag(iso2: country.iso2, height: Layout.tripFlagHeight)
+                    // Later flags on top, so the stack reads left to right rather than
+                    // looking like it was dealt backwards.
+                    .zIndex(Double(-index))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    /// The second line of a trip row: when it was, and how much of it there was.
+    ///
+    /// - Parameter trip: The trip to describe.
+    /// - Returns: The parts that apply, joined by a middle dot. Never empty: a trip with no
+    ///   dates and no countries still says that it has none.
+    private static func tripDetailLine(for trip: Trip) -> String {
+
+        var parts: [String] = []
+
+        if let range = TripFormatting.dateRange(for: trip) {
+            parts.append(range)
+        }
+
+        let count = trip.countries.count
+        parts.append(count == 1
+                     ? String(localized: "1 country")
+                     : String(localized: "\(count) countries"))
+
+        return parts.joined(separator: " · ")
     }
 
     /// Footer row of a card, hinting that the card is tappable.
