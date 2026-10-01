@@ -71,8 +71,10 @@ nonisolated struct RenderCountryShape: Identifiable, @unchecked Sendable {
     /// Distance from ``labelAnchor`` to the nearest edge, in normalized world units.
     ///
     /// The radius of the largest circle that fits inside the country at the anchor. Half the
-    /// text width has to fit in it, or the name crosses the border - which is what the
-    /// bounding box below cannot tell you, because a wide box can sit over a narrow country.
+    /// text's *height* has to fit in it, so a name is never set in a sliver - which is what
+    /// the bounding box below cannot tell you, because a wide box can sit over a narrow
+    /// country. The name's width is checked against the box instead, and is allowed to
+    /// overhang the border.
     let labelClearanceNormalized: CGFloat
 
     /// Bounds of the largest ring plus camera padding, which is what the camera frames.

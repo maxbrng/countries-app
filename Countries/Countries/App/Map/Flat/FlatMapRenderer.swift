@@ -106,6 +106,13 @@ struct FlatMapRenderer: View, Animatable {
         /// Keeps a name off its own border instead of letting it touch the coastline.
         static let clearancePadding: CGFloat = 3
 
+        /// Share of a name's width the country's own outline must span before it is drawn.
+        ///
+        /// Below 1 on purpose: a name is allowed to overhang its border a little, the way a
+        /// printed atlas sets one. Far below it the name would stop belonging to anything the
+        /// reader can see, so it is not a free parameter to lower further.
+        static let minimumCountryWidthShare: CGFloat = 0.8
+
         /// How much larger than the viewport the whole world must be before any label is drawn.
         ///
         /// At the minimum zoom the world exactly fills the viewport, so this draws nothing at
@@ -396,26 +403,36 @@ struct FlatMapRenderer: View, Animatable {
             let bboxArea = fitScreenRect.width * fitScreenRect.height
             let textSize = labelMetrics.size(for: name, fontSize: fontSize)
 
-            // Does the name fit *inside the country*, rather than inside the box around it?
+            // Is the name *on* the country? Two measurements, because neither answers alone.
             //
-            // `labelClearanceNormalized` is the radius of the largest circle that fits in the
-            // outline at the anchor, so this asks whether the text rectangle fits in that
-            // circle. The box could not answer it: Croatia's box is wide while the land under
-            // it is a narrow crescent, which is how its name ended up outside the country.
+            // `labelClearanceNormalized` is the radius of the largest circle that fits inside
+            // the outline at the anchor. It says whether the anchor stands in open land or in
+            // a sliver, which is what keeps Croatia's name off the Adriatic - a box cannot
+            // answer that, because Croatia's box is wide while the land under it is a narrow
+            // crescent. The outline's own box then says whether the country is wide enough to
+            // carry the name at all.
+            //
+            // Only the text's *height* is asked to fit inside the circle. Requiring the whole
+            // text rectangle was the earlier rule and it emptied the map: measured against the
+            // real outlines it takes 3.0x zoom before "France" appears, 4.3x for "Germany" and
+            // 6.3x for "Italy", while labels only switch on at 1.5x - so the map carried two
+            // names at every zoom a reader actually uses. Letting a name overhang its border,
+            // as printed maps do, moves those three to 1.3x, 1.9x and 3.1x.
             //
             // The smaller of the two world dimensions converts the radius, because the
-            // normalized space is not square and a label that fits has to fit on both axes.
+            // normalized space need not be square and a circle in it is an ellipse on screen.
             let clearanceOnScreen = shape.labelClearanceNormalized
                 * min(worldRect.width, worldRect.height)
                 * currentScale
 
-            let halfDiagonal = (textSize.width * textSize.width
-                                + textSize.height * textSize.height).squareRoot() / 2
+            let heightFits = textSize.height / 2
+                + LabelLayout.clearancePadding <= clearanceOnScreen
+            let widthFits = textSize.width
+                * LabelLayout.minimumCountryWidthShare <= fitScreenRect.width
 
             // The selected country is exempt. Tapping a country and not being told which one
             // it is makes the selection useless, so its name is drawn wherever the anchor is.
-            guard isSelected || halfDiagonal + LabelLayout.clearancePadding <= clearanceOnScreen
-            else { continue }
+            guard isSelected || (heightFits && widthFits) else { continue }
 
             // Natural Earth's `abbrev` was tried instead of hiding a name that does not fit,
             // and it reads as noise: a map full of "Fr.", "Ukr." and "S.Af." is worse than a
