@@ -30,6 +30,12 @@ struct FlatMapView: View {
     /// Whether taps select a country and hit-testing runs at all.
     var selectionEnabled: Bool { detail.selectionEnabled }
 
+    /// Lowercased ISO2 codes to draw as visited although nothing is stored for them yet.
+    ///
+    /// Defaults to empty. Used by the first launch, which does not write a status until the
+    /// flow is confirmed and would otherwise show the user a map that ignores every tap.
+    let pendingVisitedISO2: Set<String>
+
     /// Whether pan, pinch and double-tap gestures are attached.
     var interactiveEnabled: Bool { detail.interactiveEnabled }
 
@@ -184,6 +190,7 @@ struct FlatMapView: View {
         doubleTapZoomFactor: CGFloat = 2.0,
         focusesSelectedCountry: Bool = true,
         focusPadding: CGFloat = 24,
+        pendingVisitedISO2: Set<String> = [],
         selectedCountry: Binding<Country?>,
         filter: Binding<CountryStatusFilter>,
         sharedFocus: Binding<MapFocus?> = .constant(nil)
@@ -197,6 +204,7 @@ struct FlatMapView: View {
         self.doubleTapZoomFactor = doubleTapZoomFactor
         self.focusesSelectedCountry = focusesSelectedCountry
         self.focusPadding = focusPadding
+        self.pendingVisitedISO2 = pendingVisitedISO2
         self._selectedCountry = selectedCountry
         self._filter = filter
         self._sharedFocus = sharedFocus
@@ -359,6 +367,7 @@ struct FlatMapView: View {
             shapes: currentShapes,
             countriesByISO2: countriesByISO2ForMarking,
             selectedISO2: selectedISO2,
+            pendingVisitedISO2: pendingVisitedISO2,
             viewport: viewport,
             worldRect: worldRect,
             fitScale: fitScale,
