@@ -338,10 +338,14 @@ struct DefaultSearchView: View {
                     .listRowSeparator(.hidden)
             } else {
                 ForEach(filteredCountries, id: \.iso2) { country in
-                    CountryRow(country: country)
-                        .onTapGesture {
-                            model.selectedCountry = country
-                        }
+                    // A button, not a tap gesture: picking a result is an action, and only the
+                    // button carries the accessibility trait that tells VoiceOver so.
+                    Button {
+                        model.selectedCountry = country
+                    } label: {
+                        CountryRow(country: country)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
