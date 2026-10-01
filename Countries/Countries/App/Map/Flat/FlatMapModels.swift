@@ -68,6 +68,13 @@ nonisolated struct RenderCountryShape: Identifiable, @unchecked Sendable {
     /// Where a label for this country is anchored, in normalized world space.
     let labelAnchor: CGPoint
 
+    /// Distance from ``labelAnchor`` to the nearest edge, in normalized world units.
+    ///
+    /// The radius of the largest circle that fits inside the country at the anchor. Half the
+    /// text width has to fit in it, or the name crosses the border - which is what the
+    /// bounding box below cannot tell you, because a wide box can sit over a narrow country.
+    let labelClearanceNormalized: CGFloat
+
     /// Bounds of the largest ring plus camera padding, which is what the camera frames.
     let focusBoundingBoxNormalized: CGRect
 
