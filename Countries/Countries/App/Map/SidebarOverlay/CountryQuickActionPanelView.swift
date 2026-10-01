@@ -42,9 +42,6 @@ struct CountryQuickActionPanelView: View {
     /// The country the panel acts on.
     let country: Country
 
-    /// Set while the confirmation for withdrawing a visited status is up.
-    @State private var pendingWithdrawal: Country?
-
     /// Invoked when the panel should be dismissed.
     ///
     /// - Note: The close control lives in the navigation bar of the presenting
@@ -80,7 +77,6 @@ struct CountryQuickActionPanelView: View {
             }
         }
         .padding()
-        .visitedWithdrawalConfirmation(for: $pendingWithdrawal, onConfirm: withdrawStatus)
     }
 
     // MARK: - Subviews
@@ -129,26 +125,10 @@ struct CountryQuickActionPanelView: View {
     ///   only logged.
     private func toggle(_ status: CountryStatus) {
 
-        guard !CountryStatusService.withdrawalLeavesTrips(status, for: country) else {
-            pendingWithdrawal = country
-            return
-        }
-
         do {
             try CountryStatusService.toggleStatus(status, for: country, in: modelContext)
         } catch {
             logger.error("Toggling status failed: \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    /// Clears the status of `country`, leaving its trips in place.
-    ///
-    /// - Parameter country: The country the user confirmed the withdrawal for.
-    private func withdrawStatus(of country: Country) {
-        do {
-            try CountryStatusService.setStatus(.none, for: country, in: modelContext)
-        } catch {
-            logger.error("Clearing status failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

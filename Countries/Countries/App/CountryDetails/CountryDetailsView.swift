@@ -49,9 +49,6 @@ struct CountryDetailsView: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    /// Set while the confirmation for withdrawing a visited status is up.
-    @State private var pendingWithdrawal: Country?
-
     /// The country whose stored attributes this screen renders.
     let country: Country
 
@@ -80,7 +77,6 @@ struct CountryDetailsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbar }
         .toolbar(.hidden, for: .tabBar)
-        .visitedWithdrawalConfirmation(for: $pendingWithdrawal, onConfirm: withdrawStatus)
     }
 
     // MARK: - Header
@@ -249,19 +245,7 @@ struct CountryDetailsView: View {
     ///   button of the status the country already has clears it again.
     private func toggleStatus(_ newStatus: CountryStatus) {
 
-        guard !CountryStatusService.withdrawalLeavesTrips(newStatus, for: country) else {
-            pendingWithdrawal = country
-            return
-        }
-
         try? CountryStatusService.toggleStatus(newStatus, for: country, in: modelContext)
-    }
-
-    /// Clears the status of `country`, leaving its trips in place.
-    ///
-    /// - Parameter country: The country the user confirmed the withdrawal for.
-    private func withdrawStatus(of country: Country) {
-        try? CountryStatusService.setStatus(.none, for: country, in: modelContext)
     }
 
     // MARK: - Helpers

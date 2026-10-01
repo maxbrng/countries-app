@@ -119,41 +119,4 @@ struct CountryStatusAndTripsTests {
 
     // MARK: - When to warn
 
-    @Test func test_withdrawalLeavesTrips_visitedCountryOnATrip_isTrue() throws {
-
-        let context = try makeContext()
-        let (country, _) = try makeVisitedCountryOnATrip(in: context)
-
-        #expect(CountryStatusService.withdrawalLeavesTrips(.visited, for: country))
-    }
-
-    @Test func test_withdrawalLeavesTrips_visitedCountryWithoutTrips_isFalse() throws {
-
-        let context = try makeContext()
-        let country = makeCountry(iso2: "FR", name: "France", status: .visited)
-        context.insert(country)
-        try context.save()
-
-        #expect(!CountryStatusService.withdrawalLeavesTrips(.visited, for: country))
-    }
-
-    @Test func test_withdrawalLeavesTrips_addingAStatus_isFalse() throws {
-
-        let context = try makeContext()
-        let (country, _) = try makeVisitedCountryOnATrip(in: context)
-
-        try CountryStatusService.setStatus(.none, for: country, in: context)
-
-        // Nothing is being withdrawn here, so there is nothing to warn about.
-        #expect(!CountryStatusService.withdrawalLeavesTrips(.visited, for: country))
-    }
-
-    @Test func test_withdrawalLeavesTrips_wishlist_isFalse() throws {
-
-        let context = try makeContext()
-        let (country, _) = try makeVisitedCountryOnATrip(in: context)
-
-        // The wishlist control never withdraws a visited status, it replaces it.
-        #expect(!CountryStatusService.withdrawalLeavesTrips(.wishlist, for: country))
-    }
 }
