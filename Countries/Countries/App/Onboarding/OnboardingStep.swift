@@ -29,7 +29,11 @@ nonisolated enum OnboardingStep: Int, CaseIterable, Identifiable {
         OnboardingStep(rawValue: rawValue + 1)
     }
 
-    /// Position of this step in the flow, counting from one, for the progress indicator.
+    /// Position of this step in the flow, counting from one.
+    ///
+    /// - Note: Not drawn anywhere since the flow became a paged view - the dots say this now.
+    ///   It stays because the order is a property of the flow worth asserting in a test, and
+    ///   because a step added out of order is a mistake that should fail there.
     var number: Int { rawValue + 1 }
 
     /// How many steps the flow has.

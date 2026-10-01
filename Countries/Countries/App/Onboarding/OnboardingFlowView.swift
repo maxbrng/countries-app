@@ -24,13 +24,13 @@ struct OnboardingFlowView: View {
 
     /// Spacings of the flow's frame around each step.
     private enum Layout {
-        /// Gap between the progress line and the step's own content.
-        static let headerSpacing: CGFloat = 8
         /// Gap between the content and the buttons.
         static let footerSpacing: CGFloat = 12
         static let horizontalPadding: CGFloat = 24
         /// Duration of the slide between two steps.
         static let stepAnimation: Double = 0.3
+        /// Room kept under the pages for the dots the page style draws there.
+        static let pageIndicatorRoom: CGFloat = 40
     }
 
     // MARK: - Properties
@@ -60,26 +60,48 @@ struct OnboardingFlowView: View {
 
             VStack(spacing: Layout.footerSpacing) {
 
-                content
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .transition(.asymmetric(insertion: .move(edge: .trailing),
-                                            removal: .move(edge: .leading)))
+                pages
 
                 buttons
+                    .padding(.horizontal, Layout.horizontalPadding)
             }
-            .padding(.horizontal, Layout.horizontalPadding)
             .safeAreaPadding(.bottom)
-            .animation(.easeInOut(duration: Layout.stepAnimation), value: step)
             .toolbar { toolbar }
         }
     }
 
     // MARK: - Steps
 
-    /// The step currently on screen.
+    /// Every step side by side, swipeable, with the dots underneath.
+    ///
+    /// A paged `TabView` rather than one view swapped out behind a button: the dots and the
+    /// swipe are the same control, and this is the one iOS already draws. Building them by
+    /// hand would mean reimplementing the rubber-banding at the first and last page, which is
+    /// what makes a hand-rolled pager feel wrong even when it looks right.
+    ///
+    /// - Note: `indexDisplayMode` is `.automatic`, so a flow with a single step shows no dots.
+    ///   One dot states nothing and is the same noise as "Step 1 of 1".
+    private var pages: some View {
+
+        TabView(selection: $step) {
+            ForEach(OnboardingStep.allCases) { onboardingStep in
+                content(for: onboardingStep)
+                    .padding(.horizontal, Layout.horizontalPadding)
+                    .padding(.bottom, Layout.pageIndicatorRoom)
+                    .tag(onboardingStep)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .automatic))
+        .indexViewStyle(.page(backgroundDisplayMode: .interactive))
+        .animation(.easeInOut(duration: Layout.stepAnimation), value: step)
+    }
+
+    /// The content of one step.
+    ///
+    /// - Parameter onboardingStep: The step to build.
     @ViewBuilder
-    private var content: some View {
-        switch step {
+    private func content(for onboardingStep: OnboardingStep) -> some View {
+        switch onboardingStep {
         case .welcome:
             OnboardingWelcomeView()
         case .markVisited:
@@ -97,15 +119,6 @@ struct OnboardingFlowView: View {
     /// skippable — it is a form with a longer road to the exit.
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
-
-        ToolbarItem(placement: .principal) {
-            // A flow with one step has no position worth reporting; "Step 1 of 1" is noise.
-            if OnboardingStep.count > 1 {
-                Text("Step \(step.number) of \(OnboardingStep.count)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
 
         ToolbarItem(placement: .confirmationAction) {
             // Only where it skips something. On the last step the primary button already ends
@@ -140,7 +153,9 @@ struct OnboardingFlowView: View {
             return
         }
 
-        step = next
+        withAnimation(.easeInOut(duration: Layout.stepAnimation)) {
+            step = next
+        }
     }
 
     /// Writes what `step` collected.
