@@ -8,10 +8,11 @@
 import SwiftUI
 import SwiftData
 
-/// List of the user's trips, newest first, pushed from the main screen.
+/// List of the user's trips, newest first.
 ///
-/// Creating and editing both happen in ``TripEditorView``, presented as a sheet from here, so
-/// an abandoned new trip never reaches the store.
+/// A row pushes ``TripDetailView``; editing and deleting start there. Creating a trip happens
+/// in ``TripEditorView``, presented as a sheet from here, so an abandoned new trip never
+/// reaches the store.
 struct TripsListView: View {
 
     // MARK: - Properties
@@ -22,8 +23,9 @@ struct TripsListView: View {
 
     /// The trip the editor sheet is open for, or `nil` while it is closed.
     ///
-    /// ``TripEditorSubject`` distinguishes a new trip from an existing one, which a plain
-    /// `Trip?` could not: `nil` already means "sheet closed".
+    /// Only ever ``TripEditorSubject/new`` from here — an existing trip is edited from
+    /// ``TripDetailView`` — but the enum is what `.sheet(item:)` needs, because `nil` already
+    /// means "sheet closed".
     @State private var editorSubject: TripEditorSubject?
 
     // MARK: - Body
@@ -68,12 +70,11 @@ struct TripsListView: View {
     private var tripList: some View {
         List {
             ForEach(sortedTrips) { trip in
-                Button {
-                    editorSubject = .existing(trip)
+                NavigationLink {
+                    TripDetailView(trip: trip)
                 } label: {
                     TripRow(trip: trip)
                 }
-                .tint(.primary)
             }
             .onDelete(perform: deleteTrips)
         }
