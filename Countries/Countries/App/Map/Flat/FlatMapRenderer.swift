@@ -305,6 +305,10 @@ struct FlatMapRenderer: View, Animatable {
     ///   not part of ``countriesByISO2`` (unknown, or filtered out).
     private func fill(for iso2: String, isSelected: Bool) -> Color {
 
+        // Before the stored status, because during the first launch there is no stored status
+        // yet and the caller's set is the only record of what has been picked.
+        if pendingVisitedISO2.contains(iso2) { return MapPalette.visitedFill }
+
         guard let country = countriesByISO2[iso2] else { return MapPalette.unknownLandFill }
 
         switch country.status {

@@ -43,7 +43,8 @@ struct OnboardingHomeView: View {
             selectionSummary
 
             CountryMultiSelectList(selectedCodes: singleSelectionBinding(for: $selectedCode),
-                                   searchPrompt: "Search countries")
+                                   searchPrompt: "Search countries",
+                                   allowsBulkSelection: false)
                 .listStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -30,7 +30,8 @@ struct HomeCountryPickerView: View {
     var body: some View {
 
         CountryMultiSelectList(selectedCodes: singleSelectionBinding(for: $selectedCode),
-                               searchPrompt: "Search countries")
+                               searchPrompt: "Search countries",
+                               allowsBulkSelection: false)
             .navigationTitle("Home country")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear { selectedCode = HomeCountry.iso2 }

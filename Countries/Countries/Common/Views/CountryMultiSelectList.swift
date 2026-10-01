@@ -40,8 +40,15 @@ struct CountryMultiSelectList: View {
     /// ISO2 codes of the selected countries, owned by the caller.
     @Binding var selectedCodes: Set<String>
 
+
     /// Placeholder of the search field.
     let searchPrompt: LocalizedStringKey
+
+    /// Whether a continent header may take or drop all of its countries at once.
+    ///
+    /// Off for a question with exactly one answer - see ``singleSelectionBinding(for:)``.
+    /// "Select all" on a list of possible home countries asks you to live everywhere.
+    let allowsBulkSelection: Bool
 
     @AppStorage("showOnlyUNMembers") private var showOnlyUNMembers: Bool = false
 
@@ -50,12 +57,28 @@ struct CountryMultiSelectList: View {
     /// Text of the search field.
     @State private var searchText = ""
 
+    // MARK: - Init
+
+    /// - Parameters:
+    ///   - selectedCodes: ISO2 codes of the selected countries, owned by the caller.
+    ///   - searchPrompt: Placeholder of the search field.
+    ///   - allowsBulkSelection: Whether a continent header may take all of its countries at
+    ///     once. Defaults to `true`; pass `false` for a question with one answer.
+    init(selectedCodes: Binding<Set<String>>,
+         searchPrompt: LocalizedStringKey,
+         allowsBulkSelection: Bool = true) {
+
+        self._selectedCodes = selectedCodes
+        self.searchPrompt = searchPrompt
+        self.allowsBulkSelection = allowsBulkSelection
+    }
+
     // MARK: - Body
 
     var body: some View {
 
         List(selection: $selectedCodes) {
-            ForEach(continentGroups, id: \.name) { group in
+            ForEach(continentGroups, id: \.code) { group in
                 Section {
                     ForEach(group.countries, id: \.iso2) { country in
                         row(for: country)
@@ -81,7 +104,10 @@ struct CountryMultiSelectList: View {
     /// One continent and the countries on it that survived the filters.
     private struct ContinentGroup {
 
-        /// Name of the continent, or a stand-in for countries that carry none.
+        /// Two-letter continent code, or ``ContinentName/unknownCode``.
+        let code: String
+
+        /// The continent's name in the app's language.
         let name: String
 
         /// The countries, sorted by their displayed name.
@@ -90,9 +116,6 @@ struct CountryMultiSelectList: View {
         /// ISO2 codes of every country in the group.
         var codes: Set<String> { Set(countries.map(\.iso2)) }
     }
-
-    /// Name used for countries whose continent the data does not give.
-    private static let unknownContinentName = "Other"
 
     /// The countries offered, narrowed by the UN filter and the search field, by continent.
     ///
@@ -107,12 +130,18 @@ struct CountryMultiSelectList: View {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let matching = query.isEmpty ? base : base.filter { $0.matches(searchQuery: query) }
 
+        // ``ContinentName`` rather than the stored code: the list would otherwise read "AF"
+        // and "EU", which is what the data holds but not what a continent is called.
         let grouped = Dictionary(grouping: matching) { country in
-            country.continent?.trimmedNonEmpty ?? Self.unknownContinentName
+            country.continent?.trimmedNonEmpty ?? ContinentName.unknownCode
         }
 
         return grouped
-            .map { ContinentGroup(name: $0.key, countries: $0.value.sortedByDisplayName()) }
+            .map { code, countries in
+                ContinentGroup(code: code,
+                               name: ContinentName.name(for: code),
+                               countries: countries.sortedByDisplayName())
+            }
             .sorted { $0.name < $1.name }
     }
 
@@ -133,22 +162,36 @@ struct CountryMultiSelectList: View {
 
             Spacer()
 
-            if !selectedHere.isEmpty {
+            if allowsBulkSelection, !selectedHere.isEmpty {
                 Text(verbatim: "\(selectedHere.count)/\(codes.count)")
                     .foregroundStyle(.secondary)
             }
 
-            Button(allSelected ? "Deselect all" : "Select all") {
-                if allSelected {
-                    selectedCodes.subtract(codes)
-                    return
-                }
-                selectedCodes.formUnion(codes)
+            if allowsBulkSelection {
+                bulkButton(allSelected: allSelected, codes: codes)
             }
-            .font(.caption.weight(.semibold))
-            .textCase(nil)
-            .buttonStyle(.borderless)
         }
+    }
+
+    /// Takes or drops a whole continent.
+    ///
+    /// - Parameters:
+    ///   - allSelected: Whether every country of the continent is already picked.
+    ///   - codes: ISO2 codes of that continent.
+    private func bulkButton(allSelected: Bool, codes: Set<String>) -> some View {
+
+        Button(allSelected ? "Deselect all" : "Select all") {
+
+            if allSelected {
+                selectedCodes.subtract(codes)
+                return
+            }
+
+            selectedCodes.formUnion(codes)
+        }
+        .font(.caption.weight(.semibold))
+        .textCase(nil)
+        .buttonStyle(.borderless)
     }
 
     /// One row: flag and name. The selection control is the list's own.
