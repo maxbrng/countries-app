@@ -579,7 +579,6 @@ struct FlatMapRenderer: View, Animatable {
             // Natural Earth's `abbrev` was tried instead of hiding a name that does not fit,
             // and it reads as noise: a map full of "Fr.", "Ukr." and "S.Af." is worse than a
             // map with fewer names on it.
-            let drawnText = name
 
             let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
