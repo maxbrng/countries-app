@@ -48,7 +48,7 @@ struct TripDetailView: View {
     /// Drives the delete confirmation.
     @State private var showsDeleteConfirmation = false
 
-    /// Owned by ``TripsListView``, because the undo has to outlive this screen.
+    /// Provided by ``RootTabView``, because the undo has to outlive this screen.
     @Environment(TripDeletionCoordinator.self) private var deletion
 
     // MARK: - Body
@@ -75,10 +75,13 @@ struct TripDetailView: View {
         .sheet(isPresented: $isEditing) {
             TripEditorView(subject: .existing(trip))
         }
-        .sheet(isPresented: $showsDeleteConfirmation) {
-            TripDeletionConfirmationView(summary: TripDeletion.summary(for: trip)) {
-                deleteTrip()
-            }
+        .alert("Delete trip?", isPresented: $showsDeleteConfirmation) {
+
+            Button("Delete", role: .destructive) { deleteTrip() }
+            Button("Cancel", role: .cancel) { }
+
+        } message: {
+            Text(verbatim: TripDeletion.confirmationMessage(for: trip))
         }
     }
 

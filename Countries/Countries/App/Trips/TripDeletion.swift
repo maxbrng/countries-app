@@ -64,6 +64,40 @@ enum TripDeletion {
         )
     }
 
+    /// The deletion in the one paragraph an alert has room for.
+    ///
+    /// Names what goes, and then the single thing nobody can know on their own: a trip and a
+    /// country's visited status are separate records — see [C-05] — so deleting the trip does
+    /// not un-visit anything. Everything that was never in danger is deliberately left out.
+    /// Reassurance about things nobody was worried about reads as noise, and pushes the one
+    /// sentence that matters out of sight.
+    ///
+    /// - Parameter trip: The trip about to be deleted.
+    /// - Returns: A message for the confirmation alert.
+    static func confirmationMessage(for trip: Trip) -> String {
+
+        let summary = summary(for: trip)
+        let title = summary.tripTitle
+
+        let goes: String
+        switch (summary.dateRange != nil, summary.hasNotes) {
+        case (true, true):
+            goes = String(localized: "\u{201C}\(title)\u{201D}, its dates and its notes are deleted.")
+        case (true, false):
+            goes = String(localized: "\u{201C}\(title)\u{201D} and its dates are deleted.")
+        case (false, true):
+            goes = String(localized: "\u{201C}\(title)\u{201D} and its notes are deleted.")
+        case (false, false):
+            goes = String(localized: "\u{201C}\(title)\u{201D} is deleted.")
+        }
+
+        guard !summary.countryNames.isEmpty else { return goes }
+
+        let names = summary.countryNames.formatted(.list(type: .and))
+
+        return goes + " " + String(localized: "\(names) stay marked as visited.")
+    }
+
     /// Captures everything about `trip` that a restore would need.
     ///
     /// - Parameter trip: The trip about to be deleted.

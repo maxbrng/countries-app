@@ -34,12 +34,18 @@ struct TripsListView: View {
     /// means "sheet closed".
     @State private var editorSubject: TripEditorSubject?
 
-    /// Owns the undo window. Held here rather than in ``TripDetailView``, because deleting
-    /// from the detail screen leaves it immediately and the offer has to survive that.
-    @State private var deletion = TripDeletionCoordinator()
+    /// Provided by ``RootTabView`` above the navigation stack, so that ``TripDetailView``
+    /// sees the same coordinator once it is pushed.
+    @Environment(TripDeletionCoordinator.self) private var deletion
 
-    /// The trip the confirmation sheet is open for, or `nil` while it is closed.
+    /// The trip the confirmation is open for, or `nil` while it is closed.
     @State private var deletionCandidate: Trip?
+
+    /// Drives the alert from ``deletionCandidate``, and clears it again on dismissal.
+    private var isShowingDeletionConfirmation: Binding<Bool> {
+        Binding(get: { deletionCandidate != nil },
+                set: { if !$0 { deletionCandidate = nil } })
+    }
 
     // MARK: - Body
 
@@ -67,12 +73,18 @@ struct TripsListView: View {
         .sheet(item: $editorSubject) { subject in
             TripEditorView(subject: subject)
         }
-        .sheet(item: $deletionCandidate) { trip in
-            TripDeletionConfirmationView(summary: TripDeletion.summary(for: trip)) {
+        .alert("Delete trip?",
+               isPresented: isShowingDeletionConfirmation,
+               presenting: deletionCandidate) { trip in
+
+            Button("Delete", role: .destructive) {
                 deletion.delete(trip, in: modelContext)
             }
+            Button("Cancel", role: .cancel) { }
+
+        } message: { trip in
+            Text(verbatim: TripDeletion.confirmationMessage(for: trip))
         }
-        .environment(deletion)
         .safeAreaInset(edge: .bottom) {
             if let pending = deletion.pendingUndo {
                 TripUndoBanner(tripTitle: pending.tripTitle) {
