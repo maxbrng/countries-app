@@ -31,6 +31,17 @@ struct OnboardingFlowView: View {
         static let horizontalPadding: CGFloat = 24
         /// Duration of the slide between two steps.
         static let stepAnimation: Double = 0.3
+
+        /// Widest the step column is allowed to become.
+        ///
+        /// A canvas is not a measure. On an iPad in portrait the column would otherwise be
+        /// 786 pt wide, which sets the sentence under the headline as one unbroken line and
+        /// leaves the map preview - it aspect-fits to its own height - as a 220 pt square
+        /// adrift in the middle of it.
+        ///
+        /// - Note: A phone is narrower than this at every size, so the cap cannot engage
+        ///   there and the flow is unchanged on iPhone.
+        static let maximumContentWidth: CGFloat = 560
     }
 
     // MARK: - Properties
@@ -68,6 +79,11 @@ struct OnboardingFlowView: View {
                 buttons
             }
             .padding(.horizontal, Layout.horizontalPadding)
+            // Two frames, and both are needed: the first caps the column, the second hands
+            // the cap the full canvas to centre it in. Capping alone would leave the column
+            // against the leading edge.
+            .frame(maxWidth: Layout.maximumContentWidth)
+            .frame(maxWidth: .infinity)
             .safeAreaPadding(.bottom)
             .animation(.easeInOut(duration: Layout.stepAnimation), value: step)
             .toolbar { toolbar }
