@@ -30,6 +30,13 @@ struct FlatMapRenderer: View, Animatable {
     /// Lowercased ISO2 code of the selected country, or `nil` when nothing is selected.
     let selectedISO2: String?
 
+    /// Lowercased ISO2 codes marked by the caller rather than by their stored status.
+    ///
+    /// Drawn as visited. The first launch needs this: nothing is written to the store until
+    /// the flow is confirmed, so until then the only record of what the user has picked is
+    /// the caller's own set. Empty everywhere else, where the status is the truth.
+    let pendingVisitedISO2: Set<String>
+
     // MARK: - Layout
 
     /// Full drawing area of the canvas.
@@ -156,6 +163,7 @@ struct FlatMapRenderer: View, Animatable {
     ///   - shapes: Pre-built geometry in normalized world space.
     ///   - countriesByISO2: Countries eligible for status colouring, keyed by lowercased ISO2.
     ///   - selectedISO2: Lowercased ISO2 code of the selected country, or `nil`.
+    ///   - pendingVisitedISO2: Lowercased codes to draw as visited regardless of their status.
     ///   - viewport: Full drawing area.
     ///   - worldRect: Projected world rectangle inside the viewport.
     ///   - fitScale: Scale that fits the world into the viewport.
@@ -171,6 +179,7 @@ struct FlatMapRenderer: View, Animatable {
         shapes: [RenderCountryShape],
         countriesByISO2: [String: Country],
         selectedISO2: String?,
+        pendingVisitedISO2: Set<String>,
         viewport: CGRect,
         worldRect: CGRect,
         fitScale: CGFloat,
@@ -186,6 +195,7 @@ struct FlatMapRenderer: View, Animatable {
         self.shapes = shapes
         self.countriesByISO2 = countriesByISO2
         self.selectedISO2 = selectedISO2
+        self.pendingVisitedISO2 = pendingVisitedISO2
         self.viewport = viewport
         self.worldRect = worldRect
         self.fitScale = fitScale
@@ -384,6 +394,8 @@ struct FlatMapRenderer: View, Animatable {
     /// - Returns: The status colour, or the neutral system fill when the country is
     ///   not part of ``countriesByISO2`` (unknown, or filtered out).
     private func fill(for iso2: String) -> Color {
+
+        if pendingVisitedISO2.contains(iso2) { return MapPalette.visitedFill }
 
         guard let country = countriesByISO2[iso2] else { return MapPalette.unknownLandFill }
 
