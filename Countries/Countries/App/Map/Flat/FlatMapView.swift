@@ -368,6 +368,7 @@ struct FlatMapView: View {
             countriesByISO2: countriesByISO2ForMarking,
             selectedISO2: selectedISO2,
             pendingVisitedISO2: pendingVisitedISO2,
+            homeISO2: HomeCountry.iso2?.lowercased(),
             viewport: viewport,
             worldRect: worldRect,
             fitScale: fitScale,

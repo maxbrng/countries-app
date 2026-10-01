@@ -36,6 +36,11 @@ struct FlatMapRenderer: View, Animatable {
     /// the flow is confirmed, so until then the only record of what the user has picked is
     /// the caller's own set. Empty everywhere else, where the status is the truth.
     let pendingVisitedISO2: Set<String>
+    /// Lowercased ISO2 code of the country the user lives in, or `nil` when none is set.
+    ///
+    /// Marked on the interactive map only. On the dashboard preview the whole world is a few
+    /// centimetres wide and a marker would be a dot on a dot.
+    let homeISO2: String?
 
     // MARK: - Layout
 
@@ -90,6 +95,26 @@ struct FlatMapRenderer: View, Animatable {
         static let selectedLineWidth: CGFloat = 1.2
         /// Border width of every other country, in points before the camera scale.
         static let lineWidth: CGFloat = 0.4
+    }
+
+    /// The marker drawn over the country the user lives in.
+    ///
+    /// Modelled on the dot a map puts where you are: a filled disc inside a ring of the map's
+    /// own background, so it reads against any fill underneath it. Drawn in screen points, so
+    /// it keeps its size at every zoom rather than growing into a blob.
+    private enum HomeMarker {
+
+        /// Radius of the filled disc, in screen points.
+        static let radius: CGFloat = 5
+
+        /// Width of the ring drawn around the disc.
+        static let ringWidth: CGFloat = 2
+
+        /// Radius of the soft halo under the disc, as a multiple of ``radius``.
+        static let haloRadiusFactor: CGFloat = 2.6
+
+        /// Opacity of that halo.
+        static let haloOpacity: Double = 0.25
     }
 
     /// Thresholds and paddings of the label placement pass. All values are tuned
@@ -156,6 +181,7 @@ struct FlatMapRenderer: View, Animatable {
     ///   - countriesByISO2: Countries eligible for status colouring, keyed by lowercased ISO2.
     ///   - selectedISO2: Lowercased ISO2 code of the selected country, or `nil`.
     ///   - pendingVisitedISO2: Lowercased codes to draw as visited regardless of their status.
+    ///   - homeISO2: Lowercased ISO2 code of the home country, or `nil`.
     ///   - viewport: Full drawing area.
     ///   - worldRect: Projected world rectangle inside the viewport.
     ///   - fitScale: Scale that fits the world into the viewport.
@@ -171,6 +197,7 @@ struct FlatMapRenderer: View, Animatable {
         countriesByISO2: [String: Country],
         selectedISO2: String?,
         pendingVisitedISO2: Set<String>,
+        homeISO2: String?,
         viewport: CGRect,
         worldRect: CGRect,
         fitScale: CGFloat,
@@ -186,6 +213,7 @@ struct FlatMapRenderer: View, Animatable {
         self.countriesByISO2 = countriesByISO2
         self.selectedISO2 = selectedISO2
         self.pendingVisitedISO2 = pendingVisitedISO2
+        self.homeISO2 = homeISO2
         self.viewport = viewport
         self.worldRect = worldRect
         self.fitScale = fitScale
@@ -251,6 +279,12 @@ struct FlatMapRenderer: View, Animatable {
                 drawContext.fill(path, with: .color(fillColor), style: .init(eoFill: true))
                 drawContext.stroke(path, with: .color(strokeColor), lineWidth: lineWidth)
             }
+
+            drawHomeMarker(in: context,
+                           cameraCenter: cameraCenter,
+                           currentScale: currentScale,
+                           offsetX: offsetX,
+                           offsetY: offsetY)
 
             if labelsEnabled {
                 drawLabels(
@@ -337,6 +371,68 @@ struct FlatMapRenderer: View, Animatable {
     ///   - currentScale: `fitScale` times `userZoom`.
     ///   - offsetX: Horizontal camera offset in points.
     ///   - offsetY: Vertical camera offset in points.
+    /// Draws the marker over the country the user lives in.
+    ///
+    /// Nothing is drawn on a preview, and nothing when no home country is set. The marker sits
+    /// at the country's label anchor — the point furthest from any of its edges — so it lands
+    /// in the middle of the landmass rather than at the centre of its bounding box, which for
+    /// a country like Norway is in the sea.
+    ///
+    /// - Parameters:
+    ///   - context: The unscaled canvas context. The marker is placed in screen space by hand
+    ///     so that it keeps its size at every zoom instead of growing with the camera.
+    ///   - cameraCenter: Center of the viewport, the fixed point of the camera transform.
+    ///   - currentScale: `fitScale` times `userZoom`.
+    ///   - offsetX: Horizontal camera offset in points.
+    ///   - offsetY: Vertical camera offset in points.
+    private func drawHomeMarker(in context: GraphicsContext,
+                                cameraCenter: CGPoint,
+                                currentScale: CGFloat,
+                                offsetX: CGFloat,
+                                offsetY: CGFloat) {
+
+        guard interactiveEnabled,
+              let homeISO2,
+              let shape = shapes.first(where: { $0.iso2 == homeISO2 })
+        else { return }
+
+        let anchorWorld = CGPoint(
+            x: worldRect.minX + shape.labelAnchor.x * worldRect.width,
+            y: worldRect.minY + shape.labelAnchor.y * worldRect.height
+        )
+
+        let point = CGPoint(
+            x: (anchorWorld.x - cameraCenter.x) * currentScale + cameraCenter.x + offsetX,
+            y: (anchorWorld.y - cameraCenter.y) * currentScale + cameraCenter.y + offsetY
+        )
+
+        guard viewport.insetBy(dx: -HomeMarker.radius * HomeMarker.haloRadiusFactor,
+                               dy: -HomeMarker.radius * HomeMarker.haloRadiusFactor)
+                .contains(point)
+        else { return }
+
+        /// A circle of `radius` centred on the marker's point.
+        func disc(radius: CGFloat) -> Path {
+            Path(ellipseIn: CGRect(x: point.x - radius,
+                                   y: point.y - radius,
+                                   width: radius * 2,
+                                   height: radius * 2))
+        }
+
+        let haloRadius = HomeMarker.radius * HomeMarker.haloRadiusFactor
+
+        context.fill(disc(radius: haloRadius),
+                     with: .color(MapPalette.homeMarker.opacity(HomeMarker.haloOpacity)))
+
+        // The ring is the map's own background, so the dot separates from the fill under it
+        // whatever that fill happens to be.
+        context.stroke(disc(radius: HomeMarker.radius + HomeMarker.ringWidth / 2),
+                       with: .color(MapPalette.ocean),
+                       lineWidth: HomeMarker.ringWidth)
+
+        context.fill(disc(radius: HomeMarker.radius), with: .color(MapPalette.homeMarker))
+    }
+
     private func drawLabels(in context: GraphicsContext,
                             cameraCenter: CGPoint,
                             currentScale: CGFloat,

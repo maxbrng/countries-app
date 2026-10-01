@@ -58,6 +58,14 @@ struct OnboardingVisitedView: View {
     /// same country twice adds it and removes it rather than doing nothing the second time.
     @State private var tappedCountry: Country?
 
+    /// What the picking map is asked to do: tappable and pannable, but unlabelled.
+    ///
+    /// Labels would compete with the fills that say what has been picked, and this screen is
+    /// about the fills.
+    private static let pickingDetail = MapDetailRequest(selectionEnabled: true,
+                                                        interactiveEnabled: true,
+                                                        labelsEnabled: false)
+
     /// Shown unfiltered: the map has no status filter during the first launch.
     @State private var mapFilter: CountryStatusFilter = .all
 
@@ -106,9 +114,7 @@ struct OnboardingVisitedView: View {
     /// the one this screen asks.
     private var mapPicker: some View {
 
-        FlatMapView(selectionEnabled: true,
-                    interactiveEnabled: true,
-                    labelsEnabled: false,
+        FlatMapView(detail: Self.pickingDetail,
                     focusesSelectedCountry: false,
                     pendingVisitedISO2: Set(selectedCodes.map { $0.lowercased() }),
                     selectedCountry: $tappedCountry,
