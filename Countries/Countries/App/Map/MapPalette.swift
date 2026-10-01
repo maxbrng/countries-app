@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 /// Every colour the map draws with, in one place.
 ///
@@ -64,7 +63,7 @@ enum MapPalette {
     /// The sea, and with it the background of the whole map.
     ///
     /// Everything else is measured against this.
-    static let ocean = Color(uiColor: .systemBackground)
+    static let ocean = Color(platform: .mapBackground)
 
     // MARK: - Land fills
 
@@ -74,22 +73,22 @@ enum MapPalette {
     ///   the lowest ratio on the map, and on its own it is what made Antarctica read as a hole
     ///   in the dashboard preview rather than as a continent. The ``coastline`` underneath is
     ///   what now carries that edge.
-    static let unknownLandFill = blended(.systemFill, over: .systemBackground)
+    static let unknownLandFill = blended(.mapNeutralFill, over: .mapBackground)
 
     /// Land that is known but carries no status.
     ///
     /// - Note: Contrast against ``ocean`` is 1.69 in light and 1.79 in dark appearance.
-    static let neutralLandFill = blended(.label,
+    static let neutralLandFill = blended(.mapForeground,
                                          alpha: Opacity.neutralFill,
-                                         over: .systemBackground)
+                                         over: .mapBackground)
 
     /// A country the user has visited.
     ///
     /// - Note: Contrast is 2.81 against ``neutralLandFill`` and 4.76 against ``ocean`` in light
     ///   appearance, 3.49 and 6.27 in dark.
-    static let visitedFill = blended(.label,
+    static let visitedFill = blended(.mapForeground,
                                      alpha: Opacity.visitedFill,
-                                     over: .systemBackground)
+                                     over: .mapBackground)
 
     /// A country on the user's wishlist.
     ///
@@ -98,7 +97,7 @@ enum MapPalette {
     ///   appearance therefore has one pair that colour alone cannot separate — see [D-02].
     static let wishlistFill = blended(.systemOrange,
                                       alpha: Opacity.wishlistFill,
-                                      over: .systemBackground)
+                                      over: .mapBackground)
 
     // MARK: - Strokes
 
@@ -113,7 +112,7 @@ enum MapPalette {
     ///   dark: only a fraction of a point of the stroke survives the fills drawn over it, and
     ///   a lighter line at that width disappears into its own antialiasing — measured, not
     ///   assumed.
-    static let coastline = blended(.label, alpha: Opacity.coastline, over: .systemBackground)
+    static let coastline = blended(.mapForeground, alpha: Opacity.coastline, over: .mapBackground)
 
     /// Lines of the status hatch, drawn inside a marked country.
     ///
@@ -132,13 +131,24 @@ enum MapPalette {
     ///
     /// - Note: Contrast against ``neutralLandFill`` is 1.50 in light and 1.65 in dark
     ///   appearance. Deliberately low: this separates two fills, it does not outline the map.
-    static let interiorBorder = Color(uiColor: .systemBackground).opacity(Opacity.interiorBorder)
+    static let interiorBorder = Color(platform: .mapBackground).opacity(Opacity.interiorBorder)
+
+    /// The dot marking the country the user lives in.
+    ///
+    /// The system accent colour, which is what a map uses for "you are here" and the one
+    /// colour on this screen that carries no status meaning: visited and wishlist are drawn
+    /// from the label colour and orange, so the accent cannot be mistaken for either.
+    ///
+    /// - Note: Contrast against ``visitedFill`` is the pair to watch, since the home country
+    ///   is always visited. The white ring drawn around the dot is what actually separates it
+    ///   from the fill, which is why the dot itself does not have to.
+    static let homeMarker = Color.accentColor
 
     /// Outline of the selected country.
     ///
     /// - Note: Contrast against ``neutralLandFill`` is 12.41 in light and 11.71 in dark
     ///   appearance — the strongest mark on the map, which is what a selection should be.
-    static let selectionStroke = Color(uiColor: .label)
+    static let selectionStroke = Color(platform: .mapForeground)
 
     // MARK: - Labels
 
@@ -146,7 +156,7 @@ enum MapPalette {
     ///
     /// - Note: Contrast against ``neutralLandFill`` is 6.55 in light and 6.67 in dark
     ///   appearance, so the names clear the 4.5:1 required for body text in both.
-    static let labelText = Color(uiColor: .label).opacity(Opacity.label)
+    static let labelText = Color(platform: .mapForeground).opacity(Opacity.label)
 
     // MARK: - Globe
 
@@ -184,37 +194,27 @@ enum MapPalette {
     /// - Parameters:
     ///   - top: The colour being laid on, its own alpha included in the blend.
     ///   - alpha: Additional opacity applied to `top`. Defaults to `1`, for colours such as
-    ///     `UIColor.systemFill` that already carry their own alpha.
+    ///     ``PlatformColor/mapNeutralFill`` that already carry their own alpha.
     ///   - bottom: The opaque surface underneath, in practice always the sea.
     /// - Returns: An opaque colour that renders identically to `top` drawn over `bottom`.
-    private static func blended(_ top: UIColor,
+    private static func blended(_ top: PlatformColor,
                                 alpha: Double = 1,
-                                over bottom: UIColor) -> Color {
+                                over bottom: PlatformColor) -> Color {
 
-        Color(uiColor: UIColor { traits in
+        Color(platform: .dynamic { isDark in
 
-            let resolvedTop = top.resolvedColor(with: traits)
-            let resolvedBottom = bottom.resolvedColor(with: traits)
+            let topComponents = top.resolved(inDarkMode: isDark).sRGBComponents
+            let bottomComponents = bottom.resolved(inDarkMode: isDark).sRGBComponents
 
-            var topRed: CGFloat = 0, topGreen: CGFloat = 0, topBlue: CGFloat = 0
-            var topAlpha: CGFloat = 0
-            var bottomRed: CGFloat = 0, bottomGreen: CGFloat = 0, bottomBlue: CGFloat = 0
-            var bottomAlpha: CGFloat = 0
-
-            resolvedTop.getRed(&topRed, green: &topGreen, blue: &topBlue, alpha: &topAlpha)
-            resolvedBottom.getRed(&bottomRed, green: &bottomGreen, blue: &bottomBlue,
-                                  alpha: &bottomAlpha)
-
-            let weight = topAlpha * alpha
+            let weight = topComponents.alpha * alpha
 
             func mix(_ top: CGFloat, _ bottom: CGFloat) -> CGFloat {
                 top * weight + bottom * (1 - weight)
             }
 
-            return UIColor(red: mix(topRed, bottomRed),
-                           green: mix(topGreen, bottomGreen),
-                           blue: mix(topBlue, bottomBlue),
-                           alpha: 1)
+            return .opaque(red: mix(topComponents.red, bottomComponents.red),
+                           green: mix(topComponents.green, bottomComponents.green),
+                           blue: mix(topComponents.blue, bottomComponents.blue))
         })
     }
 }

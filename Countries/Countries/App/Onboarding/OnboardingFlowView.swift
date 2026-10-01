@@ -49,6 +49,9 @@ struct OnboardingFlowView: View {
     /// so only the flow decides when a selection is written to the store.
     @State private var visitedCodes: Set<String> = []
 
+    /// Country picked in ``OnboardingStep/chooseHome``.
+    @State private var homeCode: String?
+
     // MARK: - Body
 
     var body: some View {
@@ -81,6 +84,8 @@ struct OnboardingFlowView: View {
             OnboardingWelcomeView()
         case .markVisited:
             OnboardingVisitedView(selectedCodes: $visitedCodes)
+        case .chooseHome:
+            OnboardingHomeView(selectedCode: $homeCode)
         }
     }
 
@@ -155,6 +160,15 @@ struct OnboardingFlowView: View {
             } catch {
                 logger.error(
                     "Could not apply the first launch selection: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+        case .chooseHome:
+            // Also marks it visited; nothing counts it a second time.
+            do {
+                try HomeCountry.set(homeCode, in: modelContext)
+            } catch {
+                logger.error(
+                    "Could not store the home country: \(error.localizedDescription, privacy: .public)"
                 )
             }
         }
