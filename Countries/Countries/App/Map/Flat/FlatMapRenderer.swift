@@ -101,6 +101,25 @@ struct FlatMapRenderer: View, Animatable {
         /// the edge while panning.
         static let viewportOverscan: CGFloat = 80
 
+        /// Slack added around the text before it is asked to fit inside the country.
+        ///
+        /// Keeps a name off its own border instead of letting it touch the coastline.
+        static let clearancePadding: CGFloat = 3
+
+        /// Share of a name's width the country's own outline must span before it is drawn.
+        ///
+        /// Below 1 on purpose: a name is allowed to overhang its border a little, the way a
+        /// printed atlas sets one. Far below it the name would stop belonging to anything the
+        /// reader can see, so it is not a free parameter to lower further.
+        static let minimumCountryWidthShare: CGFloat = 0.8
+
+        /// How much larger than the viewport the whole world must be before any label is drawn.
+        ///
+        /// At the minimum zoom the world exactly fills the viewport, so this draws nothing at
+        /// all there - which is the ask: a world view carries no names. Mercator alone would
+        /// not give that, because it inflates Greenland enough to pass any area test.
+        static let minimumWorldToViewportScale: CGFloat = 1.5
+
         /// Size every label is drawn at, in screen points.
         ///
         /// - Note: Constant on purpose. Labels are drawn in screen space, so they never grow
@@ -108,20 +127,6 @@ struct FlatMapRenderer: View, Animatable {
         ///   currentScale` shrank them instead, and the 8 pt floor was reached at about 1.25x,
         ///   which is why a zoomed-in map read worse than a zoomed-out one.
         static let fontSize: CGFloat = 11
-
-        /// Horizontal slack a country's box needs on top of the text width.
-        static let textFitPaddingWidth: CGFloat = 10
-        /// Vertical slack a country's box needs on top of the text height.
-        static let textFitPaddingHeight: CGFloat = 8
-
-        /// Absolute floor for the width a country's box must have to take a label.
-        static let minimumBoxWidthFloor: CGFloat = 26
-        /// Absolute floor for the height a country's box must have to take a label.
-        static let minimumBoxHeightFloor: CGFloat = 16
-        /// Absolute floor for the area a country's box must have to take a label.
-        static let minimumBoxAreaFloor: CGFloat = 200
-        /// How many times the text area a country's box must cover.
-        static let boxToTextAreaFactor: CGFloat = 2.4
 
         /// Padding added around a label rect before the collision test.
         static let collisionPadding: CGFloat = 6
@@ -338,6 +343,18 @@ struct FlatMapRenderer: View, Animatable {
                           height: max(LabelLayout.minimumProjectedExtent, maxY - minY))
         }
 
+        guard viewport.height > 0 else { return }
+
+        // Nothing at all while the map is at or near its minimum zoom - except the country the
+        // user has just tapped, which is checked per shape below. A selection that says nothing
+        // about which country was selected is not a selection.
+        let worldHeightOnScreen = worldRect.height * currentScale
+        let zoomAllowsLabels =
+            worldHeightOnScreen / viewport.height >= LabelLayout.minimumWorldToViewportScale
+
+        let hasSelection = selectionEnabled && selectedISO2 != nil
+        guard zoomAllowsLabels || hasSelection else { return }
+
         let viewportExpanded = viewport.insetBy(dx: -LabelLayout.viewportOverscan,
                                                 dy: -LabelLayout.viewportOverscan)
 
@@ -351,9 +368,13 @@ struct FlatMapRenderer: View, Animatable {
             let name = country.nameEnglish
             guard !name.isEmpty else { continue }
 
-            // The cartographer's anchor where the data has one, the computed pole of
-            // inaccessibility otherwise.
-            let anchorNormalized = shape.labelInfo.anchor ?? shape.labelAnchor
+            // The pole of inaccessibility of the country's largest part - the point
+            // furthest from any edge of it.
+            //
+            // Natural Earth's own label_x/label_y was tried here and is worse: it is placed
+            // for a printed world map, so Russia's sits over the Urals rather than in the
+            // middle of Russia.
+            let anchorNormalized = shape.labelAnchor
 
             let anchorWorld = CGPoint(
                 x: worldRect.minX + anchorNormalized.x * worldRect.width,
@@ -375,47 +396,48 @@ struct FlatMapRenderer: View, Animatable {
 
             guard fitScreenRect.intersects(viewportExpanded) else { continue }
 
+            let isSelected = (selectionEnabled && selectedISO2 == shape.iso2)
+            guard zoomAllowsLabels || isSelected else { continue }
+
             let fontSize = LabelLayout.fontSize
             let bboxArea = fitScreenRect.width * fitScreenRect.height
+            let textSize = labelMetrics.size(for: name, fontSize: fontSize)
 
-            /// Whether a string fits the country's box at the drawing font size.
-            ///
-            /// Measured through UIKit and cached across frames. The SwiftUI Text is
-            /// resolved further down, only for labels that actually get drawn.
-            func fittingSize(of candidateText: String) -> CGSize? {
+            // Is the name *on* the country? Two measurements, because neither answers alone.
+            //
+            // `labelClearanceNormalized` is the radius of the largest circle that fits inside
+            // the outline at the anchor. It says whether the anchor stands in open land or in
+            // a sliver, which is what keeps Croatia's name off the Adriatic - a box cannot
+            // answer that, because Croatia's box is wide while the land under it is a narrow
+            // crescent. The outline's own box then says whether the country is wide enough to
+            // carry the name at all.
+            //
+            // Only the text's *height* is asked to fit inside the circle. Requiring the whole
+            // text rectangle was the earlier rule and it emptied the map: measured against the
+            // real outlines it takes 3.0x zoom before "France" appears, 4.3x for "Germany" and
+            // 6.3x for "Italy", while labels only switch on at 1.5x - so the map carried two
+            // names at every zoom a reader actually uses. Letting a name overhang its border,
+            // as printed maps do, moves those three to 1.3x, 1.9x and 3.1x.
+            //
+            // The smaller of the two world dimensions converts the radius, because the
+            // normalized space need not be square and a circle in it is an ellipse on screen.
+            let clearanceOnScreen = shape.labelClearanceNormalized
+                * min(worldRect.width, worldRect.height)
+                * currentScale
 
-                let size = labelMetrics.size(for: candidateText, fontSize: fontSize)
+            let heightFits = textSize.height / 2
+                + LabelLayout.clearancePadding <= clearanceOnScreen
+            let widthFits = textSize.width
+                * LabelLayout.minimumCountryWidthShare <= fitScreenRect.width
 
-                let minimumWidth = max(LabelLayout.minimumBoxWidthFloor,
-                                       size.width + LabelLayout.textFitPaddingWidth)
-                let minimumHeight = max(LabelLayout.minimumBoxHeightFloor,
-                                        size.height + LabelLayout.textFitPaddingHeight)
-                let minimumArea = max(LabelLayout.minimumBoxAreaFloor,
-                                      size.width * size.height * LabelLayout.boxToTextAreaFactor)
+            // The selected country is exempt. Tapping a country and not being told which one
+            // it is makes the selection useless, so its name is drawn wherever the anchor is.
+            guard isSelected || (heightFits && widthFits) else { continue }
 
-                guard fitScreenRect.width >= minimumWidth,
-                      fitScreenRect.height >= minimumHeight,
-                      bboxArea >= minimumArea
-                else { return nil }
-
-                return size
-            }
-
-            // A name that does not fit falls back to the short form before the label is
-            // dropped: "D.R.C." where "Democratic Republic of the Congo" never fits.
-            let drawnText: String
-            let textSize: CGSize
-
-            if let size = fittingSize(of: name) {
-                drawnText = name
-                textSize = size
-            } else if let abbreviation = shape.labelInfo.abbreviation,
-                      let size = fittingSize(of: abbreviation) {
-                drawnText = abbreviation
-                textSize = size
-            } else {
-                continue
-            }
+            // Natural Earth's `abbrev` was tried instead of hiding a name that does not fit,
+            // and it reads as noise: a map full of "Fr.", "Ukr." and "S.Af." is worse than a
+            // map with fewer names on it.
+            let drawnText = name
 
             let collisionPadding = LabelLayout.collisionPadding
             let labelRect = CGRect(
@@ -432,7 +454,9 @@ struct FlatMapRenderer: View, Animatable {
                 fontSize: fontSize,
                 screenPoint: anchorScreen,
                 textSize: textSize,
-                rank: shape.labelInfo.rank,
+                // Ahead of every real rank, so the selected country keeps its label when it
+                // overlaps a neighbour's.
+                rank: isSelected ? Int.min : shape.labelInfo.rank,
                 area: bboxArea,
                 rect: labelRect
             ))

@@ -40,6 +40,16 @@ nonisolated enum FlatPathBuilder {
     struct BuildResult: @unchecked Sendable {
         let path: CGPath
         let labelAnchor: CGPoint
+
+        /// Distance from ``labelAnchor`` to the nearest edge of the country, in normalized
+        /// world units.
+        ///
+        /// This is the radius of the largest circle that fits inside the outline at the
+        /// anchor, and it is what decides whether a name can be drawn: half the text width
+        /// has to fit inside it, or the label would cross the border. The bounding box cannot
+        /// answer that - Croatia's box is wide while the land under it is a narrow crescent,
+        /// which is exactly how its name ended up outside the country.
+        let labelClearance: CGFloat
         let focusBoundingBox: CGRect
         /// The same ring's bounds without the camera padding, for the label fit test.
         let labelFitBoundingBox: CGRect
@@ -176,12 +186,13 @@ nonisolated enum FlatPathBuilder {
         
         let best = candidates.max(by: { $0.area < $1.area })
         
-        let labelAnchor: CGPoint = {
+        // The preview draws no labels, so it does not pay for the pole of inaccessibility.
+        let (labelAnchor, labelClearance): (CGPoint, CGFloat) = {
             switch variant {
             case .full:
                 return makeHybridLabelAnchor(bestCandidate: best)
             case .light:
-                return makeLightLabelAnchor(bestCandidate: best)
+                return (makeLightLabelAnchor(bestCandidate: best), 0)
             }
         }()
         let labelFitBoundingBox = chooseFocusBoundingBox(candidates: candidates,
@@ -193,6 +204,7 @@ nonisolated enum FlatPathBuilder {
 
         return .init(path: mutablePath,
                      labelAnchor: labelAnchor,
+                     labelClearance: labelClearance,
                      focusBoundingBox: focusBoundingBox,
                      labelFitBoundingBox: labelFitBoundingBox)
     }
@@ -212,9 +224,17 @@ nonisolated enum FlatPathBuilder {
         return pointOnSurfaceFallback(ring: bestCandidate.ring, bbox: bestCandidate.boundingBox) ?? centroid
     }
     
-    private static func makeHybridLabelAnchor(bestCandidate: Candidate?) -> CGPoint {
-        
-        guard let bestCandidate else { return CGPoint(x: 0.5, y: 0.5) }
+    /// - Returns: The anchor and the distance from it to the nearest edge of `bestCandidate`.
+    private static func makeHybridLabelAnchor(
+        bestCandidate: Candidate?
+    ) -> (point: CGPoint, clearance: CGFloat) {
+
+        guard let bestCandidate else { return (CGPoint(x: 0.5, y: 0.5), 0) }
+
+        /// Pairs a chosen anchor with its room to spare, measured on the real outline.
+        func withClearance(_ point: CGPoint) -> (point: CGPoint, clearance: CGFloat) {
+            (point, max(0, signedDistance(point, bestCandidate.ring)))
+        }
         
         let centroid = bestCandidate.centroid
         let centroidInside = pointInPolygon(centroid, bestCandidate.ring)
@@ -226,7 +246,7 @@ nonisolated enum FlatPathBuilder {
         
         let isCompact = (skinnyFactor < 1.6) && (bestCandidate.compactness > 0.22)
         if isCompact, centroidInside {
-            return centroid
+            return withClearance(centroid)
         }
         
         let polylabelPoint = stretchedPolylabel(bestCandidate.ring,
@@ -235,9 +255,11 @@ nonisolated enum FlatPathBuilder {
         
         guard let polylabelPoint else {
             if centroidInside {
-                return centroid
+                return withClearance(centroid)
             }
-            return pointOnSurfaceFallback(ring: bestCandidate.ring, bbox: bestCandidate.boundingBox) ?? centroid
+            let fallback = pointOnSurfaceFallback(ring: bestCandidate.ring,
+                                                  bbox: bestCandidate.boundingBox) ?? centroid
+            return withClearance(fallback)
         }
         
         // Blend centroid -> polylabel for skinny / non-compact shapes
@@ -247,18 +269,35 @@ nonisolated enum FlatPathBuilder {
         
         let mixed = interpolate(from: centroid, to: polylabelPoint, t: t)
         
-        if pointInPolygon(mixed, bestCandidate.ring) {
-            return mixed
+        // The blend is only taken when it does not cost room. Moving the anchor towards the
+        // centroid looks more natural on a lopsided country, but on a crescent it walks
+        // straight out of the widest part of the shape, and the name goes with it.
+        let mixedClearance = signedDistance(mixed, bestCandidate.ring)
+        let polylabelClearance = signedDistance(polylabelPoint, bestCandidate.ring)
+
+        if pointInPolygon(mixed, bestCandidate.ring),
+           mixedClearance >= polylabelClearance * Self.blendClearanceShare {
+            return (mixed, max(0, mixedClearance))
         }
         if pointInPolygon(polylabelPoint, bestCandidate.ring) {
-            return polylabelPoint
+            return (polylabelPoint, max(0, polylabelClearance))
         }
         if centroidInside {
-            return centroid
+            return withClearance(centroid)
         }
-        
-        return pointOnSurfaceFallback(ring: bestCandidate.ring, bbox: bestCandidate.boundingBox) ?? centroid
+
+        let fallback = pointOnSurfaceFallback(ring: bestCandidate.ring,
+                                              bbox: bestCandidate.boundingBox) ?? centroid
+        return withClearance(fallback)
     }
+
+    /// How much of the pole of inaccessibility's room the blended anchor must keep.
+    ///
+    /// Below this the blend is discarded and the pole is used as it is. 0.8 leaves the nudge
+    /// towards the centroid in place where it only costs a little - most countries - and
+    /// removes it where it would hand a crescent-shaped country an anchor with no room
+    /// around it.
+    private static let blendClearanceShare: CGFloat = 0.8
     
     // MARK: - Focus bounding box
 
