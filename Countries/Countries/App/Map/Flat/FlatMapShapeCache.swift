@@ -124,6 +124,7 @@ actor FlatMapShapeCache {
                         iso2: feature.iso2,
                         path: result.path,
                         labelAnchor: result.labelAnchor,
+                        labelClearanceNormalized: result.labelClearance,
                         focusBoundingBoxNormalized: result.focusBoundingBox,
                         labelFitBoundingBoxNormalized: result.labelFitBoundingBox,
                         boundsNormalized: result.path.boundingBoxOfPath,
