@@ -38,9 +38,6 @@ struct CountryRow: View {
 
     @Environment(\.modelContext) private var modelContext
 
-    /// Set while the confirmation for withdrawing a visited status is up.
-    @State private var pendingWithdrawal: Country?
-
     // MARK: - Body
 
     var body: some View {
@@ -75,7 +72,6 @@ struct CountryRow: View {
                 Label("Wishlist", systemImage: "star")
             }.tint(.blue)
         }
-        .visitedWithdrawalConfirmation(for: $pendingWithdrawal, onConfirm: withdrawStatus)
     }
 
     // MARK: - Actions
@@ -88,19 +84,7 @@ struct CountryRow: View {
     ///     already has clears it again.
     private func toggleStatus(of country: Country, _ newStatus: CountryStatus) {
 
-        guard !CountryStatusService.withdrawalLeavesTrips(newStatus, for: country) else {
-            pendingWithdrawal = country
-            return
-        }
-
         try? CountryStatusService.toggleStatus(newStatus, for: country, in: modelContext)
-    }
-
-    /// Clears the status of `country`, leaving its trips in place.
-    ///
-    /// - Parameter country: The country the user confirmed the withdrawal for.
-    private func withdrawStatus(of country: Country) {
-        try? CountryStatusService.setStatus(.none, for: country, in: modelContext)
     }
 
     // MARK: - Helpers

@@ -17,25 +17,6 @@ import SwiftData
 @MainActor
 enum CountryStatusService {
 
-    /// Whether toggling `status` would withdraw ``CountryStatus/visited`` from a country that
-    /// still belongs to trips.
-    ///
-    /// Withdrawing the status is not the same as saying the journey never happened, so the
-    /// trips are deliberately left alone — this is what lets the caller say so before the
-    /// change rather than leave the user to discover it.
-    ///
-    /// - Parameters:
-    ///   - status: The status the control stands for.
-    ///   - country: The country the control belongs to.
-    /// - Returns: `true` when the toggle clears ``CountryStatus/visited`` and at least one
-    ///   trip would remain.
-    static func withdrawalLeavesTrips(_ status: CountryStatus, for country: Country) -> Bool {
-
-        guard status == .visited, country.status == .visited else { return false }
-
-        return !country.trips.isEmpty
-    }
-
     /// Applies `status`, or clears it when the country already carries it.
     ///
     /// - Parameters:
