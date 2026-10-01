@@ -26,19 +26,14 @@ nonisolated struct DashboardStatistics: Equatable {
         /// but it is the case that would otherwise divide by zero.
         case unmeasurable
 
-        /// Nothing visited yet. No percentage is shown: "0 %" is not a fact worth printing in
-        /// large type, and the column beside it already says `0/250`.
-        case nothingVisited
-
-        /// A share between 1 and 99 per cent.
+        /// The share of the world that has been visited, 0 to 100.
         ///
-        /// Never 0 and never 100: one country out of two hundred and fifty rounds to zero, and
-        /// two hundred and forty-nine out of two hundred and fifty rounds to a hundred. Both
-        /// would be a lie in the direction that matters most to the person reading it.
+        /// Exact at both ends and rounded in between, but never rounded *onto* an end: one
+        /// country out of two hundred and fifty reports 1 rather than 0, and two hundred and
+        /// forty-nine out of two hundred and fifty reports 99 rather than 100. A zero therefore
+        /// means nothing has been visited and a hundred means nothing is missing; rounding onto
+        /// either would be a lie in the direction that matters most to the person reading it.
         case percentage(Int)
-
-        /// Every country in the source has been visited.
-        case everything
     }
 
     // MARK: - Constants
@@ -113,8 +108,8 @@ nonisolated struct DashboardStatistics: Equatable {
     private static func worldShare(visited: Int, total: Int, progress: Double) -> WorldShare {
 
         guard total > 0 else { return .unmeasurable }
-        guard visited > 0 else { return .nothingVisited }
-        guard visited < total else { return .everything }
+        guard visited > 0 else { return .percentage(0) }
+        guard visited < total else { return .percentage(100) }
 
         let rounded = Int((progress * 100).rounded())
 
