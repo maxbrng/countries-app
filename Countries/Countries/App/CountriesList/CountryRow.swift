@@ -63,6 +63,10 @@ struct CountryRow: View {
 
             badge(for: country.status)
         }
+        // The row's surface is its hit area, not the pixels it happens to paint. Without this
+        // the `Spacer` above is dead to a tap gesture, so a country with no badge ignored a
+        // tap on most of its own width and read as a frozen app.
+        .contentShape(Rectangle())
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button { toggleStatus(of: country, .visited) } label: {
                 Label("Visited", systemImage: "checkmark.circle")
