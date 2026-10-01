@@ -133,6 +133,17 @@ enum MapPalette {
     ///   appearance. Deliberately low: this separates two fills, it does not outline the map.
     static let interiorBorder = Color(platform: .mapBackground).opacity(Opacity.interiorBorder)
 
+    /// The dot marking the country the user lives in.
+    ///
+    /// The system accent colour, which is what a map uses for "you are here" and the one
+    /// colour on this screen that carries no status meaning: visited and wishlist are drawn
+    /// from the label colour and orange, so the accent cannot be mistaken for either.
+    ///
+    /// - Note: Contrast against ``visitedFill`` is the pair to watch, since the home country
+    ///   is always visited. The white ring drawn around the dot is what actually separates it
+    ///   from the fill, which is why the dot itself does not have to.
+    static let homeMarker = Color.accentColor
+
     /// Outline of the selected country.
     ///
     /// - Note: Contrast against ``neutralLandFill`` is 12.41 in light and 11.71 in dark

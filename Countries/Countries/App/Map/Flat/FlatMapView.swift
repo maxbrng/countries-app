@@ -345,6 +345,7 @@ struct FlatMapView: View {
             shapes: viewModel.shapes,
             countriesByISO2: countriesByISO2ForMarking,
             selectedISO2: selectedISO2,
+            homeISO2: HomeCountry.iso2?.lowercased(),
             viewport: viewport,
             worldRect: worldRect,
             fitScale: fitScale,
